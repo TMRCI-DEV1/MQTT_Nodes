@@ -1,7 +1,7 @@
 /*
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled SMINI Node (48 outputs / 24 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.2
+  Version: 1.0.3
   Date: 2023-05-24
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SUSIC Input-ONLY Node (48 outputs / 24 inputs) 
   using MQTT to subscribe to and publish messages published by and subscribed to by JMRI.
@@ -40,10 +40,10 @@ byte last_output_state[6];
 const char* arduinoId = "Arduino1"; // ***CHANGE TO APPROPRIATE UNIQUE ID***
 
 // Define the range of output (turnout and light) and sensor IDs
-const int minOutputId = 1001;    // Change Node number (1)001 to appropriate Node number
-const int maxOutputId = 1048;
-const int minSensorId = 1001;
-const int maxSensorId = 1024;
+const int minOutputId = 1;    // Change to 1
+const int maxOutputId = 48;   // Change to 48
+const int minSensorId = 1;    // Change to 1
+const int maxSensorId = 24;   // Change to 24
 
 // Function declarations for MQTT
 void callback(char* topic, byte* payload, unsigned int length);
@@ -199,33 +199,33 @@ void callback(char* topic, byte* payload, unsigned int length) {
   int objectId;
   
   // Handle turnout messages
-  if (receivedTopic.startsWith(prefixTurnout)) {
-    objectId = receivedTopic.substring(prefixTurnout.length() + 1).toInt();
-    bool turnoutState = false; // OFF (NORMAL) by default
-    if (receivedMessage == "REVERSE") {
-      turnoutState = true; // ON (REVERSE)
-    }
-    // If the turnout ID is within the defined range, update the corresponding output
-    if (objectId >= minOutputId && objectId <= maxOutputId) {
-      int byteIndex = (objectId - minOutputId) / 8;
-      int bitIndex = (objectId - minOutputId) % 8;
-      bitWrite(last_output_state[byteIndex], bitIndex, turnoutState);
-      updateOutputs();
-    }
-  } 
-  // Handle light messages
-  else if (receivedTopic.startsWith(prefixLight)) {
-    objectId = receivedTopic.substring(prefixLight.length() + 1).toInt();
-    bool lightState = false; // OFF by default
-    if (receivedMessage == "ON") {
-      lightState = true; // ON
-    }
-    // If the light ID is within the defined range, update the corresponding output
-    if (objectId >= minOutputId && objectId <= maxOutputId) {
-      int byteIndex = (objectId - minOutputId) / 8;
-      int bitIndex = (objectId - minOutputId) % 8;
-      bitWrite(last_output_state[byteIndex], bitIndex, lightState);
-      updateOutputs();
-    }
+if (receivedTopic.startsWith(prefixTurnout)) {
+  objectId = receivedTopic.substring(prefixTurnout.length() + 1).toInt();
+  bool turnoutState = false; // OFF (NORMAL) by default
+  if (receivedMessage == "REVERSE") {
+    turnoutState = true; // ON (REVERSE)
   }
+  // If the turnout ID is within the defined range, update the corresponding output
+  if (objectId >= minOutputId && objectId <= maxOutputId) {
+    int byteIndex = (objectId - 1) / 8; // Subtract 1 from objectId
+    int bitIndex = (objectId - 1) % 8;  // Subtract 1 from objectId
+    bitWrite(last_output_state[byteIndex], bitIndex, turnoutState);
+    updateOutputs();
+  }
+} 
+// Handle light messages
+else if (receivedTopic.startsWith(prefixLight)) {
+  objectId = receivedTopic.substring(prefixLight.length() + 1).toInt();
+  bool lightState = false; // OFF by default
+  if (receivedMessage == "ON") {
+    lightState = true; // ON
+  }
+  // If the light ID is within the defined range, update the corresponding output
+  if (objectId >= minOutputId && objectId <= maxOutputId) {
+    int byteIndex = (objectId - 1) / 8; // Subtract 1 from objectId
+    int bitIndex = (objectId - 1) % 8;  // Subtract 1 from objectId
+    bitWrite(last_output_state[byteIndex], bitIndex, lightState);
+    updateOutputs();
+  }
+}
 }
