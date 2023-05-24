@@ -37,7 +37,7 @@ byte last_input_state[3];
 byte last_output_state[6];
 
 // Define the Arduino ID
-const char* arduinoId = "Arduino1"; // ***CHANGE TO APPROPRIATE UNIQUE ID***
+const char* arduinoId = "Node1"; // ***CHANGE TO APPROPRIATE UNIQUE ID (Node #)***
 
 // Define the range of output (turnout and light) and sensor IDs
 const int minOutputId = 1;    // Change to 1
