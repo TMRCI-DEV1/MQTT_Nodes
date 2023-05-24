@@ -1,8 +1,8 @@
 /*
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled SUSIC Input-ONLY Node (72 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
-  Date: 2023-05-23
+  Version: 1.0.2
+  Date: 2023-05-24
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SUSIC Input-ONLY Node (72 inputs) 
   using MQTT to publish messages subscribed to by JMRI. Message payload is either ACTIVE or INACTIVE.
 */
@@ -31,8 +31,8 @@ byte last_input_state[9]; // 72 inputs from 9 74HC165s
 const char* arduinoId = "Arduino1"; // ***CHANGE TO APPROPRIATE UNIQUE ID***
 
 // Range of the sensor IDs
-const int minSensorId = 1001;   // Change Node number (1)001 to appropriate Node number
-const int maxSensorId = 1072;
+const int minSensorId = 1;    // Change to 1
+const int maxSensorId = 72;   // Change to 72
 
 void setup() {
   // Initialize the latch pin for the shift registers as output
