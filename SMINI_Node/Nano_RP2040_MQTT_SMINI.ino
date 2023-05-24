@@ -1,7 +1,7 @@
 /*
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled SMINI Node (48 outputs / 24 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.5
+  Version: 1.0.6
   Date: 2023-05-24
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SUSIC Input-ONLY Node (48 outputs / 24 inputs) 
   using MQTT to subscribe to and publish messages published by and subscribed to by JMRI.
@@ -19,6 +19,10 @@
 const char ssid[] = "HO Touch Panels";     // Name of the WiFi network
 const char password[] = "touch.666.pi";    // Password of the WiFi network
 const char *mqtt_server = "192.168.50.50"; // IP address of the MQTT server
+
+// MQTT topic constants
+const char* MQTT_TOPIC_PREFIX_TURNOUT = "TMRCI/cmd/turnout/";
+const char* MQTT_TOPIC_PREFIX_LIGHT = "TMRCI/cmd/light/";
 
 // Define pins for 74HC165 (input shift register)
 const byte LATCH_165 = 9;
@@ -49,9 +53,9 @@ const int maxSensorId = 24;   // Change to 24
 void callback(char* topic, byte* payload, unsigned int length);
 void reconnect();
 void updateOutputs();
+void handleOutputMessage(String receivedTopic, String receivedMessage, const char* topicPrefix);
 
 void setup() {
-  
   // Set up input and output shift registers
   pinMode(LATCH_165, OUTPUT);
   pinMode(LATCH_595, OUTPUT);
@@ -85,10 +89,10 @@ void setup() {
     Serial.println("connected");
 
     // Subscribe to the topics for turnouts and lights
-    String turnoutTopic = String("TMRCI/cmd/turnout/") + String(NodeID) + "/T#";
+    String turnoutTopic = String(MQTT_TOPIC_PREFIX_TURNOUT) + String(NodeID) + "/#";
     client.subscribe(turnoutTopic.c_str());
 
-    String lightTopic = String("TMRCI/cmd/light/") + String(NodeID) + "/L#";
+    String lightTopic = String(MQTT_TOPIC_PREFIX_LIGHT) + String(NodeID) + "/#";
     client.subscribe(lightTopic.c_str());
   }
 }
@@ -154,81 +158,63 @@ void loop() {
 
 // Function to reconnect to MQTT server
 void reconnect() {
+  // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    
     if (client.connect(NodeID)) {
       Serial.println("connected");
 
       // Subscribe to each topic for turnouts and lights
-      for (int i = minOutputId; i <= maxOutputId; i++) {
-        String turnoutTopic = String("TMRCI/cmd/turnout/") + String(NodeID) + "/T" + String(i);
-        client.subscribe(turnoutTopic.c_str());
+      String turnoutTopic = String(MQTT_TOPIC_PREFIX_TURNOUT) + String(NodeID) + "/#";
+      client.subscribe(turnoutTopic.c_str());
 
-        String lightTopic = String("TMRCI/cmd/light/") + String(NodeID) + "/L" + String(i);
-        client.subscribe(lightTopic.c_str());
-      }
+      String lightTopic = String(MQTT_TOPIC_PREFIX_LIGHT) + String(NodeID) + "/#";
+      client.subscribe(lightTopic.c_str());
+
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
       delay(5000);
     }
   }
 }
 
-// Function to update the outputs (lights and turnouts)
-void updateOutputs() {
-  // Send the last output state to the 74HC595 shift registers
-  digitalWrite(LATCH_595, LOW);
-  for (int i = 5; i >= 0; i--) {
-    SPI.transfer(last_output_state[i]);
-  }
-  digitalWrite(LATCH_595, HIGH);
-}
-
-// Callback function to handle incoming MQTT messages
 void callback(char* topic, byte* payload, unsigned int length) {
-  // Construct the received topic and message
   String receivedTopic = String(topic);
   String receivedMessage;
   for (unsigned int i = 0; i < length; i++) {
     receivedMessage += (char)payload[i];
   }
 
-  // Construct the topic prefix for turnouts and lights
-  String prefixTurnout = String("TMRCI/cmd/turnout/") + String(NodeID) + "/T";
-  String prefixLight = String("TMRCI/cmd/light/") + String(NodeID) + "/L";
-  int objectId;
-  
-  // Handle turnout messages
-if (receivedTopic.startsWith(prefixTurnout)) {
-  objectId = receivedTopic.substring(prefixTurnout.length() + 1).toInt();
-  bool turnoutState = false; // OFF (NORMAL) by default
-  if (receivedMessage == "REVERSE") {
-    turnoutState = true; // ON (REVERSE)
-  }
-  // If the turnout ID is within the defined range, update the corresponding output
-  if (objectId >= minOutputId && objectId <= maxOutputId) {
-    int byteIndex = (objectId - 1) / 8; // Subtract 1 from objectId
-    int bitIndex = (objectId - 1) % 8;  // Subtract 1 from objectId
-    bitWrite(last_output_state[byteIndex], bitIndex, turnoutState);
-    updateOutputs();
-  }
-} 
-// Handle light messages
-else if (receivedTopic.startsWith(prefixLight)) {
-  objectId = receivedTopic.substring(prefixLight.length() + 1).toInt();
-  bool lightState = false; // OFF by default
-  if (receivedMessage == "ON") {
-    lightState = true; // ON
-  }
-  // If the light ID is within the defined range, update the corresponding output
-  if (objectId >= minOutputId && objectId <= maxOutputId) {
-    int byteIndex = (objectId - 1) / 8; // Subtract 1 from objectId
-    int bitIndex = (objectId - 1) % 8;  // Subtract 1 from objectId
-    bitWrite(last_output_state[byteIndex], bitIndex, lightState);
-    updateOutputs();
+  if (receivedTopic.startsWith(MQTT_TOPIC_PREFIX_TURNOUT)) {
+    handleOutputMessage(receivedTopic, receivedMessage, MQTT_TOPIC_PREFIX_TURNOUT);
+  } else if (receivedTopic.startsWith(MQTT_TOPIC_PREFIX_LIGHT)) {
+    handleOutputMessage(receivedTopic, receivedMessage, MQTT_TOPIC_PREFIX_LIGHT);
   }
 }
+
+void handleOutputMessage(String receivedTopic, String receivedMessage, const char* topicPrefix) {
+  String strId = receivedTopic.substring(strlen(topicPrefix) + strlen(NodeID) + 1);
+  int id = strId.toInt();
+
+  if (id >= minOutputId && id <= maxOutputId) {
+    int arrayIndex = id - minOutputId;
+    int byteIndex = arrayIndex / 8;
+    int bitIndex = arrayIndex % 8;
+    
+    if (receivedMessage.equals("REVERSE") || receivedMessage.equals("ON")) {
+      bitWrite(last_output_state[byteIndex], bitIndex, 1);
+    } else if (receivedMessage.equals("NORMAL") || receivedMessage.equals("OFF")) {
+      bitWrite(last_output_state[byteIndex], bitIndex, 0);
+    }
+    
+    // Write new output state to 74HC595 shift registers
+    digitalWrite(LATCH_595, LOW);
+    for (int i = 5; i >= 0; i--) {
+      shiftOut(DATA_595, CLOCK_595, MSBFIRST, last_output_state[i]);
+    }
+    digitalWrite(LATCH_595, HIGH);
+  }
 }
