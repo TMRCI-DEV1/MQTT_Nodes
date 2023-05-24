@@ -28,7 +28,7 @@ PubSubClient client(espClient);
 byte last_input_state[9]; // 72 inputs from 9 74HC165s
 
 // Identifier of the Arduino
-const char* arduinoId = "Arduino1"; // ***CHANGE TO APPROPRIATE UNIQUE ID***
+const char* arduinoId = "Node1"; // ***CHANGE TO APPROPRIATE UNIQUE ID (Node #)***
 
 // Range of the sensor IDs
 const int minSensorId = 1;    // Change to 1
