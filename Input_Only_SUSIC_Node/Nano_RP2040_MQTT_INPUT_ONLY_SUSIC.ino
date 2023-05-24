@@ -1,7 +1,7 @@
 /*
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled SUSIC Input-ONLY Node (72 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.2
+  Version: 1.0.5
   Date: 2023-05-24
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SUSIC Input-ONLY Node (72 inputs) 
   using MQTT to publish messages subscribed to by JMRI. Message payload is either ACTIVE or INACTIVE.
@@ -28,7 +28,7 @@ PubSubClient client(espClient);
 byte last_input_state[9]; // 72 inputs from 9 74HC165s
 
 // Identifier of the Arduino
-const char* arduinoId = "Node1"; // ***CHANGE TO APPROPRIATE UNIQUE ID (Node #)***
+const char* NodeID = "10-A-Node-1"; // ***CHANGE TO APPROPRIATE UNIQUE ID***
 
 // Range of the sensor IDs
 const int minSensorId = 1;    // Change to 1
@@ -83,13 +83,13 @@ void loop() {
     currentInputState[i] = ~(SPI.transfer(0));
   }
 
-  // Publish the state of each input to the MQTT broker if the state has changed
+  // Publish input state changes over MQTT
   for (int i = minSensorId; i <= maxSensorId; i++) {
     int arrayIndex = i - minSensorId;
     int byteIndex = arrayIndex / 8;
     int bitIndex = arrayIndex % 8;
     if (bitRead(currentInputState[byteIndex], bitIndex) != bitRead(last_input_state[byteIndex], bitIndex)) {
-      String topic = String("TMRCI/dt/") + String(arduinoId) + "/sensor/S" + String(i);
+      String topic = String("TMRCI/dt/sensor/") + String(NodeID) + "/S" + String(i);
       String payload = (bitRead(currentInputState[byteIndex], bitIndex) == 1) ? "ACTIVE" : "INACTIVE";
       client.publish(topic.c_str(), payload.c_str());
     }
@@ -108,7 +108,7 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     
     // Attempt to connect to the MQTT server
-    if (client.connect(arduinoId)) {
+    if (client.connect(NodeID)) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
