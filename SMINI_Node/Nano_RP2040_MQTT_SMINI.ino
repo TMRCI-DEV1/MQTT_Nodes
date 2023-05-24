@@ -1,8 +1,8 @@
 /*
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled SMINI Node (48 outputs / 24 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
-  Date: 2023-05-23
+  Version: 1.0.2
+  Date: 2023-05-24
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SUSIC Input-ONLY Node (48 outputs / 24 inputs) 
   using MQTT to subscribe to and publish messages published by and subscribed to by JMRI.
   Published Sensor message payload is 'ACTIVE' / 'INACTIVE'. Expected incoming subscribed messages are
@@ -39,9 +39,9 @@ byte last_output_state[6];
 // Define the Arduino ID
 const char* arduinoId = "Arduino1"; // ***CHANGE TO APPROPRIATE UNIQUE ID***
 
-// Define the range of turnout and sensor IDs
-const int minTurnoutId = 1001;    // Change Node number (1)001 to appropriate Node number
-const int maxTurnoutId = 1048;
+// Define the range of output (turnout and light) and sensor IDs
+const int minOutputId = 1001;    // Change Node number (1)001 to appropriate Node number
+const int maxOutputId = 1048;
 const int minSensorId = 1001;
 const int maxSensorId = 1024;
 
@@ -206,9 +206,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
       turnoutState = true; // ON (REVERSE)
     }
     // If the turnout ID is within the defined range, update the corresponding output
-    if (objectId >= minTurnoutId && objectId <= maxTurnoutId) {
-      int byteIndex = (objectId - minTurnoutId) / 8;
-      int bitIndex = (objectId - minTurnoutId) % 8;
+    if (objectId >= minOutputId && objectId <= maxOutputId) {
+      int byteIndex = (objectId - minOutputId) / 8;
+      int bitIndex = (objectId - minOutputId) % 8;
       bitWrite(last_output_state[byteIndex], bitIndex, turnoutState);
       updateOutputs();
     }
@@ -221,9 +221,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
       lightState = true; // ON
     }
     // If the light ID is within the defined range, update the corresponding output
-    if (objectId >= minSensorId && objectId <= maxSensorId) {
-      int byteIndex = (objectId - minSensorId) / 8;
-      int bitIndex = (objectId - minSensorId) % 8;
+    if (objectId >= minOutputId && objectId <= maxOutputId) {
+      int byteIndex = (objectId - minOutputId) / 8;
+      int bitIndex = (objectId - minOutputId) % 8;
       bitWrite(last_output_state[byteIndex], bitIndex, lightState);
       updateOutputs();
     }
