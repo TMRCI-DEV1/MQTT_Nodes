@@ -1,7 +1,7 @@
 /*
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled SMINI Node (48 outputs / 24 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.3
+  Version: 1.0.5
   Date: 2023-05-24
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SUSIC Input-ONLY Node (48 outputs / 24 inputs) 
   using MQTT to subscribe to and publish messages published by and subscribed to by JMRI.
@@ -36,8 +36,8 @@ PubSubClient client(espClient);
 byte last_input_state[3];
 byte last_output_state[6];
 
-// Define the Arduino ID
-const char* arduinoId = "Node1"; // ***CHANGE TO APPROPRIATE UNIQUE ID (Node #)***
+// Identifier of the Node
+const char* NodeID = "10-A-Node-2"; // ***CHANGE TO APPROPRIATE UNIQUE ID (Bus, Node #)***
 
 // Define the range of output (turnout and light) and sensor IDs
 const int minOutputId = 1;    // Change to 1
@@ -81,14 +81,14 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
-  if (client.connect(arduinoId)) {
+  if (client.connect(NodeID)) {
     Serial.println("connected");
 
     // Subscribe to the topics for turnouts and lights
-    String turnoutTopic = String("TMRCI/cmd/") + String(arduinoId) + "/turnout/T#";
+    String turnoutTopic = String("TMRCI/cmd/turnout/") + String(NodeID) + "/T#";
     client.subscribe(turnoutTopic.c_str());
 
-    String lightTopic = String("TMRCI/cmd/") + String(arduinoId) + "/light/L#";
+    String lightTopic = String("TMRCI/cmd/light/") + String(NodeID) + "/L#";
     client.subscribe(lightTopic.c_str());
   }
 }
@@ -134,41 +134,44 @@ void loop() {
   }
 
   // Publish input state changes over MQTT
-  for (int i = 1; i <= 24; i++) {
-    int byteIndex = (i - 1) / 8;
-    int bitIndex = (i - 1) % 8;
+  for (int i = minSensorId; i <= maxSensorId; i++) {
+    int arrayIndex = i - minSensorId;
+    int byteIndex = arrayIndex / 8;
+    int bitIndex = arrayIndex % 8;
     if (bitRead(currentInputState[byteIndex], bitIndex) != bitRead(last_input_state[byteIndex], bitIndex)) {
-      String topic = String("TMRCI/dt/") + String(arduinoId) + "/sensor/S" + String(i);
+      String topic = String("TMRCI/dt/sensor/") + String(NodeID) + "/S" + String(i);
       String payload = (bitRead(currentInputState[byteIndex], bitIndex) == 1) ? "ACTIVE" : "INACTIVE";
       client.publish(topic.c_str(), payload.c_str());
     }
-  }
+}
+
   // Copy the current input state to the last input state for the next comparison
   memcpy(last_input_state, currentInputState, 3);
+  
+  // Add a delay before next loop
   delay(10);
 }
 
 // Function to reconnect to MQTT server
 void reconnect() {
-  // Loop until reconnected to the MQTT server
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     
-    // Attempt to connect to the MQTT server
-    if (client.connect(arduinoId)) {
+    if (client.connect(NodeID)) {
       Serial.println("connected");
 
-      // Subscribe to the topics for turnouts and lights
-      String turnoutTopic = String("TMRCI/cmd/") + String(arduinoId) + "/turnout/T#";
-      client.subscribe(turnoutTopic.c_str());
+      // Subscribe to each topic for turnouts and lights
+      for (int i = minOutputId; i <= maxOutputId; i++) {
+        String turnoutTopic = String("TMRCI/cmd/turnout/") + String(NodeID) + "/T" + String(i);
+        client.subscribe(turnoutTopic.c_str());
 
-      String lightTopic = String("TMRCI/cmd/") + String(arduinoId) + "/light/L#";
-      client.subscribe(lightTopic.c_str());
+        String lightTopic = String("TMRCI/cmd/light/") + String(NodeID) + "/L" + String(i);
+        client.subscribe(lightTopic.c_str());
+      }
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying connection
       delay(5000);
     }
   }
@@ -194,8 +197,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   // Construct the topic prefix for turnouts and lights
-  String prefixTurnout = String("TMRCI/cmd/") + String(arduinoId) + String("/turnout/T");
-  String prefixLight = String("TMRCI/cmd/") + String(arduinoId) + String("/light/L");
+  String prefixTurnout = String("TMRCI/cmd/turnout/") + String(NodeID) + "/T";
+  String prefixLight = String("TMRCI/cmd/light/") + String(NodeID) + "/L";
   int objectId;
   
   // Handle turnout messages
