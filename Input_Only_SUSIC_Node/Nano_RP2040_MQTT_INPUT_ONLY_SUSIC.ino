@@ -1,7 +1,7 @@
 /*
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled SUSIC Input-ONLY Node (72 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.6
+  Version: 1.0.8
   Date: 2023-05-26
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SUSIC Input-ONLY Node (72 inputs) 
   using MQTT to publish messages subscribed to by JMRI. Message payload is either ACTIVE or INACTIVE.
@@ -83,7 +83,7 @@ void loop() {
   
   // Iterate over each shift register to read its current state
   for (int i = 0; i < 9; i++) {
-    currentInputState[i] = ~(SPI.transfer(0));
+    currentInputState[i] = SPI.transfer(0);
   }
 
   // Publish input state changes over MQTT
@@ -93,7 +93,7 @@ void loop() {
     int bitIndex = arrayIndex % 8;
     if (bitRead(currentInputState[byteIndex], bitIndex) != bitRead(last_input_state[byteIndex], bitIndex)) {
       String topic = String(MQTT_TOPIC_PREFIX_SENSOR) + String(NodeID) + "/sensor/S" + String(i);
-      String payload = (bitRead(currentInputState[byteIndex], bitIndex) == 1) ? "ACTIVE" : "INACTIVE";
+      String payload = (bitRead(currentInputState[byteIndex], bitIndex) == 0) ? "ACTIVE" : "INACTIVE";
       client.publish(topic.c_str(), payload.c_str(), true);
     }
   }
