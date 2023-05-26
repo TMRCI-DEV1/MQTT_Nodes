@@ -1,7 +1,7 @@
 /*
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled SMINI Node (48 outputs / 24 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.10
+  Version: 1.0.11
   Date: 2023-05-26
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SUSIC Input-ONLY Node (48 outputs / 24 inputs) 
   using MQTT to subscribe to and publish messages published by and subscribed to by JMRI.
@@ -86,7 +86,8 @@ void setup() {
 
   if (client.connect(NodeID)) {
     Serial.println("connected");
-    client.subscribe(MQTT_TOPIC_PREFIX_OUTPUT);
+    String outputTopic = String(MQTT_TOPIC_PREFIX_OUTPUT) + String(NodeID) + "/";
+    client.subscribe(outputTopic.c_str());
   }
 }
 
@@ -156,7 +157,8 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     if (client.connect(NodeID)) {
       Serial.println("connected");
-      client.subscribe(MQTT_TOPIC_PREFIX_OUTPUT);
+      String outputTopic = String(MQTT_TOPIC_PREFIX_OUTPUT) + String(NodeID) + "/";
+      client.subscribe(outputTopic.c_str());
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -169,26 +171,23 @@ void reconnect() {
 void callback(char* topic, byte* payload, unsigned int length) {
   // Ensure the message is for our topic
   String receivedTopic = String(topic);
-  if (receivedTopic.startsWith(MQTT_TOPIC_PREFIX_OUTPUT)) {
-    String topicNodeID = receivedTopic.substring(strlen(MQTT_TOPIC_PREFIX_OUTPUT), receivedTopic.indexOf("/", strlen(MQTT_TOPIC_PREFIX_OUTPUT)));
-    String deviceType = receivedTopic.substring(receivedTopic.lastIndexOf("/") + 1, receivedTopic.lastIndexOf("/") + 2);
-    String deviceIdStr = receivedTopic.substring(receivedTopic.lastIndexOf("/") + 2);
-    int deviceId = deviceIdStr.toInt();
+  String deviceType = receivedTopic.substring(receivedTopic.lastIndexOf("/") + 1, receivedTopic.lastIndexOf("/") + 2);
+  String deviceIdStr = receivedTopic.substring(receivedTopic.lastIndexOf("/") + 2);
+  int deviceId = deviceIdStr.toInt();
 
-    // Only process messages for the correct NodeID and within the defined device ID range
-    if (topicNodeID == NodeID && deviceId >= minOutputId && deviceId <= maxOutputId) {
-      char message[length + 1];
-      memcpy(message, payload, length);
-      message[length] = '\0';
-      String receivedMessage = String(message);
+  // Only process messages within the defined device ID range
+  if (deviceId >= minOutputId && deviceId <= maxOutputId) {
+    char message[length + 1];
+    memcpy(message, payload, length);
+    message[length] = '\0';
+    String receivedMessage = String(message);
 
-      int arrayIndex = deviceId - minOutputId;
-      int byteIndex = arrayIndex / 8;
-      int bitIndex = arrayIndex % 8;
-      bool isOn = ((deviceType == "T" && receivedMessage == "REVERSE") || (deviceType == "L" && receivedMessage == "ON"));
-      bitWrite(last_output_state[byteIndex], bitIndex, isOn ? 1 : 0);
-      updateOutputs();
-    }
+    int arrayIndex = deviceId - minOutputId;
+    int byteIndex = arrayIndex / 8;
+    int bitIndex = arrayIndex % 8;
+    bool isOn = ((deviceType == "T" && receivedMessage == "REVERSE") || (deviceType == "L" && receivedMessage == "ON"));
+    bitWrite(last_output_state[byteIndex], bitIndex, isOn ? 1 : 0);
+    updateOutputs();
   }
 }
 
