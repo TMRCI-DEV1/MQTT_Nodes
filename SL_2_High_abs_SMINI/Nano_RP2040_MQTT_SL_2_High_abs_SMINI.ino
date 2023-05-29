@@ -2,7 +2,7 @@
   Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled Double Head Searchlight High Absolute 
   Signal Mast SMINI Node (8 signal mast outputs / 24 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
+  Version: 1.0.2
   Date: 2023-05-28
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SMINI Node (8 signal mast outputs / 24 inputs) 
   using MQTT to subscribe to and publish messages published by and subscribed to by JMRI.
@@ -12,13 +12,13 @@
 */
 
 // Include necessary libraries
-#include <WiFiNINA.h>     // Library for WiFi connection
-#include <PubSubClient.h> // Library for MQTT
-#include <SPI.h>          // Library for SPI communication
-#include <map>            // Library for std::map
+#include <WiFiNINA.h>     // Library for WiFi connection    https://github.com/arduino-libraries/WiFiNINA
+#include <PubSubClient.h> // Library for MQTT               https://github.com/knolleary/pubsubclient
+#include <SPI.h>          // Library for SPI communication  https://github.com/arduino/ArduinoCore-avr/tree/master/libraries/SPI
+#include <map>            // Library for std::map           https://en.cppreference.com/w/cpp/container/map
 
 // Network configuration
-const char ssid[] = "HO Touch Panels";     // Name of the WiFi network
+const char ssid[] = "(HO) Touchscreens & MQTT Nodes";     // Name of the WiFi network
 const char password[] = "touch.666.pi";    // Password of the WiFi network
 const char *mqtt_server = "192.168.50.50"; // IP address of the MQTT server
 
@@ -63,12 +63,6 @@ const int maxOutputId = 8;
 const int minSensorId = 1;
 const int maxSensorId = 24;
 
-// Struct to represent signal mast aspect
-struct Aspect {
-  int head1;
-  int head2;
-};
-
 // Enum to represent LED colors
 enum LEDColor {
   GREEN,
@@ -77,8 +71,21 @@ enum LEDColor {
   DARK
 };
 
+// Struct to represent signal mast aspect
+struct Aspect {
+  LEDColor head1;
+  LEDColor head2;
+};
+
+// Struct to represent the state of a signal mast
+struct SignalMastState {
+  Aspect currentAspect;
+  bool isLit;
+  bool isHeld;
+};
+
 // Lookup table for signal mast aspects
-std::map<String, Aspect> doubleSearchlightHighAbsoluteLookup = {
+std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
   {"Clear Alt", {GREEN, GREEN}},
   {"Clear", {GREEN, RED}},
   {"Advance Approach Medium", {GREEN, YELLOW}},
@@ -99,6 +106,8 @@ std::map<LEDColor, int> ledColorToOutput = {
   {DARK, 0b000}      // All LEDs are off
 };
 
+std::map<int, SignalMastState> signalMastStates;
+
 // Function declarations for MQTT
 void callback(char* topic, byte* payload, unsigned int length);
 void reconnect();
@@ -109,6 +118,31 @@ void updateOutputs() {
     shiftOut(DATA_595, CLOCK_595, MSBFIRST, last_output_state[i]);
   }
   digitalWrite(LATCH_595, HIGH);
+}
+
+// Function to reconnect to WiFi
+void reconnectWiFi() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi not connected. Trying to reconnect...");
+
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 10) {
+      WiFi.begin(ssid, password);
+      delay(5000); // Waiting 5 seconds between each attempt
+      attempts++;
+      Serial.print("Attempt ");
+      Serial.print(attempts);
+      Serial.println(" to reconnect WiFi...");
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("WiFi reconnected");
+      Serial.println("IP address: ");
+      Serial.println(WiFi.localIP());
+    } else {
+      Serial.println("WiFi reconnection failed after 10 attempts. Proceeding without WiFi.");
+    }
+  }
 }
 
 void setup() {
@@ -146,31 +180,15 @@ void setup() {
     String signalmastsTopic = String(MQTT_TOPIC_PREFIX_OUTPUT) + String(NodeID) + "/signalmast/#";
     client.subscribe(signalmastsTopic.c_str());
   }
+  
+  for (int i = minOutputId; i <= maxOutputId; i++) {
+  signalMastStates[i] = {doubleSearchlightHighAbsoluteLookup["Stop"], true, false};
+  }
 }
 
 void loop() {
   // Reconnect to WiFi if connection lost
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi not connected. Trying to reconnect...");
-
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 10) {
-      WiFi.begin(ssid, password);
-      delay(5000); // Waiting 5 seconds between each attempt
-      attempts++;
-      Serial.print("Attempt ");
-      Serial.print(attempts);
-      Serial.println(" to reconnect WiFi...");
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("WiFi reconnected");
-      Serial.println("IP address: ");
-      Serial.println(WiFi.localIP());
-    } else {
-      Serial.println("WiFi reconnection failed after 10 attempts. Proceeding without WiFi.");
-    }
-  }
+  reconnectWiFi();
 
   // Reconnect to MQTT server if connection lost
   if (!client.connected()) {
@@ -240,26 +258,47 @@ void callback(char* topic, byte* payload, unsigned int length) {
     message[length] = '\0';
     String receivedMessage = String(message);
 
-    // Parse the aspect from the received message
+    // Parse the aspect, lit/unlit state, and held/unheld state from the received message
     String aspectString = receivedMessage.substring(0, receivedMessage.indexOf(";"));
+    String litStateString = receivedMessage.substring(receivedMessage.indexOf(";") + 1, receivedMessage.lastIndexOf(";"));
+    String heldStateString = receivedMessage.substring(receivedMessage.lastIndexOf(";") + 1);
 
-    // Lookup the aspect in the corresponding lookup table
-    Aspect aspect = doubleSearchlightHighAbsoluteLookup[aspectString];
+    bool isLit = (litStateString == "Lit");
+    bool isHeld = (heldStateString == "Held");
+
+    // Update the signal mast's lit/unlit and held/unheld states
+    signalMastStates[deviceId].isLit = isLit;
+    signalMastStates[deviceId].isHeld = isHeld;
+
+    // Update the signal mast's aspect, unless it's held (in which case it should display Stop)
+    if (!isHeld) {
+      signalMastStates[deviceId].currentAspect = doubleSearchlightHighAbsoluteLookup[std::string(aspectString.c_str())];
+    } else {
+      signalMastStates[deviceId].currentAspect = doubleSearchlightHighAbsoluteLookup["Stop"];
+    }
     
     // Map the aspect LED colors to the output pins
     int outputStartIndex = (deviceId - 1) * 6 + 1;
     int outputPin = outputStartIndex;
 
-    // Set the output pins based on the LED colors in the aspect
-    for (int j = 0; j < 3; j++) {
-      int ledState = bitRead(ledColorToOutput[static_cast<LEDColor>(aspect.head1)], j);
-      bitWrite(last_output_state[(outputPin - 1) / 8], (outputPin - 1) % 8, !ledState);  // Invert the LED state
-      outputPin++;
-    }
-    for (int j = 0; j < 3; j++) {
-      int ledState = bitRead(ledColorToOutput[static_cast<LEDColor>(aspect.head2)], j);
-      bitWrite(last_output_state[(outputPin - 1) / 8], (outputPin - 1) % 8, !ledState);  // Invert the LED state
-      outputPin++;
+    // Set the output pins based on the LED colors in the aspect, if the signal mast is lit
+    if (signalMastStates[deviceId].isLit) {
+      for (int j = 0; j < 3; j++) {
+        int ledState = bitRead(ledColorToOutput[static_cast<LEDColor>(signalMastStates[deviceId].currentAspect.head1)], j);
+        bitWrite(last_output_state[(outputPin - 1) / 8], (outputPin - 1) % 8, !ledState);  // Invert the LED state
+        outputPin++;
+      }
+      for (int j = 0; j < 3; j++) {
+        int ledState = bitRead(ledColorToOutput[static_cast<LEDColor>(signalMastStates[deviceId].currentAspect.head2)], j);
+        bitWrite(last_output_state[(outputPin - 1) / 8], (outputPin - 1) % 8, !ledState);  // Invert the LED state
+        outputPin++;
+      }
+    } else {
+      // Turn off the LEDs
+      for (int j = 0; j < 6; j++) {
+        bitWrite(last_output_state[(outputPin - 1) / 8], (outputPin - 1) % 8, HIGH);  // Invert the LED state
+        outputPin++;
+      }
     }
 
     updateOutputs(); // Update the shift register with the new states
