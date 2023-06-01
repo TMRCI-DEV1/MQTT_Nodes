@@ -1,9 +1,9 @@
 /*
-  Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled Double Head Searchlight High Absolute 
+  Project: Arduino-Nano RP2040 based WiFi CMRI/MQTT enabled Double Searchlight High Absolute 
   Signal Mast SMINI Node (8 signal mast outputs / 24 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
   Version: 1.0.2
-  Date: 2023-05-28
+  Date: 2023-06-01
   Description: A sketch for an Arduino-Nano RP2040 based CMRI SMINI Node (8 signal mast outputs / 24 inputs) 
   using MQTT to subscribe to and publish messages published by and subscribed to by JMRI.
   Published Sensor message payload is 'ACTIVE' / 'INACTIVE'. Expected incoming subscribed messages are
