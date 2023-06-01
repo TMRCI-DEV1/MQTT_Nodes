@@ -1,5 +1,5 @@
 # MQTT_RP2040_Signal_Mast_Nodes
-MQTT-enabled CMRI SMINI (48 output/24 input) JMRI Signal Mast Nodes.
+MQTT-enabled CMRI SMINI (48 output/24 input) JMRI Searchlight Signal Mast Nodes.
 
 Shield: [![CC BY-SA 4.0][cc-by-sa-shield]][cc-by-sa]
 
