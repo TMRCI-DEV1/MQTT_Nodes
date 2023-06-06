@@ -1,5 +1,5 @@
-# MQTT_RP2040_Nodes
-MQTT-enabled CMRI SMINI (48 output/24 input) and custom SUSIC (72 input-only) Node boards based on the Arduino Nano RP2040
+# MQTT_Nodes
+MQTT-enabled CMRI SMINI (48 output/24 input) and custom SUSIC (72 input-only) Node boards based on the Arduino Nano RP2040 Connect and ESP32S.
 
 Shield: [![CC BY-SA 4.0][cc-by-sa-shield]][cc-by-sa]
 
