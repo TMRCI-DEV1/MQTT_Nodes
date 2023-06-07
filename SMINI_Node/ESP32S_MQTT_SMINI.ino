@@ -1,8 +1,8 @@
 /*
   Project: ESP32S based WiFi CMRI/MQTT enabled SMINI Node (48 outputs / 24 inputs)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
-  Date: 2023-06-05
+  Version: 1.0.2
+  Date: 2023-06-07
   Description: A sketch for an ESP32S based CMRI SMINI Node (48 outputs / 24 inputs) 
   using MQTT to subscribe to and publish messages published by and subscribed to by JMRI.
   Published Sensor message payload is 'ACTIVE' / 'INACTIVE'. Expected incoming subscribed messages are
@@ -11,7 +11,7 @@
 */
 
 // Include necessary libraries
-#include <Arduino.h>
+#include <Arduino.h>       // Library for Arduino AVR Core    https://github.com/arduino/ArduinoCore-avr/blob/master/cores/arduino/Arduino.h
 #include <WiFi.h>          // Library for WiFi connection     https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 #include <PubSubClient.h>  // Library for MQTT                https://github.com/knolleary/pubsubclient
 #include <SPI.h>           // Library for SPI communication   https://github.com/espressif/arduino-esp32/tree/master/libraries/SPI
