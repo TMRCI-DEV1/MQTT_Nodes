@@ -1,5 +1,5 @@
 /*
-  Project: ESP32 based WiFi/MQTT enabled Double Searchlight High Absolute Signal Mast Neopixel Node
+  Project: ESP32 based WiFi/MQTT enabled (8) Double Searchlight High Absolute Signal Mast Neopixel Node
   (8 signal mast outputs / 16 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
   Version: 1.0.3
