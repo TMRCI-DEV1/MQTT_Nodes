@@ -48,6 +48,8 @@ String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
 // Function Prototypes
 void callback(char* topic, byte* payload, unsigned int length);
+void reconnectMQTT();
+void reconnectWiFi();
 
 // Define the signal aspects and lookup table
 const uint32_t RED = signalMasts[0].Color(255, 0, 0);         // RED color
