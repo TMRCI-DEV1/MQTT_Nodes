@@ -52,9 +52,9 @@ void reconnectMQTT();
 void reconnectWiFi();
 
 // Define the signal aspects and lookup table
-const uint32_t RED = signalMasts[0].Color(255, 0, 0);         // RED color
-const uint32_t YELLOW = signalMasts[0].Color(255, 192, 0);    // YELLOW color
-const uint32_t GREEN = signalMasts[0].Color(0, 255, 64);      // GREEN color
+const uint32_t RED = signalMasts[0].Color(243, 20, 84);        // RED color
+const uint32_t YELLOW = signalMasts[0].Color(255, 246, 134);   // YELLOW color
+const uint32_t GREEN = signalMasts[0].Color(25, 220, 211);     // GREEN color
 
 // Struct to represent signal mast aspect
 struct Aspect {
