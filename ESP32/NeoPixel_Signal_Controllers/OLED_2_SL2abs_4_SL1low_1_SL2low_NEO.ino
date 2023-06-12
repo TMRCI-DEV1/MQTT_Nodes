@@ -2,8 +2,8 @@
   Project: ESP32 based WiFi/MQTT enabled (2) Double Searchlight High Absolute, (4) Single Head Dwarf, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
-  Date: 2023-06-11
+  Version: 1.0.3
+  Date: 2023-06-12
   Description: This sketch is designed for an ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display.
@@ -56,15 +56,20 @@ Adafruit_NeoPixel signalMasts[7] = {                             // Array of Neo
 String NodeID = "10-A-Node-1";                                // Node identifier
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
+// Variables to track NodeID and IP address
+String previousNodeID = "";                                 // Previous NodeID value
+String previousIPAddress = "";                              // Previous IP address value
+
 // Function Prototypes
 void callback(char* topic, byte* payload, unsigned int length);
 void reconnectMQTT();
 void reconnectWiFi();
+void updateDisplay();
 
 // Define the signal aspects and lookup tables
-const uint32_t RED = signalMasts[0].Color(243, 20, 84);        // RED color
-const uint32_t YELLOW = signalMasts[0].Color(255, 246, 134);   // YELLOW color
-const uint32_t GREEN = signalMasts[0].Color(25, 220, 211);     // GREEN color
+const uint32_t RED = signalMasts[0].Color(252, 15, 80);        // RED color
+const uint32_t YELLOW = signalMasts[0].Color(254, 229, 78);    // YELLOW color
+const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);     // GREEN color
 
 // Struct to represent signal mast aspect
 struct Aspect {
@@ -73,7 +78,7 @@ struct Aspect {
 };
 
 // Lookup table for double head signal mast aspects
-std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
+const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"Clear Alt", {GREEN, GREEN}},
     {"Clear", {GREEN, RED}},
     {"Advance Approach Medium", {GREEN, YELLOW}},
@@ -87,14 +92,14 @@ std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
 };
 
 // Lookup table for single head signal mast aspects
-std::map<std::string, Aspect> singleHeadDwarfSignalLookup = {
+const std::map<std::string, Aspect> singleHeadDwarfSignalLookup = {
     {"Slow Clear", {GREEN}},
     {"Restricting", {YELLOW}},
     {"Stop", {RED}}
 };
 
 // Lookup table for double head dwarf signal mast aspects
-std::map<std::string, Aspect> doubleHeadDwarfSignalLookup = {
+const std::map<std::string, Aspect> doubleHeadDwarfSignalLookup = {
     {"Clear", {GREEN, GREEN}},
     {"Approach Medium", {YELLOW, GREEN}},
     {"Advance Approach", {YELLOW, YELLOW}},
@@ -118,21 +123,6 @@ void setup() {
     }
     Serial.println("Connected to WiFi");
 
-    // Display NodeID and IP address on the OLED
-    display.clearDisplay();
-
-    // Display NodeID with larger text
-    display.setTextSize(2); // Increase text size
-    display.setTextColor(WHITE);
-    display.setCursor(0, 0); // Start at top-left corner
-    display.println("NodeID: " + NodeID);
-
-    // Display IP address with smaller text
-    display.setTextSize(1); // Decrease text size for IP address
-    display.println("IP address: " + WiFi.localIP().toString());
-
-    display.display();
-    
     // Connect to the MQTT broker
     client.setServer(MQTT_SERVER, MQTT_PORT);
     client.setCallback(callback);                             // Set the message received callback function
@@ -157,20 +147,25 @@ void setup() {
     }
     
     if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
+        Serial.println(F("SSD1306 allocation failed"));
+        for(;;); // Don't proceed, loop forever
     }
+
+    // Initial update of the display
+    updateDisplay();
 }
 
 void loop() {
     // Reconnect to WiFi if connection lost
     if (WiFi.status() != WL_CONNECTED) {
         reconnectWiFi();
+        updateDisplay();
     }
 
     // Reconnect to MQTT server if connection lost
     if (!client.connected()) {
         reconnectMQTT();
+        updateDisplay();
     }
 
     client.loop();                                            // Run MQTT loop to handle incoming messages
@@ -266,22 +261,49 @@ void callback(char* topic, byte* payload, unsigned int length) {
     std::string aspectKey = aspectStr.c_str();
 
     // Set the colors based on the aspect if it exists in the lookup table
-    if (mastNumber < 2 && doubleSearchlightHighAbsoluteLookup.find(aspectKey) != doubleSearchlightHighAbsoluteLookup.end()) {
+    if (mastNumber < 2 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
         // Double head absolute signal mast
-        Aspect aspect = doubleSearchlightHighAbsoluteLookup[aspectKey];
-        signalMasts[mastNumber].setPixelColor(0, aspect.head1);
-        signalMasts[mastNumber].setPixelColor(1, aspect.head2);
+        const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
+        signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
+        signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
         signalMasts[mastNumber].show();
-    } else if (mastNumber >= 2 && mastNumber < 6 && singleHeadDwarfSignalLookup.find(aspectKey) != singleHeadDwarfSignalLookup.end()) {
+    } else if (mastNumber >= 2 && mastNumber < 6 && singleHeadDwarfSignalLookup.count(aspectKey)) {
         // Single head dwarf signal mast
-        Aspect aspect = singleHeadDwarfSignalLookup[aspectKey];
-        signalMasts[mastNumber].setPixelColor(0, aspect.head1);
+        const Aspect& aspect = singleHeadDwarfSignalLookup.at(aspectKey);
+        signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
         signalMasts[mastNumber].show();
-    } else if (mastNumber == 6 && doubleHeadDwarfSignalLookup.find(aspectKey) != doubleHeadDwarfSignalLookup.end()) {
+    } else if (mastNumber == 6 && doubleHeadDwarfSignalLookup.count(aspectKey)) {
         // Double head dwarf signal mast
-        Aspect aspect = doubleHeadDwarfSignalLookup[aspectKey];
-        signalMasts[mastNumber].setPixelColor(0, aspect.head1);
-        signalMasts[mastNumber].setPixelColor(1, aspect.head2);
+        const Aspect& aspect = doubleHeadDwarfSignalLookup.at(aspectKey);
+        signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
+        signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
         signalMasts[mastNumber].show();
+    }
+
+    // Update display if NodeID or IP address changed
+    updateDisplay();
+}
+
+void updateDisplay() {
+    // Check if NodeID or IP address changed
+    if (NodeID != previousNodeID || WiFi.localIP().toString() != previousIPAddress) {
+        // Update NodeID and IP address
+        previousNodeID = NodeID;
+        previousIPAddress = WiFi.localIP().toString();
+
+        // Clear the display
+        display.clearDisplay();
+
+        // Display NodeID with larger text
+        display.setTextSize(2); // Increase text size
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0); // Start at top-left corner
+        display.println("NodeID: " + NodeID);
+
+        // Display IP address with smaller text
+        display.setTextSize(1); // Decrease text size for IP address
+        display.println("IP address: " + WiFi.localIP().toString());
+
+        display.display();
     }
 }
