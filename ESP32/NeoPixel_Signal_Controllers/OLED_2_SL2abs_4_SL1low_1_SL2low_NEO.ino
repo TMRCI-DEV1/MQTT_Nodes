@@ -29,7 +29,7 @@ const int MQTT_PORT = 1883;                                   // MQTT server por
 
 // Instantiate MQTT client
 WiFiClient espClient;                                         // Create a WiFi client
-PubSubClient client(espClient);                               // Create a MQTT client using the WiFi client
+PubSubClient client(espClient);                               // Create an MQTT client using the WiFi client
 
 const int SCREEN_WIDTH = 128; // OLED display width, in pixels
 const int SCREEN_HEIGHT = 64; // OLED display height, in pixels
