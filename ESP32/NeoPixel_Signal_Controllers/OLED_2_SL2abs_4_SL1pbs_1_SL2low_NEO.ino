@@ -6,6 +6,7 @@
   Date: 2023-06-14
   Description: This sketch is designed for an ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
+  NodeID and IP address displayed on attached 128×64 OLED display.
 */
 
 // Include necessary libraries
