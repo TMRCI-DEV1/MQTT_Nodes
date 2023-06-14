@@ -2,8 +2,8 @@
   Project: ESP32 based WiFi/MQTT enabled (1) Double Searchlight High Absolute and (8) Single Searchlight High Permissive signal Neopixel Node
   (9 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.2
-  Date: 2023-06-13
+  Version: 1.0.3
+  Date: 2023-06-14
   Description: This sketch is designed for an ESP32 Node with 9 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display.
@@ -17,7 +17,7 @@
 #include <PubSubClient.h>      // Library for MQTT                  https://github.com/knolleary/pubsubclient
 #include <Adafruit_NeoPixel.h> // Library for Adafruit Neopixels    https://github.com/adafruit/Adafruit_NeoPixel
 #include <map>                 // Library for std::map              https://en.cppreference.com/w/cpp/container/map
-#include <string>              // Library for std::basic_string     https://en.cppreference.com/w/cpp/string/basic_string      
+#include <string>              // Library for std::basic_string     https://en.cppreference.com/w/cpp/string/basic_string 
 
 // Network configuration
 const char* WIFI_SSID = "(HO) Touchscreens & MQTT Nodes";     // WiFi SSID
@@ -43,15 +43,15 @@ const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};
 
 // Define the Neopixel chains and signal masts
 Adafruit_NeoPixel signalMasts[9] = {                             // Array of Neopixels, one for each signal mast
-    Adafruit_NeoPixel(2, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM1 (double head)
-    Adafruit_NeoPixel(1, neoPixelPins[1], NEO_GRB + NEO_KHZ800), // SM2
-    Adafruit_NeoPixel(1, neoPixelPins[2], NEO_GRB + NEO_KHZ800), // SM3
-    Adafruit_NeoPixel(1, neoPixelPins[3], NEO_GRB + NEO_KHZ800), // SM4
-    Adafruit_NeoPixel(1, neoPixelPins[4], NEO_GRB + NEO_KHZ800), // SM5
-    Adafruit_NeoPixel(2, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM6 (doubled with SM8)
-    Adafruit_NeoPixel(2, neoPixelPins[6], NEO_GRB + NEO_KHZ800), // SM7 (doubled with SM9)
-    Adafruit_NeoPixel(1, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM8 (second head)
-    Adafruit_NeoPixel(1, neoPixelPins[6], NEO_GRB + NEO_KHZ800)  // SM9 (second head)
+    Adafruit_NeoPixel(2, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM1 (double head absolute)
+    Adafruit_NeoPixel(1, neoPixelPins[1], NEO_GRB + NEO_KHZ800), // SM2 (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[2], NEO_GRB + NEO_KHZ800), // SM3 (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[3], NEO_GRB + NEO_KHZ800), // SM4 (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[4], NEO_GRB + NEO_KHZ800), // SM5 (single head permissive)
+    Adafruit_NeoPixel(2, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM6 (doubled with SM8) (single head permissive)
+    Adafruit_NeoPixel(2, neoPixelPins[6], NEO_GRB + NEO_KHZ800), // SM7 (doubled with SM9) (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM8 (second head) (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[6], NEO_GRB + NEO_KHZ800)  // SM9 (second head) (single head permissive)
 };
 
 // Define the NodeID and MQTT topic
