@@ -41,7 +41,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // Define the GPIO pins for the Neopixels in ascending order
 const int neoPixelPins[8] = {16, 17, 18, 19, 23, 32, 33};             
 
-Adafruit_NeoPixel signalMasts[8] = {
+// Define the Neopixel chains and signal masts
+Adafruit_NeoPixel signalMasts[8] = {                             // Array of Neopixels, one for each signal mast
     Adafruit_NeoPixel(2, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM1 (double head absolute)
     Adafruit_NeoPixel(2, neoPixelPins[1], NEO_GRB + NEO_KHZ800), // SM2 (double head absolute)
     Adafruit_NeoPixel(2, neoPixelPins[2], NEO_GRB + NEO_KHZ800), // SM3 (double head absolute)
