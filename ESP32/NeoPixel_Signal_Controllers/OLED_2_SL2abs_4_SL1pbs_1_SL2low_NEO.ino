@@ -239,7 +239,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String topicStr = String(topic);
     int lastSlashIndex = topicStr.lastIndexOf('/');
     String mastNumberStr = topicStr.substring(lastSlashIndex + 3); // +3 to account for "SM"
-    int mastNumber = mastNumberStr.toInt();
+    mastNumber = mastNumberStr.toInt(); // Remove redeclaration
 
     if (mastNumber < 1 || mastNumber > 7) {
         Serial.println("Error: Invalid mast number.");
