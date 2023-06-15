@@ -189,8 +189,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Convert payload bytes into a string
     String payloadStr(message);
 
-    // Extract the signal mast number from the topic
-    int mastNumber = topic[strlen(topic) - 1] - '0';
+    // Extract the mast number from the topic
+    String topicStr = String(topic);
+    int lastSlashIndex = topicStr.lastIndexOf('/');
+    String mastNumberStr = topicStr.substring(lastSlashIndex + 3); // +3 to account for "SM"
+    int mastNumber = mastNumberStr.toInt();
 
     Serial.print("Received message for SM");
     Serial.print(mastNumber);
@@ -217,12 +220,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Extract and trim the held string
     String heldStr = payloadStr.substring(separatorIndex2 + 1);
     heldStr.trim();
-
-    // Extract the mast number from the topic
-    String topicStr = String(topic);
-    int lastSlashIndex = topicStr.lastIndexOf('/');
-    String mastNumberStr = topicStr.substring(lastSlashIndex + 3); // +3 to account for "SM"
-    int mastNumber = mastNumberStr.toInt();
 
     if (mastNumber < 1 || mastNumber > 5) {
         Serial.println("Error: Invalid mast number.");
