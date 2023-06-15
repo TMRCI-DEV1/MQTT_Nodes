@@ -1,0 +1,67 @@
+# Compiled output
+*.o
+*.elf
+*.bin
+
+# Build output directories
+/build/
+/dist/
+/out/
+
+# Dependency directories
+/lib/
+/libraries/
+
+# IDE and editor files
+.vscode/
+*.suo
+*.user
+*.sln
+*.sdf
+*.opensdf
+*.cproject
+*.project
+*.workspace
+*.cbp
+*.depend
+*.layout
+*.dse*
+*.ipr
+*.iws
+
+# Platform-specific files
+/.clang_complete
+/.clangd
+
+# System and IDE files
+/.DS_Store
+/Thumbs.db
+/*.swp
+/*.bak
+
+# Configuration files with sensitive information
+/config.json
+/secrets.h
+/credentials.h
+
+# Logs and debugging output
+/logs/
+/debug/
+
+# Generated files
+/generated/
+
+# Temporary files
+*.tmp
+*.cache
+*.tmp.*
+
+# User-specific files
+*.userprefs
+*.usersettings
+
+# macOS specific
+.DS_Store
+
+# Windows thumbnail cache files
+Thumbs.db
