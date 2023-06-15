@@ -266,7 +266,7 @@ void updateDisplay() {
         display.setTextColor(WHITE);
         display.setCursor(0, 0);
         display.println("NodeID");
-        display.setTextSize(2); // Increase the text size for the NodeID
+        display.setTextSize(3); // Increase the text size for the NodeID
         display.println(NodeID);
 
         // Display "IP Address" with smaller text
