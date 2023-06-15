@@ -236,7 +236,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String topicStr = String(topic);
     int lastSlashIndex = topicStr.lastIndexOf('/');
     String mastNumberStr = topicStr.substring(lastSlashIndex + 3);
-    int mastNumber = mastNumberStr.toInt();
+    mastNumber = mastNumberStr.toInt(); // Remove redeclaration
+
     int pixelIndex = 0; // default to first pixel
 
     if (mastNumber == 8) {
@@ -251,7 +252,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         Serial.println("Error: Invalid mast number.");
         return;
     }
-    mastNumber -= 1; 
+    mastNumber -= 1;
 
     // Check if the signal mast should be unlit
     if (litStr == "Unlit") {
@@ -264,7 +265,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Check if the signal mast should be held
     if (heldStr == "Held") {
         // Set aspect to stop for SM1 and to 'Stop and Proceed' for SM2-SM9
-        if (mastNumber == 0) { 
+        if (mastNumber == 0) {
             aspectStr = "Stop";
         } else {
             aspectStr = "Stop and Proceed";
