@@ -20,8 +20,8 @@
 #include <string>              // Library for std::basic_string     https://en.cppreference.com/w/cpp/string/basic_string
 
 // Network configuration
-const char* WIFI_SSID = "(HO) Touchscreens & MQTT Nodes";     // WiFi SSID
-const char* WIFI_PASSWORD = "touch.666.pi";                   // WiFi Password
+const char* WIFI_SSID = "MyAltice 976DFF";                    // WiFi SSID
+const char* WIFI_PASSWORD = "lemon.463.loud";                 // WiFi Password
 
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
