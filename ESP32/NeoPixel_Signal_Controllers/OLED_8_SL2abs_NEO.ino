@@ -210,12 +210,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String heldStr = payloadStr.substring(separatorIndex2 + 1);
     heldStr.trim();
 
-    // Extract the mast number from the topic
-    String topicStr = String(topic);
-    int lastSlashIndex = topicStr.lastIndexOf('/');
-    String mastNumberStr = topicStr.substring(lastSlashIndex + 3);
-    int mastNumber = mastNumberStr.toInt();
-
     if (mastNumber < 1 || mastNumber > 8) {
         Serial.println("Error: Invalid mast number.");
         return;
