@@ -2,8 +2,8 @@
   Project: ESP32 based WiFi/MQTT enabled (4) Double Searchlight High Absolute and (4) Single Searchlight High Permissive signal Neopixel Node
   (8 signal mast outputs / 12 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.2
-  Date: 2023-06-14
+  Version: 1.0.3
+  Date: 2023-06-15
   Description: This sketch is designed for an ESP32 Node with 8 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display.
@@ -54,7 +54,7 @@ Adafruit_NeoPixel signalMasts[8] = {                             // Array of Neo
 };
 
 // Define the NodeID and MQTT topic
-String NodeID = "10-A-Node-1";                                
+String NodeID = "10-A-Node-2";                                
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; 
 
 // Variables to track NodeID and IP address
@@ -163,7 +163,7 @@ void loop() {
         updateDisplay();
     }
 
-    client.loop();                                          
+    client.loop();                                            // Run MQTT loop to handle incoming messages
 }
 
 void reconnectMQTT() {
@@ -171,7 +171,7 @@ void reconnectMQTT() {
     while (!client.connected()) {
         Serial.println("Attempting to connect to MQTT...");
         if (client.connect(NodeID.c_str())) {
-            client.subscribe((mqttTopic + "#").c_str());      
+            client.subscribe((mqttTopic + "+").c_str());      // Subscribe to topics for all signal masts
             Serial.println("Connected to MQTT");
         } else {
             delay(5000);
