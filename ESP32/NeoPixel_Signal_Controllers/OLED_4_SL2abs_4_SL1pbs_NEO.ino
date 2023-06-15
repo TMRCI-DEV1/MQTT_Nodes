@@ -2,7 +2,7 @@
   Project: ESP32 based WiFi/MQTT enabled (4) Double Searchlight High Absolute and (4) Single Searchlight High Permissive signal Neopixel Node
   (8 signal mast outputs / 12 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
+  Version: 1.0.2
   Date: 2023-06-14
   Description: This sketch is designed for an ESP32 Node with 8 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
@@ -20,8 +20,8 @@
 #include <string>              // Library for std::basic_string     https://en.cppreference.com/w/cpp/string/basic_string 
 
 // Network configuration
-const char* WIFI_SSID = "(HO) Touchscreens & MQTT Nodes";     // WiFi SSID
-const char* WIFI_PASSWORD = "touch.666.pi";                   // WiFi Password
+const char* WIFI_SSID = "MyAltice 976DFF";                     // WiFi SSID
+const char* WIFI_PASSWORD = "lemon.463.loud";                  // WiFi Password
 
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
@@ -113,10 +113,11 @@ void setup() {
         Serial.println("Connecting to WiFi...");
     }
     Serial.println("Connected to WiFi");
+    Serial.println("IP address: " + WiFi.localIP().toString()); // Display IP address
 
     // Connect to the MQTT broker
     client.setServer(MQTT_SERVER, MQTT_PORT);
-    client.setCallback(callback);                             
+    client.setCallback(callback);
     reconnectMQTT();
     Serial.println("Connected to MQTT");
 
@@ -198,7 +199,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Convert payload bytes into a string
     String payloadStr(message);
 
-    Serial.print("Received message with payload: ");
+    // Extract the signal mast number from the topic
+    int mastNumber = topic[strlen(topic) - 1] - '0';
+
+    Serial.print("Received message for SM");
+    Serial.print(mastNumber);
+    Serial.print(" with payload: ");
     Serial.println(payloadStr);
 
     // Parse the payload into aspect, lit, and held strings
@@ -222,12 +228,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String heldStr = payloadStr.substring(separatorIndex2 + 1);
     heldStr.trim();
 
-    int mastNumber = topic[strlen(topic) - 1] - '0';
     int pixelIndex = 0;
 
     if (mastNumber == 8) {
         mastNumber = 7; // adjust to 7 if the mast number was 8
-        pixelIndex = 1; // set to second pixel
+        pixelIndex = 1; // set to the second pixel
     }
 
     if (mastNumber < 1 || mastNumber > 8) {
@@ -244,20 +249,20 @@ void callback(char* topic, byte* payload, unsigned int length) {
         return;
     }
 
-   // Check if the signal mast should be held
-if (heldStr == "Held") {
-    // Set aspect to stop for SM1-SM4 and to 'Stop and Proceed' for SM5-SM8
-    if (mastNumber >= 0 && mastNumber <= 3) {
-        aspectStr = "Stop";
-    } else {
-        aspectStr = "Stop and Proceed";
+    // Check if the signal mast should be held
+    if (heldStr == "Held") {
+        // Set aspect to stop for SM1-SM4 and to 'Stop and Proceed' for SM5-SM8
+        if (mastNumber >= 0 && mastNumber <= 3) {
+            aspectStr = "Stop";
+        } else {
+            aspectStr = "Stop and Proceed";
+        }
     }
-}
 
     // Convert aspectStr from String to std::string
     std::string aspectKey = aspectStr.c_str();
 
-   // Set the colors based on the aspect if it exists in the lookup table
+    // Set the colors based on the aspect if it exists in the lookup table
     if (mastNumber < 4 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
         // Double head absolute signal masts (mast numbers 1 to 4)
         const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
