@@ -55,12 +55,12 @@ Adafruit_NeoPixel signalMasts[9] = {                             // Array of Neo
 };
 
 // Define the NodeID and MQTT topic
-String NodeID = "10-MC1";                                     // Node identifier
+String NodeID = "10-SMC1";                                    // Node identifier
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
 // Variables to track NodeID and IP address
-String previousNodeID = "";                                 
-String previousIPAddress = "";                              
+String previousNodeID = "";                                 // Previous NodeID value
+String previousIPAddress = "";                              // Previous IP address value                     
 
 // Function Prototypes
 void callback(char* topic, byte* payload, unsigned int length);
