@@ -2,11 +2,11 @@
   Project: ESP32 based WiFi/MQTT enabled (2) Double Searchlight High Absolute, (4) Single Head Dwarf, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.8
-  Date: 2023-06-15
-  Description: This sketch is designed for an ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
+  Version: 1.0.9
+  Date: 2023-06-16
+  Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
-  NodeID and IP address displayed on attached 128×64 OLED display.
+  NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
 */
 
 // Include necessary libraries
@@ -18,6 +18,7 @@
 #include <Adafruit_NeoPixel.h> // Library for Adafruit Neopixels    https://github.com/adafruit/Adafruit_NeoPixel
 #include <map>                 // Library for std::map              https://en.cppreference.com/w/cpp/container/map
 #include <string>              // Library for std::basic_string     https://en.cppreference.com/w/cpp/string/basic_string
+#include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
 const char* WIFI_SSID = "MyAltice 976DFF";                    // WiFi SSID
@@ -109,54 +110,104 @@ const std::map<std::string, Aspect> doubleHeadDwarfSignalLookup = {
     {"Stop", {RED, RED}}
 };
 
+void setupHostname() {
+    WiFi.setHostname(NodeID.c_str());
+}
+
 void setup() {
-    // Initialize serial communication
-    Serial.begin(115200);
-    delay(10);
-    Serial.println("Setup started");
+  // Initialize serial communication
+  Serial.begin(115200);
+  delay(10);
+  Serial.println("Setup started");
 
-    // Initialize WiFi and connect to the network
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.println("Connecting to WiFi...");
+  // Initialize WiFi and connect to the network
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.println("Connecting to WiFi...");
+  }
+  setupHostname(); // Set the hostname before connecting to MQTT
+
+  // Display the hostname
+  Serial.print("Hostname: ");
+  Serial.println(WiFi.getHostname());
+  
+  Serial.println("Connected to WiFi");
+  Serial.println("IP address: " + WiFi.localIP().toString()); // Display IP address
+
+  // Initialize OTA
+  ArduinoOTA.onStart([]() {
+    Serial.println("Starting OTA update...");
+  });
+
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nOTA update complete.");
+  });
+
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("OTA Progress: %u%%\r", (progress / (total / 100)));
+  });
+
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR)
+      Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR)
+      Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR)
+      Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR)
+      Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR)
+      Serial.println("End Failed");
+  });
+
+  // Set password for OTA updates
+  ArduinoOTA.setPassword("TMRCI");
+
+  // Start OTA service
+  ArduinoOTA.begin();
+  Serial.println("OTA Initialized. Waiting for OTA updates...");
+
+  // Connect to the MQTT broker
+  client.setServer(MQTT_SERVER, MQTT_PORT);
+  client.setCallback(callback);
+  reconnectMQTT();
+  Serial.println("Connected to MQTT");
+
+  // Initialize each Neopixel signal mast with a stop signal or turn off based on mast type
+  for (int i = 0; i < 7; i++) {
+    signalMasts[i].begin();
+    signalMasts[i].setBrightness(255); // Set brightness
+
+    if (i < 2) {
+      // For masts 1-2 (double head absolute signal masts)
+      signalMasts[i].setPixelColor(0, RED); // Set first head as RED
+      signalMasts[i].setPixelColor(1, RED); // Set second head as RED
+    } else if (i < 6) {
+      // For masts 3-6 (single head dwarf signal masts)
+      signalMasts[i].setPixelColor(0, RED); // Set head as RED
+    } else {
+      // For mast 7 (double head dwarf signal mast)
+      signalMasts[i].setPixelColor(0, RED); // Set first head as RED
+      signalMasts[i].setPixelColor(1, RED); // Set second head as RED
     }
-    Serial.println("Connected to WiFi");
-    Serial.println("IP address: " + WiFi.localIP().toString()); // Display IP address
+    signalMasts[i].show(); // Display the set colors
+  }
 
-    // Connect to the MQTT broker
-    client.setServer(MQTT_SERVER, MQTT_PORT);
-    client.setCallback(callback);
-    reconnectMQTT();
-    Serial.println("Connected to MQTT");
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ; // Don't proceed, loop forever
+  }
 
-    // Initialize each Neopixel signal mast with a stop signal or turn off based on mast type
-    for (int i = 0; i < 7; i++) {
-        signalMasts[i].begin();
-        signalMasts[i].setBrightness(255);                    // Set brightness
-    
-        if (i < 2) { // For masts 1-2 (double head absolute signal masts)
-            signalMasts[i].setPixelColor(0, RED);             // Set first head as RED
-            signalMasts[i].setPixelColor(1, RED);             // Set second head as RED
-        } else if (i < 6) { // For masts 3-6 (single head dwarf signal masts)
-            signalMasts[i].setPixelColor(0, RED);             // Set head as RED
-        } else { // For mast 7 (double head dwarf signal mast)
-            signalMasts[i].setPixelColor(0, RED);             // Set first head as RED
-            signalMasts[i].setPixelColor(1, RED);             // Set second head as RED
-        }
-        signalMasts[i].show();                                // Display the set colors
-    }
-    
-    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
-        Serial.println(F("SSD1306 allocation failed"));
-        for(;;); // Don't proceed, loop forever
-    }
-
-    // Initial update of the display
-    updateDisplay();
+  // Initial update of the display
+  updateDisplay();
 }
 
 void loop() {
+  ArduinoOTA.handle(); // Handle OTA updates
+    
     // Reconnect to WiFi if connection lost
     if (WiFi.status() != WL_CONNECTED) {
         reconnectWiFi();
