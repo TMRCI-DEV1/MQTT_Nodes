@@ -186,6 +186,8 @@ void setup() {
 }
 
 void loop() {
+  ArduinoOTA.handle(); // Handle OTA updates
+  
     // Reconnect to WiFi if connection lost
     if (WiFi.status() != WL_CONNECTED) {
         reconnectWiFi();
