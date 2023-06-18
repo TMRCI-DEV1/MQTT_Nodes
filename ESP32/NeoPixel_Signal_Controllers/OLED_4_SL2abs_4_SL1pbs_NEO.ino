@@ -69,14 +69,14 @@ void reconnectWiFi();
 void updateDisplay();
 
 // Define the signal aspects and lookup tables
-const uint32_t RED = signalMasts[0].Color(252, 15, 80);        
-const uint32_t YELLOW = signalMasts[0].Color(254, 229, 78);   
-const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);    
+const uint32_t RED = signalMasts[0].Color(252, 15, 80);        // RED color
+const uint32_t YELLOW = signalMasts[0].Color(254, 229, 78);    // YELLOW color
+const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);     // GREEN color   
 
 // Struct to represent signal mast aspect
 struct Aspect {
-    uint32_t head1;                                            
-    uint32_t head2;                                            
+    uint32_t head1;                                            // Color of the first Neopixel
+    uint32_t head2;                                            // Color of the second Neopixel (optional)
 };
 
 // Lookup table for double head signal mast aspects
@@ -171,25 +171,30 @@ void setup() {
         signalMasts[i].begin();
         signalMasts[i].setBrightness(255);                    
     
-        if (i < 4) { // For masts 1-4 (double head absolute signal mast)
-            signalMasts[i].setPixelColor(0, RED);            
-            signalMasts[i].setPixelColor(1, RED);            
-        } else if (i < 6) { // For masts 5-6 (single head permissive signal masts)
-            signalMasts[i].setPixelColor(0, RED);            
-        } else if (i == 6) { // For mast 7 (first head of doubled mast with SM8)
-            signalMasts[i].setPixelColor(0, RED);            
-            signalMasts[i].setPixelColor(1, RED);            
-        } else if (i == 7) { // For mast 8 (second head of doubled mast with SM7)
-            signalMasts[i].setPixelColor(0, RED);            
+    if (i < 4) {
+        // For masts 1-4 (double head absolute signal mast)
+        signalMasts[i].setPixelColor(0, RED); // Set first head as RED
+        signalMasts[i].setPixelColor(1, RED); // Set second head as RED           
+        } else if (i < 6) {
+        // For masts 5-6 (single head permissive signal masts)
+        signalMasts[i].setPixelColor(0, RED); // Set head as RED     
+        } else if (i == 6) {
+        // For mast 7 (first head of doubled mast with SM8)
+        signalMasts[i].setPixelColor(0, RED); // Set first head as RED        
+        signalMasts[i].setPixelColor(1, RED); // Set second head as RED         
+        } else if (i == 7) {
+        // For mast 8 (second head of doubled mast with SM7)
+        signalMasts[i].setPixelColor(0, RED); // Set head as RED        
         }
         
-        signalMasts[i].show();                               
+    signalMasts[i].show(); // Display the set colors                              
     }
 
-    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
-        Serial.println(F("SSD1306 allocation failed"));
-        for (;;) {} 
-    }
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); 
+    // Don't proceed, loop forever
+  }
 
     // Initial update of the display
     updateDisplay();
@@ -286,7 +291,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         Serial.println("Error: Invalid mast number.");
         return;
     }
-    mastNumber -= 1; 
+    mastNumber -= 1; // Convert 1-based SM number to 0-based index
 
     // Check if the signal mast should be unlit
     if (litStr == "Unlit") {

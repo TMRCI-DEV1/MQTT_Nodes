@@ -179,23 +179,27 @@ void setup() {
     // Initialize each Neopixel signal mast with a stop signal or turn off based on mast type
     for (int i = 0; i < 7; i++) {
         signalMasts[i].begin();
-        signalMasts[i].setBrightness(255);                    // Set brightness
+        signalMasts[i].setBrightness(255); // Set brightness
     
-        if (i < 2) { // For masts 1-2 (double head absolute signal masts)
-            signalMasts[i].setPixelColor(0, RED);             // Set first head as RED
-            signalMasts[i].setPixelColor(1, RED);             // Set second head as RED
-        } else if (i < 6) { // For masts 3-6 (single head permissive signal masts)
-            signalMasts[i].setPixelColor(0, RED);             // Set head as RED
-        } else { // For mast 7 (double head dwarf signal mast)
-            signalMasts[i].setPixelColor(0, RED);             // Set first head as RED
-            signalMasts[i].setPixelColor(1, RED);             // Set second head as RED
+        if (i < 2) { 
+            // For masts 1-2 (double head absolute signal masts)
+            signalMasts[i].setPixelColor(0, RED); // Set first head as RED
+            signalMasts[i].setPixelColor(1, RED); // Set second head as RED
+        } else if (i < 6) { 
+            // For masts 3-6 (single head permissive signal masts)
+            signalMasts[i].setPixelColor(0, RED); // Set head as RED
+        } else { 
+            // For mast 7 (double head dwarf signal mast)
+            signalMasts[i].setPixelColor(0, RED); // Set first head as RED
+            signalMasts[i].setPixelColor(1, RED); // Set second head as RED
         }
-        signalMasts[i].show();                                // Display the set colors
+        signalMasts[i].show(); // Display the set colors
     }
     
-    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
         Serial.println(F("SSD1306 allocation failed"));
-        for(;;); // Don't proceed, loop forever
+        for (;;); 
+        // Don't proceed, loop forever
     }
 
     // Initial update of the display
@@ -281,12 +285,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Extract and trim the held string
     String heldStr = payloadStr.substring(separatorIndex2 + 1);
     heldStr.trim();
-
-    // Extract the mast number from the topic
-    String topicStr = String(topic);
-    int lastSlashIndex = topicStr.lastIndexOf('/');
-    String mastNumberStr = topicStr.substring(lastSlashIndex + 3); // +3 to account for "SM"
-    mastNumber = mastNumberStr.toInt(); // Remove redeclaration
 
     if (mastNumber < 1 || mastNumber > 7) {
         Serial.println("Error: Invalid mast number.");

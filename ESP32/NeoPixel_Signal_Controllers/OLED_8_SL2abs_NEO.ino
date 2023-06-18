@@ -69,14 +69,14 @@ void reconnectWiFi();
 void updateDisplay();
 
 // Define the signal aspects and lookup tables
-const uint32_t RED = signalMasts[0].Color(252, 15, 80);
-const uint32_t YELLOW = signalMasts[0].Color(254, 229, 78);
-const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);
+const uint32_t RED = signalMasts[0].Color(252, 15, 80);        // RED color
+const uint32_t YELLOW = signalMasts[0].Color(254, 229, 78);    // YELLOW color
+const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);     // GREEN color
 
 // Struct to represent signal mast aspect
 struct Aspect {
-    uint32_t head1;
-    uint32_t head2;
+    uint32_t head1;                                            // Color of the first Neopixel
+    uint32_t head2;                                            // Color of the second Neopixel (optional)
 };
 
 // Lookup table for double head signal mast aspects
@@ -165,13 +165,15 @@ void setup() {
 
         // Set all pixels of the signal mast to red color
         signalMasts[i].fill(RED, 0, 2);
-        signalMasts[i].show();
-    }
+        
+    signalMasts[i].show(); // Display the set colors
+  }
 
-    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        Serial.println(F("SSD1306 allocation failed"));
-        for (;;) {}
-    }
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); 
+    // Don't proceed, loop forever
+  }
 
     // Initial update of the display
     updateDisplay();
@@ -261,7 +263,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         Serial.println("Error: Invalid mast number.");
         return;
     }
-    mastNumber -= 1;
+    mastNumber -= 1; // Convert 1-based SM number to 0-based index
 
     // Check if the signal mast should be unlit
     if (litStr == "Unlit") {
@@ -273,10 +275,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     // Check if the signal mast should be held
     if (heldStr == "Held") {
-        // Set aspect to stop for the corresponding heads of the signal mast
-        signalMasts[mastNumber].setPixelColor(0, RED);
-        signalMasts[mastNumber].show();
-        return;
+        // Set aspect to stop for all mast types
+        aspectStr = "Stop";
     }
 
     // Convert aspectStr from String to std::string

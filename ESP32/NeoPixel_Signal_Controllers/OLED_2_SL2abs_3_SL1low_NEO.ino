@@ -52,7 +52,7 @@ Adafruit_NeoPixel signalMasts[5] = {                             // Array of Neo
 };
 
 // Define the NodeID and MQTT topic
-String NodeID = "10-SMC1";                                     // Node identifier
+String NodeID = "10-SMC1";                                    // Node identifier
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
 // Variables to track NodeID and IP address
@@ -165,21 +165,24 @@ void setup() {
     // Initialize each Neopixel signal mast with a stop signal or turn off based on mast type
     for (int i = 0; i < 4; i++) {
         signalMasts[i].begin();
-        signalMasts[i].setBrightness(255);                    // Set brightness
+        signalMasts[i].setBrightness(255); // Set brightness
     
-        if (i < 2) { // For masts 1-2 (double head absolute signal masts)
-            signalMasts[i].setPixelColor(0, RED);             // Set first head as RED
-            signalMasts[i].setPixelColor(1, RED);             // Set second head as RED
-        } else if (i < 4) { // For masts 3-5 (single head dwarf signal masts)
-            signalMasts[i].setPixelColor(0, RED);             // Set head as RED
+        if (i < 2) { 
+            // For masts 1-2 (double head absolute signal masts)
+            signalMasts[i].setPixelColor(0, RED); // Set first head as RED
+            signalMasts[i].setPixelColor(1, RED); // Set second head as RED
+        } else if (i < 4) {
+            // For masts 3-5 (single head dwarf signal masts)
+            signalMasts[i].setPixelColor(0, RED); // Set head as RED
         }
-        signalMasts[i].show();                                // Display the set colors
+        signalMasts[i].show(); // Display the set colors
     }
 
-    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
-        Serial.println(F("SSD1306 allocation failed"));
-        for (;;) {} // Don't proceed, loop forever
-    }
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); 
+    // Don't proceed, loop forever
+  }
 
     // Initial update of the display
     updateDisplay();
@@ -236,11 +239,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Convert payload bytes into a string
     String payloadStr(message);
 
-    // Extract the mast number from the topic
-    String topicStr = String(topic);
-    int lastSlashIndex = topicStr.lastIndexOf('/');
-    String mastNumberStr = topicStr.substring(lastSlashIndex + 3); // +3 to account for "SM"
-    int mastNumber = mastNumberStr.toInt();
+    // Extract the signal mast number from the topic
+    int mastNumber = topic[strlen(topic) - 1] - '0';
 
     Serial.print("Received message for SM");
     Serial.print(mastNumber);
