@@ -2,7 +2,7 @@
   Project: ESP32 based WiFi/MQTT enabled (2) Double Searchlight High Absolute, (4) Single Searchlight High Permissive, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.6
+  Version: 1.0.7
   Date: 2023-06-18
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
@@ -343,9 +343,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void updateDisplay() {
     // Check if NodeID or IP address changed
-    static String previousNodeID = "";
-    static String previousIPAddress = "";
-
     if (NodeID != previousNodeID || WiFi.localIP().toString() != previousIPAddress) {
         // Update NodeID and IP address
         previousNodeID = NodeID;

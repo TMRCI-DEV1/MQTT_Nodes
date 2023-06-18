@@ -2,7 +2,7 @@
   Project: ESP32 based WiFi/MQTT enabled (1) Double Searchlight High Absolute and (8) Single Searchlight High Permissive signal Neopixel Node
   (9 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.8
+  Version: 1.0.9
   Date: 2023-06-18
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 9 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
@@ -40,7 +40,7 @@ const int OLED_RESET = -1; // Reset pin # (or -1 if sharing ESP32 reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define the GPIO pins for the Neopixels in ascending order
-const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};             
+const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};
 
 // Define the Neopixel chains and signal masts
 Adafruit_NeoPixel signalMasts[9] = {                             // Array of Neopixels, one for each signal mast
@@ -51,8 +51,8 @@ Adafruit_NeoPixel signalMasts[9] = {                             // Array of Neo
     Adafruit_NeoPixel(1, neoPixelPins[4], NEO_GRB + NEO_KHZ800), // SM5 (single head permissive)
     Adafruit_NeoPixel(2, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM6 (doubled with SM8) (single head permissive)
     Adafruit_NeoPixel(2, neoPixelPins[6], NEO_GRB + NEO_KHZ800), // SM7 (doubled with SM9) (single head permissive)
-    Adafruit_NeoPixel(1, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM8 (second head) (single head permissive)
-    Adafruit_NeoPixel(1, neoPixelPins[6], NEO_GRB + NEO_KHZ800)  // SM9 (second head) (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM8 (second head) (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[1], NEO_GRB + NEO_KHZ800)  // SM9 (second head) (single head permissive)
 };
 
 // Define the NodeID and MQTT topic
@@ -177,17 +177,13 @@ void setup() {
             signalMasts[i].setPixelColor(1, RED);            
         } else if (i < 6) { // For masts 2-6 (single head permissive signal masts)
             signalMasts[i].setPixelColor(0, RED);            
-        } else if (i == 5) { // For mast 6 (first head of doubled mast with SM8)
+        } else if (i == 5 || i == 7) { // For mast 6 and mast 7 (first head of doubled masts with SM8 and SM9)
             signalMasts[i].setPixelColor(0, RED);            
-        } else if (i == 6) { // For mast 7 (first head of doubled mast with SM9)
-            signalMasts[i].setPixelColor(0, RED);            
-        } else if (i == 7) { // For mast 8 (second head of doubled mast with SM6)
-            signalMasts[i].setPixelColor(0, RED); // Set to red color
-        } else if (i == 8) { // For mast 9 (second head of doubled mast with SM7)
+        } else if (i == 6 || i == 8) { // For mast 8 and mast 9 (second head of doubled masts with SM6 and SM7)
             signalMasts[i].setPixelColor(0, RED); // Set to red color
         }
         
-    signalMasts[i].show(); // Display the set colors                             
+        signalMasts[i].show(); // Display the set colors                             
     }
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
@@ -296,10 +292,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
         pixelIndex = 1; // set to second pixel
     }
 
-    if (mastNumber < 1 || mastNumber > 9) {
+    if (mastNumber < 0 || mastNumber >= 9) {
         Serial.println("Error: Invalid mast number.");
         return;
     }
+
     mastNumber -= 1; // Convert 1-based SM number to 0-based index
 
     // Check if the signal mast should be unlit
@@ -323,29 +320,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Convert aspectStr from String to std::string
     std::string aspectKey = aspectStr.c_str();
 
-    // Set the colors based on the aspect if it exists in the lookup table
-    if (mastNumber == 1 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
-        // Double head absolute signal mast (mast number 1)
-        const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
-        signalMasts[mastNumber - 1].setPixelColor(0, aspect.head1);
-        signalMasts[mastNumber - 1].setPixelColor(1, aspect.head2);
-        signalMasts[mastNumber - 1].show();
-    } else if (mastNumber >= 2 && mastNumber <= 5 && singleSearchlightHighPermissiveLookup.count(aspectKey)) {
-        // Single head permissive signal masts (mast numbers 2 to 5)
-        const Aspect& aspect = singleSearchlightHighPermissiveLookup.at(aspectKey);
-        signalMasts[mastNumber - 1].setPixelColor(0, aspect.head1);
-        signalMasts[mastNumber - 1].show();
-    } else if ((mastNumber == 6 || mastNumber == 8) && pixelIndex == 1 && singleSearchlightHighPermissiveLookup.count(aspectKey)) {
-        // Second head of daisy-chained signal masts SM8 and SM9 (daisy-chained to SM6 and SM7)
-        const Aspect& aspect = singleSearchlightHighPermissiveLookup.at(aspectKey);
-        signalMasts[mastNumber].setPixelColor(pixelIndex, aspect.head1);
-        signalMasts[mastNumber].show();
-    } else if ((mastNumber == 7 || mastNumber == 9) && pixelIndex == 1 && singleSearchlightHighPermissiveLookup.count(aspectKey)) {
-        // Second head of daisy-chained signal masts SM6 and SM7 (daisy-chained to SM8 and SM9)
-        const Aspect& aspect = singleSearchlightHighPermissiveLookup.at(aspectKey);
-        signalMasts[mastNumber].setPixelColor(pixelIndex, aspect.head1);
-        signalMasts[mastNumber].show();
-    }
+
 
     // Update display if NodeID or IP address changed
     updateDisplay();
@@ -353,9 +328,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void updateDisplay() {
     // Check if NodeID or IP address changed
-    static String previousNodeID = "";
-    static String previousIPAddress = "";
-
     if (NodeID != previousNodeID || WiFi.localIP().toString() != previousIPAddress) {
         // Update NodeID and IP address
         previousNodeID = NodeID;

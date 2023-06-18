@@ -2,7 +2,7 @@
   Project: ESP32 based WiFi/MQTT enabled (4) Double Searchlight High Absolute and (4) Single Searchlight High Permissive signal Neopixel Node
   (8 signal mast outputs / 12 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.6
+  Version: 1.0.7
   Date: 2023-06-18
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 8 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
@@ -40,10 +40,10 @@ const int OLED_RESET = -1; // Reset pin # (or -1 if sharing ESP32 reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define the GPIO pins for the Neopixels in ascending order
-const int neoPixelPins[8] = {16, 17, 18, 19, 23, 32, 33};             
+const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};             
 
 // Define the Neopixel chains and signal masts
-Adafruit_NeoPixel signalMasts[8] = {                             // Array of Neopixels, one for each signal mast
+Adafruit_NeoPixel signalMasts[8] = {
     Adafruit_NeoPixel(2, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM1 (double head absolute)
     Adafruit_NeoPixel(2, neoPixelPins[1], NEO_GRB + NEO_KHZ800), // SM2 (double head absolute)
     Adafruit_NeoPixel(2, neoPixelPins[2], NEO_GRB + NEO_KHZ800), // SM3 (double head absolute)
@@ -334,9 +334,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void updateDisplay() {
     // Check if NodeID or IP address changed
-    static String previousNodeID = "";
-    static String previousIPAddress = "";
-
     if (NodeID != previousNodeID || WiFi.localIP().toString() != previousIPAddress) {
         // Update NodeID and IP address
         previousNodeID = NodeID;
