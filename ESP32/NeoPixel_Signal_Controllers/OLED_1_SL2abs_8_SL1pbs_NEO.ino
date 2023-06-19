@@ -2,8 +2,8 @@
   Project: ESP32 based WiFi/MQTT enabled (1) Double Searchlight High Absolute and (8) Single Searchlight High Permissive signal Neopixel Node
   (9 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.9
-  Date: 2023-06-18
+  Version: 1.1.0
+  Date: 2023-06-19
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 9 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -91,7 +91,8 @@ const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"Approach", {YELLOW, RED}},
     {"Medium Approach", {RED, YELLOW}},
     {"Restricting", {RED, YELLOW}},
-    {"Stop", {RED, RED}}
+    {"Stop", {RED, RED}},
+    {"null", {RED, RED}}
 };
 
 // Lookup table for single head signal mast aspects
@@ -99,7 +100,8 @@ const std::map<std::string, Aspect> singleSearchlightHighPermissiveLookup = {
     {"Clear", {GREEN}},
     {"Approach", {YELLOW}},
     {"Permissive", {YELLOW}},
-    {"Stop and Proceed", {RED}}
+    {"Stop and Proceed", {RED}},
+    {"null", {RED}}
 };
 
 void setupHostname() {

@@ -2,8 +2,8 @@
   Project: ESP32 based WiFi/MQTT enabled (2) Double Searchlight High Absolute, (4) Single Head Dwarf, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.1.1
-  Date: 2023-06-18
+  Version: 1.1.2
+  Date: 2023-06-19
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -89,14 +89,16 @@ const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"Approach", {YELLOW, RED}},
     {"Medium Approach", {RED, YELLOW}},
     {"Restricting", {RED, YELLOW}},
-    {"Stop", {RED, RED}}
+    {"Stop", {RED, RED}},
+    {"null", {RED, RED}}
 };
 
 // Lookup table for single head signal mast aspects
 const std::map<std::string, Aspect> singleHeadDwarfSignalLookup = {
     {"Slow Clear", {GREEN}},
     {"Restricting", {YELLOW}},
-    {"Stop", {RED}}
+    {"Stop", {RED}},
+    {"null", {RED}}
 };
 
 // Lookup table for double head dwarf signal mast aspects
@@ -107,7 +109,8 @@ const std::map<std::string, Aspect> doubleHeadDwarfSignalLookup = {
     {"Slow Clear", {GREEN, RED}},
     {"Slow Approach", {YELLOW, RED}},
     {"Restricting", {RED, YELLOW}},
-    {"Stop", {RED, RED}}
+    {"Stop", {RED, RED}},
+    {"null", {RED, RED}}
 };
 
 void setupHostname() {
