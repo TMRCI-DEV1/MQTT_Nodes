@@ -21,8 +21,8 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
-const char* WIFI_SSID = "(HO) Touchscreens & MQTT Nodes";     // WiFi SSID
-const char* WIFI_PASSWORD = "touch.666.pi";                   // WiFi Password
+const char* WIFI_SSID = "MyAltice 976DFF";                    // WiFi SSID
+const char* WIFI_PASSWORD = "lemon.463.loud";                 // WiFi Password
 
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
@@ -52,7 +52,7 @@ Adafruit_NeoPixel signalMasts[5] = {                             // Array of Neo
 };
 
 // Define the NodeID and MQTT topic
-String NodeID = "10-SMC1";                                    // Node identifier
+String NodeID = "10-SMC2";                                    // Node identifier
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
 // Variables to track NodeID and IP address
