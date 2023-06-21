@@ -2,8 +2,8 @@
   Project: ESP32 based WiFi/MQTT enabled (1) Double Searchlight High Absolute and (8) Single Searchlight High Permissive signal Neopixel Node
   (9 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.1.0
-  Date: 2023-06-19
+  Version: 1.1.1
+  Date: 2023-06-21
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 9 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -43,20 +43,20 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};
 
 // Define the Neopixel chains and signal masts
-Adafruit_NeoPixel signalMasts[9] = {                             // Array of Neopixels, one for each signal mast
+Adafruit_NeoPixel signalMasts[9] = {
     Adafruit_NeoPixel(2, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM1 (double head absolute)
     Adafruit_NeoPixel(1, neoPixelPins[1], NEO_GRB + NEO_KHZ800), // SM2 (single head permissive)
     Adafruit_NeoPixel(1, neoPixelPins[2], NEO_GRB + NEO_KHZ800), // SM3 (single head permissive)
     Adafruit_NeoPixel(1, neoPixelPins[3], NEO_GRB + NEO_KHZ800), // SM4 (single head permissive)
     Adafruit_NeoPixel(1, neoPixelPins[4], NEO_GRB + NEO_KHZ800), // SM5 (single head permissive)
-    Adafruit_NeoPixel(2, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM6 (doubled with SM8) (single head permissive)
-    Adafruit_NeoPixel(2, neoPixelPins[6], NEO_GRB + NEO_KHZ800), // SM7 (doubled with SM9) (single head permissive)
-    Adafruit_NeoPixel(1, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM8 (second head) (single head permissive)
-    Adafruit_NeoPixel(1, neoPixelPins[1], NEO_GRB + NEO_KHZ800)  // SM9 (second head) (single head permissive)
+    Adafruit_NeoPixel(2, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM6 (first head) (single head permissive)
+    Adafruit_NeoPixel(2, neoPixelPins[6], NEO_GRB + NEO_KHZ800), // SM7 (first head) (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM8 (second head of SM6) (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[6], NEO_GRB + NEO_KHZ800)  // SM9 (second head of SM7) (single head permissive)
 };
 
 // Define the NodeID and MQTT topic
-String NodeID = "10-SMC1";                                    // Node identifier
+String NodeID = "11-SMC3";                                    // Node identifier
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
 // Variables to track NodeID and IP address
@@ -322,7 +322,20 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Convert aspectStr from String to std::string
     std::string aspectKey = aspectStr.c_str();
 
+    // Set the Neopixel color based on the aspect string
+    if (mastNumber == 0) {
+        // Double searchlight high absolute signal mast (SM1)
+        const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
+        signalMasts[mastNumber].setPixelColor(0, aspect.head1);
+        signalMasts[mastNumber].setPixelColor(1, aspect.head2);
+    } else {
+        // Single searchlight high permissive signal masts (SM2-SM9)
+        const Aspect& aspect = singleSearchlightHighPermissiveLookup.at(aspectKey);
+        signalMasts[mastNumber].setPixelColor(pixelIndex, aspect.head1);
+    }
 
+    // Display the updated colors
+    signalMasts[mastNumber].show();
 
     // Update display if NodeID or IP address changed
     updateDisplay();
