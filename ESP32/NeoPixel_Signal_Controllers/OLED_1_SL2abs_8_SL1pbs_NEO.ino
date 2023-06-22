@@ -56,7 +56,7 @@ Adafruit_NeoPixel signalMasts[9] = {
 };
 
 // Define the NodeID and MQTT topic
-String NodeID = "11-SMC3";                                    // Node identifier
+String NodeID = "11-SMC2";                                    // Node identifier
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
 // Variables to track NodeID and IP address
