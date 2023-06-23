@@ -340,7 +340,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     updateDisplay();
 }
 
-
 void updateDisplay() {
     // Check if NodeID or IP address changed
     if (NodeID != previousNodeID || WiFi.localIP().toString() != previousIPAddress) {
