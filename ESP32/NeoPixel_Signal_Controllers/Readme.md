@@ -1,4 +1,4 @@
-# Project Description
+# Neopixel Signal Masts
 These sketches are designed for an ESP32 Node with WiFi and MQTT capabilities. They provide the functionality to control a set of signal masts using an ESP32 board, Neopixel LEDs, and MQTT. It allows for the wireless control of the signal aspects based on messages received from JMRI. The NodeID and IP address are displayed on an OLED display for easy identification. The sketch can be customized and extended to support additional signal mast configurations and features as needed.
 
 The sketch uses MQTT to subscribe to messages published by JMRI (Java Model Railroad Interface) for controlling the signal mast objects. The expected format of the incoming messages is 'Aspect; Lit (or Unlit); Unheld (or Held)'. The sketch listens to MQTT topics specific to each signal mast.
