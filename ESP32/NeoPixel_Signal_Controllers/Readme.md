@@ -42,7 +42,7 @@ The sketch uses MQTT for communication with JMRI. The MQTT server details need t
 The sketch assumes the following hardware setup:
 
 ESP32 board with WiFi capabilities.
-(7) Neopixel LEDs connected to GPIO pins defined in the neoPixelPins array.
+Neopixel LEDs connected to GPIO pins defined in the neoPixelPins array.
 128x64 OLED display connected via I2C.
 
 ## Functionality
