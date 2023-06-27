@@ -29,14 +29,14 @@ The sketch utilizes the following libraries:
 ## Network Configuration
 The sketch requires connecting to a WiFi network. The following configuration parameters need to be set:
 
--**WIFI_SSID**: The SSID (name) of the WiFi network to connect to.
--**WIFI_PASSWORD**: The password for the WiFi network.
+- **WIFI_SSID**: The SSID (name) of the WiFi network to connect to.
+- **WIFI_PASSWORD**: The password for the WiFi network.
 
 ## MQTT Configuration
 The sketch uses MQTT for communication with JMRI. The MQTT server details need to be configured:
 
--**MQTT_SERVER**: The IP address or hostname of the MQTT server.
--**MQTT_PORT**: The port number on which the MQTT server is running.
+- **MQTT_SERVER**: The IP address or hostname of the MQTT server.
+- **MQTT_PORT**: The port number on which the MQTT server is running.
 
 ## Hardware Setup
 The sketch assumes the following hardware setup:
@@ -49,22 +49,22 @@ ESP32 board with WiFi capabilities.
 ### setup()
 The **setup()** function is responsible for initializing the sketch. It performs the following tasks:
 
--Initializes serial communication for debugging.
--Connects to the WiFi network specified in the configuration.
--Sets the hostname of the ESP32 to the NodeID.
--Initializes the OTA (Over-The-Air) update functionality.
--Connects to the MQTT broker and subscribes to the relevant topics.
--Initializes the Neopixel signal masts to their default state (stop signal).
--Initializes the OLED display and shows the initial NodeID and IP address.
+- Initializes serial communication for debugging.
+- Connects to the WiFi network specified in the configuration.
+- Sets the hostname of the ESP32 to the NodeID.
+- Initializes the OTA (Over-The-Air) update functionality.
+- Connects to the MQTT broker and subscribes to the relevant topics.
+- Initializes the Neopixel signal masts to their default state (stop signal).
+- Initializes the OLED display and shows the initial NodeID and IP address.
 
 ### loop()
 The **loop()** function is the main execution loop of the sketch. It performs the following tasks:
 
--Handles OTA updates.
--Reconnects to WiFi if the connection is lost.
--Reconnects to the MQTT server if the connection is lost.
--Calls the callback() function to handle incoming MQTT messages.
-Updates the OLED display if the NodeID or IP address has changed.
+- Handles OTA updates.
+- Reconnects to WiFi if the connection is lost.
+- Reconnects to the MQTT server if the connection is lost.
+- Calls the callback() function to handle incoming MQTT messages.
+- Updates the OLED display if the NodeID or IP address has changed.
 
 ### reconnectMQTT()
 The **reconnectMQTT()** function is responsible for establishing a connection to the MQTT server. It attempts to reconnect until the connection is successful. Upon successful connection, it subscribes to the MQTT topics for all signal masts.
