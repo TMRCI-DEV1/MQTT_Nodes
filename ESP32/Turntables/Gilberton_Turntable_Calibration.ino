@@ -32,9 +32,9 @@
 #define EEPROM_TAILS_ADDRESS 200
 
 // Define network credentials and MQTT broker address
-const char* ssid = "MyAltice 976DFF";
-const char* password = "lemon.463.loud";
-const char* mqtt_broker = "129.213.106.87";
+const char* ssid = "###############";
+const char* password = "###############";
+const char* mqtt_broker = "###############";
 
 // Create instances for WiFi client and MQTT client
 WiFiClient espClient;
