@@ -2,11 +2,12 @@
   Aisle-Node: Gilberton Turntable Control (CALIBRATION)
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
-  Date: 2023-06-26
+  Version: 1.0.3
+  Date: 2023-06-30
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad, 
-  a serial LCD 2004 20x4 display module with I2C interface, a STEPPERONLINE CNC stepper motor driver, and a STEPPERONLINE stepper 
+  a serial LCD 2004 20x4 display module with I2C interface, (2) 16 Channel I2C Interface Electromagnetic Relay Modules, a STEPPERONLINE CNC 
+  stepper motor driver, and a STEPPERONLINE stepper 
   motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi network, subscribes to MQTT messages published 
   by JMRI, and enables control of the turntable by entering a 2-digit track number on the keypad, followed by '*' or '#' to select the 
   head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents the 2-digit track number (01-24) 
@@ -19,13 +20,14 @@
 #include <WiFi.h>              // Library for WiFi connection       https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 #include <Keypad.h>            // Library for 3x3 keypad            https://github.com/Chris--A/Keypad
 #include <LiquidCrystal_I2C.h> // Library for Liquid Crystal I2C    https://github.com/johnrickman/LiquidCrystal_I2C
+#include <PCF8575.h>           // Library for I2C relay boards      https://github.com/xreef/PCF8575_library/tree/master
 #include <AccelStepper.h>      // Library for Accel Stepper         https://github.com/waspinator/AccelStepper
 #include <PubSubClient.h>      // Library for MQTT                  https://github.com/knolleary/pubsubclient
 #include <EEPROM.h>            // Library for EEPROM read/write     https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Define constants for steps per revolution and EEPROM addresses for saving positions
-#define STEPS_PER_REV 1600
+#define STEPS_PER_REV 6400
 #define EEPROM_POSITION_ADDRESS 0
 #define EEPROM_HEADS_ADDRESS 100
 #define EEPROM_TAILS_ADDRESS 200
@@ -42,6 +44,10 @@ PubSubClient client(espClient);
 // Create instances for stepper and LCD screen
 AccelStepper stepper(AccelStepper::DRIVER, 33, 32); 
 LiquidCrystal_I2C lcd(0x3F, 20, 4);
+
+// Create instances for PCF8575
+PCF8575 relayBoard1(0x20); // relay board 1 with I2C address 0x20
+PCF8575 relayBoard2(0x21); // relay board 2 with I2C address 0x21
 
 // Define keypad layout and create instance
 const byte ROW_NUM = 4; 
@@ -77,10 +83,11 @@ void setup() {
   WiFi.begin(ssid, password);
 
   // Initialize EEPROM and retrieve last known positions
-  EEPROM.begin(512);
-  EEPROM.get(EEPROM_POSITION_ADDRESS, currentPosition);
-  EEPROM.get(EEPROM_HEADS_ADDRESS, trackHeads);  // load head positions from EEPROM
-  EEPROM.get(EEPROM_TAILS_ADDRESS, trackTails);  // load tail positions from EEPROM
+  // COMMENT OUT DURING CALIBRATION*************************************************************************************
+  // EEPROM.begin(512);
+  // EEPROM.get(EEPROM_POSITION_ADDRESS, currentPosition);
+  // EEPROM.get(EEPROM_HEADS_ADDRESS, trackHeads);  // load head positions from EEPROM
+  // EEPROM.get(EEPROM_TAILS_ADDRESS, trackTails);  // load tail positions from EEPROM
 
   // Wait for WiFi connection
   while (WiFi.status() != WL_CONNECTED) {
@@ -144,12 +151,25 @@ void setup() {
     }
   }
 
+  // Initialize the relay boards
+  relayBoard1.begin();
+  relayBoard2.begin();
+  
+  // Set the pin modes and initial state (HIGH - Track power OFF)
+  for(int i = 0; i < 16; i++) {
+    relayBoard1.pinMode(i, OUTPUT);
+    relayBoard1.digitalWrite(i, HIGH);
+    relayBoard2.pinMode(i, OUTPUT);
+    relayBoard2.digitalWrite(i, HIGH);
+  }
+
   // Initialize the LCD and print IP
   lcd.begin(20, 4);
   lcd.print("IP: ");
   lcd.print(WiFi.localIP());
 
   // Display calibration mode message
+  // COMMENT OUT AFTER CALIBRATION*************************************************************************************
   lcd.setCursor(0,1); // Move cursor to the second line
   lcd.print("Calibration Mode");
 
@@ -305,6 +325,21 @@ void moveToTargetPosition(int targetPosition) {
 
 // Function to calculate the target position based on track number and end number
 int calculateTargetPosition(int trackNumber, int endNumber) {
+  // Turn off all relays
+  for (uint8_t i = 0; i < 16; i++) {
+    relayBoard1.digitalWrite(i, HIGH);
+    relayBoard2.digitalWrite(i, HIGH);
+  }
+
+  // Track numbers start from 1. Subtract 1 to match the 0-indexed array and relay positions
+  trackNumber--;
+
+  // Turn on the relay corresponding to the selected track
+  if (trackNumber < 16) {
+    relayBoard1.digitalWrite(trackNumber, LOW);
+  } else {
+    relayBoard2.digitalWrite(trackNumber - 16, LOW);
+  }
   if (endNumber == 1) {
     return trackHeads[trackNumber - 1];
   } else {
