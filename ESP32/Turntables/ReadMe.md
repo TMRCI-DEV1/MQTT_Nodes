@@ -6,7 +6,7 @@ The ESP32 Node connects to a WiFi network and subscribes to MQTT messages publis
 ## Sketch Overview
 Here's a breakdown of the important parts of the sketch:
 
-1. **Libraries**: The sketch includes several libraries required for different functionalities, such as Wire for I2C communication, WiFi for WiFi connectivity, Keypad for keypad input, LiquidCrystal_I2C for controlling the LCD display, AccelStepper for controlling the stepper motor, PubSubClient for MQTT communication, and EEPROM for reading and writing to EEPROM memory.
+1. **Libraries**: The sketch includes several libraries required for different functionalities, such as Wire for I2C communication, WiFi for WiFi connectivity, Keypad for keypad input, LiquidCrystal_I2C for controlling the LCD display, PCF8575 for controlling the I2C relay boards, AccelStepper for controlling the stepper motor, PubSubClient for MQTT communication, and EEPROM for reading and writing to EEPROM memory.
 
 2. **Constants**: The sketch defines constants for the steps per revolution of the stepper motor and EEPROM addresses for saving positions.
 
