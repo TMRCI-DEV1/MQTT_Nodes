@@ -7,11 +7,11 @@
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad, 
   a serial LCD 2004 20x4 display module with I2C interface, (2) 16 Channel I2C Interface Electromagnetic Relay Modules, a STEPPERONLINE CNC 
-  stepper motor driver, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi network, subscribes to MQTT messages published 
-  by JMRI, and enables control of the turntable by entering a 2-digit track number on the keypad, followed by '*' or '#' to select the 
-  head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents the 2-digit track number (01-24) 
-  and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the commanded track number, and the 
-  head or tail position. The ESP32 Node is identified by its hostname.
+  stepper motor driver, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi 
+  network, subscribes to MQTT messages published by JMRI, and enables control of the turntable by entering a 2-digit track number on the 
+  keypad, followed by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' 
+  represents the 2-digit track number (01-24) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP 
+  address, the commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname.
 */
 
 // Include necessary libraries
