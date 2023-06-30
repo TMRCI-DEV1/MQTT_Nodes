@@ -68,7 +68,10 @@ Once you have calibrated all the desired tracks, you can exit the calibration mo
 **Step 9**: Test the Calibration
 After completing the calibration process, you can test the turntable control by sending MQTT messages to the ESP32 Node. Publish MQTT messages in the format 'Tracknx', where 'n' represents the 2-digit track number (01-24), and 'x' represents 'H' for the head-end or 'T' for the tail-end. The ESP32 Node will receive these messages and move the turntable to the corresponding track and position.
 
-**Step 10**: OTA Updates (Optional)
+**Step 10**: Upload the Production Sketch
+Once the Turntable Control Calibration is complete for all 24 tracks, upload the Production version of the sketch. This will utilize the track positions saved during the calibration process and is suitable for normal operations and use.
+
+**Step 11**: OTA Updates (Optional)
 The ESP32 Node supports Over-the-Air (OTA) updates for convenient firmware updates. If you need to update the Turntable Control sketch in the future, you can do so using OTA. To perform OTA updates, follow these steps:
 
 1. Ensure that the ESP32 Node is connected to the same WiFi network as your computer or device.
