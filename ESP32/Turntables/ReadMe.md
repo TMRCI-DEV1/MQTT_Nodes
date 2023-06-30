@@ -79,4 +79,4 @@ The ESP32 Node supports Over-the-Air (OTA) updates for convenient firmware updat
 Please note that OTA updates should only be performed when necessary and with caution to avoid any disruptions or issues with the turntable control system.
 
 **Conclusion**
-By following this comprehensive How-To guide, you should now have successfully calibrated the Turntable Control system. The calibrated positions of the turntable's head and tail for each track will allow precise control and positioning of the turntable. Enjoy using your ESP32-based WiFi/MQTT Turntable Node to control the Gilberton Turntable with confidence and accuracy!
+By following this comprehensive How-To guide, you should now have successfully calibrated the Turntable Control system. The calibrated positions of the turntable's head and tail for each track will allow precise control and positioning of the turntable.
