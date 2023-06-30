@@ -173,7 +173,7 @@ void setup() {
   // lcd.print("Calibration Mode");
 
   // Set the speed of the stepper and subscribe to MQTT topic
-  stepper.setSpeed(60);
+  stepper.setSpeed(7);
   client.subscribe("TMRCI/output/Gilberton/turntable/#");
 }
 
