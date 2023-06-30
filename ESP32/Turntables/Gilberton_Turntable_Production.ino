@@ -2,11 +2,12 @@
   Aisle-Node: Gilberton Turntable Control (PRODUCTION)
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
-  Date: 2023-06-26
+  Version: 1.0.3
+  Date: 2023-06-30
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad, 
-  a serial LCD 2004 20x4 display module with I2C interface, a STEPPERONLINE CNC stepper motor driver, and a STEPPERONLINE stepper 
+  a serial LCD 2004 20x4 display module with I2C interface, (2) 16 Channel I2C Interface Electromagnetic Relay Modules, a STEPPERONLINE CNC 
+  stepper motor driver, and a STEPPERONLINE stepper 
   motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi network, subscribes to MQTT messages published 
   by JMRI, and enables control of the turntable by entering a 2-digit track number on the keypad, followed by '*' or '#' to select the 
   head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents the 2-digit track number (01-24) 
@@ -19,13 +20,14 @@
 #include <WiFi.h>              // Library for WiFi connection       https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 #include <Keypad.h>            // Library for 3x3 keypad            https://github.com/Chris--A/Keypad
 #include <LiquidCrystal_I2C.h> // Library for Liquid Crystal I2C    https://github.com/johnrickman/LiquidCrystal_I2C
+#include <PCF8575.h>           // Library for I2C relay boards      https://github.com/xreef/PCF8575_library/tree/master
 #include <AccelStepper.h>      // Library for Accel Stepper         https://github.com/waspinator/AccelStepper
 #include <PubSubClient.h>      // Library for MQTT                  https://github.com/knolleary/pubsubclient
 #include <EEPROM.h>            // Library for EEPROM read/write     https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Define constants for steps per revolution and EEPROM addresses for saving positions
-#define STEPS_PER_REV 1600
+#define STEPS_PER_REV 6400
 #define EEPROM_POSITION_ADDRESS 0
 #define EEPROM_HEADS_ADDRESS 100
 #define EEPROM_TAILS_ADDRESS 200
@@ -40,20 +42,24 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // Create instances for stepper and LCD screen
-AccelStepper stepper(AccelStepper::DRIVER, 33, 32);
+AccelStepper stepper(AccelStepper::DRIVER, 33, 32); 
 LiquidCrystal_I2C lcd(0x3F, 20, 4);
 
+// Create instances for PCF8575
+PCF8575 relayBoard1(0x20); // relay board 1 with I2C address 0x20
+PCF8575 relayBoard2(0x21); // relay board 2 with I2C address 0x21
+
 // Define keypad layout and create instance
-const byte ROW_NUM = 4;
-const byte COLUMN_NUM = 3;
+const byte ROW_NUM = 4; 
+const byte COLUMN_NUM = 3; 
 char keys[ROW_NUM][COLUMN_NUM] = {
   {'1','2','3'},
   {'4','5','6'},
   {'7','8','9'},
   {'*','0','#'}
 };
-byte pin_rows[ROW_NUM] = {23, 19, 18, 17};
-byte pin_column[COLUMN_NUM] = {4, 35, 34};
+byte pin_rows[ROW_NUM] = {23, 19, 18, 17}; 
+byte pin_column[COLUMN_NUM] = {4, 35, 34}; 
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
 
 // Define variable for current position and track numbers
@@ -72,11 +78,12 @@ void setup() {
   // Start Serial and Wire communications
   Serial.begin(115200);
   Wire.begin(21, 22);
-
+  
   // Connect to the WiFi network
   WiFi.begin(ssid, password);
 
   // Initialize EEPROM and retrieve last known positions
+  // COMMENT OUT DURING CALIBRATION*************************************************************************************
   EEPROM.begin(512);
   EEPROM.get(EEPROM_POSITION_ADDRESS, currentPosition);
   EEPROM.get(EEPROM_HEADS_ADDRESS, trackHeads);  // load head positions from EEPROM
@@ -144,18 +151,27 @@ void setup() {
     }
   }
 
+  // Initialize the relay boards
+  relayBoard1.begin();
+  relayBoard2.begin();
+  
+  // Set the pin modes and initial state (HIGH - Track power OFF)
+  for(int i = 0; i < 16; i++) {
+    relayBoard1.pinMode(i, OUTPUT);
+    relayBoard1.digitalWrite(i, HIGH);
+    relayBoard2.pinMode(i, OUTPUT);
+    relayBoard2.digitalWrite(i, HIGH);
+  }
+
   // Initialize the LCD and print IP
   lcd.begin(20, 4);
   lcd.print("IP: ");
   lcd.print(WiFi.localIP());
 
-  /*------------------- Calibration mode message -------------------*/
   // Display calibration mode message
-  /*
-  lcd.setCursor(0, 1); // Move cursor to the second line
-  lcd.print("Calibration Mode");
-  */
-  /*---------------------------------------------------------------*/
+  // COMMENT OUT AFTER CALIBRATION*************************************************************************************
+  // lcd.setCursor(0,1); // Move cursor to the second line
+  // lcd.print("Calibration Mode");
 
   // Set the speed of the stepper and subscribe to MQTT topic
   stepper.setSpeed(60);
@@ -172,31 +188,30 @@ void loop() {
     // Build track number from numeric keys
     if (key >= '0' && key <= '9') {
       trackNumber += String(key);
-    }
+    } 
     // Handle '*' and '#' keys
     else if (key == '*' || key == '#') {
       // Ensure trackNumber is within the valid range before using it as an index
       if (trackNumber.toInt() >= 1 && trackNumber.toInt() <= 24) {
         int trackIndex = trackNumber.toInt() - 1;
-
+        
         lcd.clear();
-        lcd.setCursor(0, 0);
+        lcd.setCursor(0,0);
         lcd.print("Save Track " + trackNumber);
-        lcd.setCursor(0, 1);
+        lcd.setCursor(0,1);
         lcd.print(key == '*' ? "head-end " : "tail-end ");
-        lcd.setCursor(0, 2);
+        lcd.setCursor(0,2);
         lcd.print("position? '1'=Yes, '3'=No");
 
-        while (true) {
+        while(true) {
           char confirmKey = keypad.getKey();
-          if (confirmKey == '1') {
+          if(confirmKey == '1') {
             if (key == '*') {
               // Save the current position as the head of the track
               // COMMENT OUT AFTER CALIBRATION*************************************************************************************
               // trackHeads[trackIndex] = currentPosition;
               // EEPROM.put(EEPROM_HEADS_ADDRESS + trackIndex * sizeof(int), currentPosition);
-            }
-            else if (key == '#') {
+            } else if (key == '#') {
               // Save the current position as the tail of the track
               // COMMENT OUT AFTER CALIBRATION*************************************************************************************
               // trackTails[trackIndex] = currentPosition;
@@ -205,19 +220,17 @@ void loop() {
             trackNumber = "";  // Clear track number
             lcd.clear();
             break;
-          }
-          else if (confirmKey == '3') {
+          } else if(confirmKey == '3') {
             // If user decides not to save the position
             trackNumber = "";  // Clear track number
             lcd.clear();
             break;
           }
         }
-      }
-      else {
+      } else {
         Serial.println("Invalid track number. Please enter a number from 1 to 24.");
       }
-    }
+    } 
     // Handle '4' and '5' keys for manual adjustment
     else if (key == '4') {
       // Move clockwise by small increments
@@ -225,8 +238,7 @@ void loop() {
       // stepper.move(10);
       // stepper.run();
       // currentPosition = (currentPosition + 10) % STEPS_PER_REV;
-    }
-    else if (key == '5') {
+    } else if (key == '5') {
       // Move counterclockwise by small increments
       // COMMENT OUT AFTER CALIBRATION*****************************************************************************************
       // stepper.move(-10);
@@ -234,18 +246,17 @@ void loop() {
       // currentPosition = (currentPosition - 10 + STEPS_PER_REV) % STEPS_PER_REV;
     }
   }
-
+  
   // Allow MQTT client to process incoming messages
   client.loop();
-
+  
   // Reconnect to MQTT server if connection was lost
   if (!client.connected()) {
     while (!client.connected()) {
       Serial.println("Reconnecting to MQTT...");
       if (client.connect("ESP32Client")) {
         Serial.println("Connected to MQTT");
-      }
-      else {
+      } else {
         Serial.print("failed with state ");
         Serial.print(client.state());
         delay(2000);
@@ -276,15 +287,15 @@ void callback(char* topic, byte* message, unsigned int length) {
 
       // Display track and position information on LCD
       lcd.clear();
-      lcd.setCursor(0, 0);
+      lcd.setCursor(0,0);
       lcd.print("Track: ");
       lcd.print(trackNumber);
-      lcd.setCursor(0, 1);
+      lcd.setCursor(0,1);
       lcd.print("Position: ");
       lcd.print((endNumber == 1) ? "Head" : "Tail");
     }
   }
-
+  
   // Reset trackNumber for the next operation
   trackNumber = "";
 }
@@ -297,18 +308,16 @@ void moveToTargetPosition(int targetPosition) {
   }
   if (stepsToMove > STEPS_PER_REV / 2) {
     stepper.move(-stepsToMove); // use stepper.move for relative movements
-  }
-  else if (stepsToMove < STEPS_PER_REV / 2) {
+  } else if (stepsToMove < STEPS_PER_REV / 2) {
     stepper.move(stepsToMove); // use stepper.move for relative movements
-  }
-  else {
+  } else {
     // if the shortest path is exactly half the STEPS_PER_REV
     // choose to always move clockwise
     stepper.move(stepsToMove); // use stepper.move for relative movements
   }
   stepper.runToPosition();
   currentPosition = targetPosition;
-
+  
   // Save current position to EEPROM
   EEPROM.put(EEPROM_POSITION_ADDRESS, currentPosition);
   EEPROM.commit();
@@ -316,10 +325,24 @@ void moveToTargetPosition(int targetPosition) {
 
 // Function to calculate the target position based on track number and end number
 int calculateTargetPosition(int trackNumber, int endNumber) {
+  // Turn off all relays
+  for (uint8_t i = 0; i < 16; i++) {
+    relayBoard1.digitalWrite(i, HIGH);
+    relayBoard2.digitalWrite(i, HIGH);
+  }
+
+  // Track numbers start from 1. Subtract 1 to match the 0-indexed array and relay positions
+  trackNumber--;
+
+  // Turn on the relay corresponding to the selected track
+  if (trackNumber < 16) {
+    relayBoard1.digitalWrite(trackNumber, LOW);
+  } else {
+    relayBoard2.digitalWrite(trackNumber - 16, LOW);
+  }
   if (endNumber == 1) {
     return trackHeads[trackNumber - 1];
-  }
-  else {
+  } else {
     return trackTails[trackNumber - 1];
   }
 }
