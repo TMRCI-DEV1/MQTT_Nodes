@@ -25,30 +25,58 @@ Here's a breakdown of the important parts of the sketch:
 ## Calibration Process
 The calibration process in this sketch is designed to allow you to set and save the head and tail positions for each track on the turntable.
 
-### Here's a step-by-step explanation of the calibration process and the relevant functionality in the sketch:
+### How-To: Calibrate Turntable Control
+The Turntable Control calibration sketch is designed to be used with an ESP32-based WiFi/MQTT Turntable Node. This guide will walk you through the calibration process for setting up the turntable control system. Calibration ensures accurate positioning of the turntable and allows you to save the head and tail positions for each track.
 
-1. The sketch starts by initializing the system, connecting to the WiFi network, and setting up the MQTT client.
+**Prerequisites**
+Before starting the calibration process, make sure you have the following:
 
-2. After the WiFi and MQTT connections are established, the sketch enters the calibration mode. The LCD display shows a "Calibration Mode" message.
+- An ESP32-based WiFi/MQTT Turntable Node with the Gilberton Turntable Control sketch uploaded.
+- The necessary hardware components connected to the ESP32, including the keypad, LCD screen, relay boards, stepper motor driver, and stepper motor.
+- Access to a WiFi network for the ESP32 to connect to.
+- A computer or device with the Arduino IDE installed for uploading the sketch and monitoring the serial output.
 
-3. To calibrate a track, you need to enter a 1 or 2-digit track number on the keypad. The track number represents the track on the turntable that you want to calibrate.
+**Step 1**: Set Up the Hardware
+Ensure that all the hardware components are properly connected to the ESP32 Node. Double-check the wiring connections to make sure everything is in order. This includes the keypad, LCD screen, relay boards, stepper motor driver, and stepper motor. Refer to the hardware documentation or the sketch code comments for the correct wiring configurations.
 
-4. Once you enter the track number, you can press the '*' key on the keypad to indicate that you want to set the head position of the track or the '#' key to set the tail position.
+**Step 2**: Upload the Calibration Sketch
+Using the Arduino IDE, open the Turntable Control Calibration sketch file. Make sure you have selected the correct board and port in the Arduino IDE settings. Then, upload the sketch to the ESP32 Node.
 
-5. After pressing '*' or '#', the LCD display prompts you to confirm whether you want to save the current position as the head or tail position. Pressing '1' will save the position, while pressing '3' will cancel the calibration for that track.
+**Step 3**: Connect to WiFi
+After uploading the sketch, the ESP32 Node will attempt to connect to the WiFi network specified in the sketch. Check the serial monitor output to verify that the ESP32 successfully connects to the WiFi network. If the connection fails, ensure that you have entered the correct network credentials (SSID and password) in the sketch.
 
-6. If you press '1' to save the position, the sketch will update the head or tail position for the specified track in the trackHeads or trackTails array respectively.
+**Step 4**: Enter Calibration Mode
+Once the ESP32 Node is connected to the WiFi network, it will enter calibration mode. On the LCD screen, you should see a message indicating that the system is in "Calibration Mode." This mode allows you to set the head and tail positions for each track on the turntable.
 
-7. The head and tail positions are also stored in the EEPROM memory using the EEPROM library. The EEPROM address for each track is calculated based on the track number.
+**Step 5**: Select a Track and Position
+Using the 3x4 membrane matrix keypad, enter the 2-digit track number you want to calibrate. The track number should be within the range of 01 to 24. Press the '*' key to select the head-end position or the '#' key to select the tail-end position.
 
-8. The track number is cleared, and the LCD display is cleared to prepare for the calibration of the next track.
+**Step 6**: Save or Discard the Position
+After selecting the track number and position, the LCD screen will prompt you to confirm whether you want to save or discard the position. Press '1' to save the position or '3' to discard it.
 
-9. This process can be repeated for each track on the turntable, allowing you to calibrate the head and tail positions for all tracks.
+If you choose to save the position, the current position of the turntable will be saved as either the head or tail position for the selected track. The saved positions will be used for future track control.
+If you choose to discard the position, the current position will not be saved, and the system will return to the calibration mode screen.
 
-10. The saved head and tail positions will be used later when the turntable is controlled via MQTT messages. When a track number and end (head or tail) are received in an MQTT message, the sketch will calculate the target position based on the track number and end number and move the stepper motor to that position.
+**Note**: Enter single-digit track numbers (1-9) as 01-09 with leading zeros.
 
-11. The sketch also includes manual adjustment functionality. Pressing '4' on the keypad moves the turntable clockwise by small increments, and pressing '5' moves it counterclockwise by small increments. This can be used for fine-tuning the calibration if needed.
+**Step 7**: Repeat for Other Tracks
+Repeat steps 5 and 6 to calibrate the head and tail positions for other tracks on the turntable. Each track can have its own unique head and tail positions.
 
-12. The current position of the turntable is continuously stored in the currentPosition variable, and it is also saved to the EEPROM memory to retain the last known position even after power cycling the system.
+**Step 8**: Complete Calibration and Exit
+Once you have calibrated all the desired tracks, you can exit the calibration mode. Simply stop entering track numbers, and the system will automatically exit calibration mode.
 
-Please note that this sketch contains comments that provide explanations and instructions for calibration purposes. It's important to read and understand the comments before deploying the sketch in a production environment.
+**Step 9**: Test the Calibration
+After completing the calibration process, you can test the turntable control by sending MQTT messages to the ESP32 Node. Publish MQTT messages in the format 'Tracknx', where 'n' represents the 2-digit track number (01-24), and 'x' represents 'H' for the head-end or 'T' for the tail-end. The ESP32 Node will receive these messages and move the turntable to the corresponding track and position.
+
+**Step 10**: OTA Updates (Optional)
+The ESP32 Node supports Over-the-Air (OTA) updates for convenient firmware updates. If you need to update the Turntable Control sketch in the future, you can do so using OTA. To perform OTA updates, follow these steps:
+
+1. Ensure that the ESP32 Node is connected to the same WiFi network as your computer or device.
+2. Open the Arduino IDE and go to "Sketch" > "Upload Using Programmer" to compile the sketch.
+3. Once the compilation is complete, go to "Sketch" > "Export Compiled Binary" to generate a binary (.bin) file.
+4. Use an OTA update tool or platform-specific instructions to upload the binary file to the ESP32 Node over the air.
+
+Please note that OTA updates should only be performed when necessary and with caution to avoid any disruptions or issues with the turntable control system.
+
+**Conclusion**
+By following this comprehensive How-To guide, you should now have successfully calibrated the Turntable Control system. The calibrated positions of the turntable's head and tail for each track will allow precise control and positioning of the turntable. Enjoy using your ESP32-based WiFi/MQTT Turntable Node to control the Gilberton Turntable with confidence and accuracy!
