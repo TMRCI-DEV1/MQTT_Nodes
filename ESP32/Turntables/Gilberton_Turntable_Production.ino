@@ -2,15 +2,15 @@
   Aisle-Node: Gilberton Turntable Control (PRODUCTION)
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.3
+  Version: 1.0.5
   Date: 2023-06-30
   Description:
-  This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad, 
-  a serial LCD 2004 20x4 display module with I2C interface, (2) 16 Channel I2C Interface Electromagnetic Relay Modules, a STEPPERONLINE CNC 
-  stepper motor driver, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi 
-  network, subscribes to MQTT messages published by JMRI, and enables control of the turntable by entering a 2-digit track number on the 
-  keypad, followed by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' 
-  represents the 2-digit track number (01-24) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP 
+  This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad,
+  a serial LCD 2004 20x4 display module with I2C interface, (2) 16 Channel I2C Interface Electromagnetic Relay Modules, a STEPPERONLINE CNC
+  stepper motor driver, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi
+  network, subscribes to MQTT messages published by JMRI, and enables control of the turntable by entering a 2-digit track number on the
+  keypad, followed by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n'
+  represents the 2-digit track number (01-24) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP
   address, the commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname.
 */
 
@@ -41,7 +41,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // Create instances for stepper and LCD screen
-AccelStepper stepper(AccelStepper::DRIVER, 33, 32); 
+AccelStepper stepper(AccelStepper::DRIVER, 33, 32);
 LiquidCrystal_I2C lcd(0x3F, 20, 4);
 
 // Create instances for PCF8575
@@ -49,16 +49,16 @@ PCF8575 relayBoard1(0x20); // relay board 1 with I2C address 0x20
 PCF8575 relayBoard2(0x21); // relay board 2 with I2C address 0x21
 
 // Define keypad layout and create instance
-const byte ROW_NUM = 4; 
-const byte COLUMN_NUM = 3; 
+const byte ROW_NUM = 4;
+const byte COLUMN_NUM = 3;
 char keys[ROW_NUM][COLUMN_NUM] = {
   {'1','2','3'},
   {'4','5','6'},
   {'7','8','9'},
   {'*','0','#'}
 };
-byte pin_rows[ROW_NUM] = {23, 19, 18, 17}; 
-byte pin_column[COLUMN_NUM] = {4, 35, 34}; 
+byte pin_rows[ROW_NUM] = {23, 19, 18, 17};
+byte pin_column[COLUMN_NUM] = {4, 35, 34};
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
 
 // Define variable for current position and track numbers
@@ -66,6 +66,7 @@ int currentPosition = 0;
 int trackHeads[24];
 int trackTails[24];
 String trackNumber = "";
+unsigned long lastMillis = 0; // variable to keep track of last time
 
 // Forward declare callback and position calculation functions
 void callback(char* topic, byte* payload, unsigned int length);
@@ -77,23 +78,30 @@ void setup() {
   // Start Serial and Wire communications
   Serial.begin(115200);
   Wire.begin(21, 22);
-  
+
   // Connect to the WiFi network
   WiFi.begin(ssid, password);
 
   // Initialize EEPROM and retrieve last known positions
-  // COMMENT OUT DURING CALIBRATION*************************************************************************************
   EEPROM.begin(512);
+  // COMMENT OUT DURING CALIBRATION*************************************************************************************
   EEPROM.get(EEPROM_POSITION_ADDRESS, currentPosition);
   EEPROM.get(EEPROM_HEADS_ADDRESS, trackHeads);  // load head positions from EEPROM
   EEPROM.get(EEPROM_TAILS_ADDRESS, trackTails);  // load tail positions from EEPROM
 
   // Wait for WiFi connection
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.println("Connecting to WiFi...");
+    unsigned long currentMillis = millis(); // get current time
+    if (currentMillis - lastMillis >= 500) { // 500ms has passed
+      Serial.println("Connecting to WiFi...");
+      lastMillis = currentMillis; // save the last time a message was printed
+    }
   }
   Serial.println("Connected to WiFi");
+
+  // Print the IP address to the serial monitor
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 
   // Set the hostname
   WiFi.setHostname("Gilberton_Turntable_Node");
@@ -153,7 +161,7 @@ void setup() {
   // Initialize the relay boards
   relayBoard1.begin();
   relayBoard2.begin();
-  
+
   // Set the pin modes and initial state (HIGH - Track power OFF)
   for(int i = 0; i < 16; i++) {
     relayBoard1.pinMode(i, OUTPUT);
@@ -166,6 +174,8 @@ void setup() {
   lcd.begin(20, 4);
   lcd.print("IP: ");
   lcd.print(WiFi.localIP());
+  delay(3000); // Keep IP address on screen for 3 seconds before clearing
+  lcd.clear();
 
   // Display calibration mode message
   // COMMENT OUT AFTER CALIBRATION*************************************************************************************
@@ -180,37 +190,40 @@ void setup() {
 // Arduino main loop function
 void loop() {
   ArduinoOTA.handle(); // Handle OTA updates
-  
+
   // Get pressed key from the keypad
   char key = keypad.getKey();
   if (key) {
     // Build track number from numeric keys
     if (key >= '0' && key <= '9') {
-      trackNumber += String(key);
-    } 
+      if (trackNumber.length() < 2) { // Check that the track number doesn't exceed 2 characters
+        trackNumber += key; // Append the character to trackNumber
+      }
+    }
     // Handle '*' and '#' keys
     else if (key == '*' || key == '#') {
       // Ensure trackNumber is within the valid range before using it as an index
       if (trackNumber.toInt() >= 1 && trackNumber.toInt() <= 24) {
         int trackIndex = trackNumber.toInt() - 1;
-        
+
         lcd.clear();
-        lcd.setCursor(0,0);
+        lcd.setCursor(0, 0);
         lcd.print("Save Track " + trackNumber);
-        lcd.setCursor(0,1);
+        lcd.setCursor(0, 1);
         lcd.print(key == '*' ? "head-end " : "tail-end ");
-        lcd.setCursor(0,2);
+        lcd.setCursor(0, 2);
         lcd.print("position? '1'=Yes, '3'=No");
 
-        while(true) {
+        while (true) {
           char confirmKey = keypad.getKey();
-          if(confirmKey == '1') {
+          if (confirmKey == '1') {
             if (key == '*') {
               // Save the current position as the head of the track
               // COMMENT OUT AFTER CALIBRATION*************************************************************************************
               // trackHeads[trackIndex] = currentPosition;
               // EEPROM.put(EEPROM_HEADS_ADDRESS + trackIndex * sizeof(int), currentPosition);
-            } else if (key == '#') {
+            }
+            else if (key == '#') {
               // Save the current position as the tail of the track
               // COMMENT OUT AFTER CALIBRATION*************************************************************************************
               // trackTails[trackIndex] = currentPosition;
@@ -219,7 +232,8 @@ void loop() {
             trackNumber = "";  // Clear track number
             lcd.clear();
             break;
-          } else if(confirmKey == '3') {
+          }
+          else if(confirmKey == '3') {
             // If user decides not to save the position
             trackNumber = "";  // Clear track number
             lcd.clear();
@@ -229,7 +243,7 @@ void loop() {
       } else {
         Serial.println("Invalid track number. Please enter a number from 1 to 24.");
       }
-    } 
+    }
     // Handle '4' and '5' keys for manual adjustment
     else if (key == '4') {
       // Move clockwise by small increments
@@ -237,7 +251,8 @@ void loop() {
       // stepper.move(10);
       // stepper.run();
       // currentPosition = (currentPosition + 10) % STEPS_PER_REV;
-    } else if (key == '5') {
+    }
+    else if (key == '5') {
       // Move counterclockwise by small increments
       // COMMENT OUT AFTER CALIBRATION*****************************************************************************************
       // stepper.move(-10);
@@ -245,17 +260,19 @@ void loop() {
       // currentPosition = (currentPosition - 10 + STEPS_PER_REV) % STEPS_PER_REV;
     }
   }
-  
+
   // Allow MQTT client to process incoming messages
   client.loop();
-  
+
   // Reconnect to MQTT server if connection was lost
   if (!client.connected()) {
     while (!client.connected()) {
       Serial.println("Reconnecting to MQTT...");
       if (client.connect("ESP32Client")) {
         Serial.println("Connected to MQTT");
-      } else {
+        client.subscribe("TMRCI/output/Gilberton/turntable/#");
+      }
+      else {
         Serial.print("failed with state ");
         Serial.print(client.state());
         delay(2000);
@@ -271,10 +288,11 @@ void callback(char* topic, byte* message, unsigned int length) {
   String strTopic = String(topic);
   if (strTopic.startsWith("TMRCI/output/Gilberton/turntable/Track") && strTopic.length() == 39) {
     // Extract track number and 'H' or 'T' from the message
-    String trackStr = strTopic.substring(34, 36);
+    String trackStr = String(trackNumber); // Convert the char array to a String for easier manipulation
     char endChar = strTopic.charAt(36);
 
-    trackNumber = trackStr;
+    trackStr = String(trackNumber); // Update the trackStr with the new value
+
     int endNumber = (endChar == 'H') ? 1 : 2;
 
     // Perform the movement
@@ -286,17 +304,17 @@ void callback(char* topic, byte* message, unsigned int length) {
 
       // Display track and position information on LCD
       lcd.clear();
-      lcd.setCursor(0,0);
+      lcd.setCursor(0, 0);
       lcd.print("Track: ");
       lcd.print(trackNumber);
-      lcd.setCursor(0,1);
+      lcd.setCursor(0, 1);
       lcd.print("Position: ");
       lcd.print((endNumber == 1) ? "Head" : "Tail");
     }
+
+    // Reset trackNumber for the next operation
+    trackNumber = "";
   }
-  
-  // Reset trackNumber for the next operation
-  trackNumber = "";
 }
 
 // Function to move stepper to a target position
@@ -307,16 +325,18 @@ void moveToTargetPosition(int targetPosition) {
   }
   if (stepsToMove > STEPS_PER_REV / 2) {
     stepper.move(-stepsToMove); // use stepper.move for relative movements
-  } else if (stepsToMove < STEPS_PER_REV / 2) {
+  }
+  else if (stepsToMove < STEPS_PER_REV / 2) {
     stepper.move(stepsToMove); // use stepper.move for relative movements
-  } else {
+  }
+  else {
     // if the shortest path is exactly half the STEPS_PER_REV
     // choose to always move clockwise
     stepper.move(stepsToMove); // use stepper.move for relative movements
   }
   stepper.runToPosition();
   currentPosition = targetPosition;
-  
+
   // Save current position to EEPROM
   EEPROM.put(EEPROM_POSITION_ADDRESS, currentPosition);
   EEPROM.commit();
@@ -336,12 +356,16 @@ int calculateTargetPosition(int trackNumber, int endNumber) {
   // Turn on the relay corresponding to the selected track
   if (trackNumber < 16) {
     relayBoard1.digitalWrite(trackNumber, LOW);
-  } else {
+  }
+  else {
     relayBoard2.digitalWrite(trackNumber - 16, LOW);
   }
+
+  // Return the corresponding track position
   if (endNumber == 1) {
-    return trackHeads[trackNumber - 1];
-  } else {
-    return trackTails[trackNumber - 1];
+    return trackHeads[trackNumber];
+  }
+  else { // endNumber == 2
+    return trackTails[trackNumber];
   }
 }
