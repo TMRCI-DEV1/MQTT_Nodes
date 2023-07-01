@@ -3,9 +3,29 @@ This sketch is a firmware for an ESP32-based WiFi/MQTT turntable control node. I
 
 The ESP32 Node connects to a WiFi network and subscribes to MQTT messages published by JMRI (Java Model Railroad Interface) software. The turntable can be controlled by entering a 2-digit track number on the keypad, followed by '*' or '#' to select the head-end or tail-end, respectively.
 
+## Libraries Used
+The sketch utilizes the following libraries:
+
+**Wire**: This library provides support for the I2C connection used by the ESP32. The library is available at [https://github.com/esp8266/Arduino/tree/master/libraries/Wire].
+
+**WiFi**: This library provides the necessary functions to connect to a WiFi network. It is part of the official ESP32 Arduino core and can be found at [https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi].
+
+**Keypad**: This library provides necessary functions for the 3x3 membrane keypad. The library can be found at [https://github.com/Chris--A/Keypad].
+
+**LiquidCrystal_I2C**: This library allows easy control of the Liquid Crystal display with I2C interface. It can be found at [https://github.com/johnrickman/LiquidCrystal_I2C].
+
+**PCF8575**: This library enables communication with I2C relay boards based on the PCF8575 IC. It can be found at [https://github.com/xreef/PCF8575_library/tree/master].
+
+**AccelStepper**: This library provides advanced stepper motor control, including acceleration and deceleration. It can be found at [https://github.com/waspinator/AccelStepper].
+
+**PubSubClient**: This library facilitates MQTT communication and allows the ESP32 to subscribe to MQTT topics and publish messages. The library can be found at [https://github.com/knolleary/pubsubclient].
+
+**EEPROM**: This library provides functions for reading and writing to the EEPROM memory of the ESP32. It is part of the official ESP32 Arduino core and can be found at [https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM].
+
+**ArduinoOTA**: This library enables Over-The-Air (OTA) updates for the ESP32. It allows you to upload new firmware to the ESP32 wirelessly. The library is available at [https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA].
+
 ## Sketch Overview
 Here's a breakdown of the important parts of the sketch:
-
 1. **Libraries**: The sketch includes several libraries required for different functionalities, such as Wire for I2C communication, WiFi for WiFi connectivity, Keypad for keypad input, LiquidCrystal_I2C for controlling the LCD display, PCF8575 for controlling the I2C relay boards, AccelStepper for controlling the stepper motor, PubSubClient for MQTT communication, and EEPROM for reading and writing to EEPROM memory.
 
 2. **Constants**: The sketch defines constants for the steps per revolution of the stepper motor and EEPROM addresses for saving positions.
