@@ -58,7 +58,7 @@ char keys[ROW_NUM][COLUMN_NUM] = {
   {'*','0','#'}
 };
 byte pin_rows[ROW_NUM] = {23, 19, 18, 17};
-byte pin_column[COLUMN_NUM] = {4, 35, 34};
+byte pin_column[COLUMN_NUM] = {39, 35, 34};
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
 
 // Define variable for current position and track numbers
