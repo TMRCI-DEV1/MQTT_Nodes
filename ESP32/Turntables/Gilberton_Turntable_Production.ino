@@ -2,8 +2,8 @@
   Aisle-Node: Gilberton Turntable Control (PRODUCTION)
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.5
-  Date: 2023-06-30
+  Version: 1.0.6
+  Date: 2023-07-01
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad,
   a serial LCD 2004 20x4 display module with I2C interface, (2) 16 Channel I2C Interface Electromagnetic Relay Modules, a STEPPERONLINE CNC
@@ -57,8 +57,8 @@ char keys[ROW_NUM][COLUMN_NUM] = {
   {'7','8','9'},
   {'*','0','#'}
 };
-byte pin_rows[ROW_NUM] = {23, 19, 18, 17};
-byte pin_column[COLUMN_NUM] = {39, 35, 34};
+byte pin_rows[ROW_NUM] = {19, 23, 34, 35};
+byte pin_column[COLUMN_NUM] = {16, 17, 18};
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
 
 // Define variable for current position and track numbers
@@ -302,14 +302,21 @@ void callback(char* topic, byte* message, unsigned int length) {
     if (targetPosition != currentPosition) {
       moveToTargetPosition(targetPosition);
 
-      // Display track and position information on LCD
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Track: ");
-      lcd.print(trackNumber);
-      lcd.setCursor(0, 1);
-      lcd.print("Position: ");
-      lcd.print((endNumber == 1) ? "Head" : "Tail");
+    // Display track and position information on LCD
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Track: ");
+    lcd.print(trackNumber);
+    lcd.setCursor(0, 1);
+    lcd.print("Position: ");
+    lcd.print((endNumber == 1) ? "Head" : "Tail");
+    
+    // Display track and position information on Serial Monitor
+    Serial.println();
+    Serial.print("Track: ");
+    Serial.println(trackNumber);
+    Serial.print("Position: ");
+    Serial.println((endNumber == 1) ? "Head" : "Tail");
     }
 
     // Reset trackNumber for the next operation
