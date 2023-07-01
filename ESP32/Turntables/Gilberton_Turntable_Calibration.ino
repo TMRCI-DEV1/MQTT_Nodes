@@ -77,7 +77,7 @@ int calculateTargetPosition(int trackNumber, int endNumber);
 void setup() {
   // Start Serial and Wire communications
   Serial.begin(115200);
-  Wire.begin(21, 22);
+  Wire.begin();
   
   // Connect to the WiFi network
   WiFi.begin(ssid, password);
