@@ -53,7 +53,7 @@ The Turntable Control calibration sketch is designed to be used with an ESP32-ba
 **Prerequisites**
 Before starting the calibration process, make sure you have the following:
 
-- An ESP32-based WiFi/MQTT Turntable Node with the Gilberton Turntable Control sketch uploaded.
+- An ESP32-based WiFi/MQTT Turntable Node with the Turntable Control sketch uploaded.
 - The necessary hardware components connected to the ESP32, including the keypad, LCD screen, relay boards, stepper motor driver, and stepper motor.
 - Access to a WiFi network for the ESP32 to connect to.
 - A computer or device with the Arduino IDE installed for uploading the sketch and monitoring the serial output.
