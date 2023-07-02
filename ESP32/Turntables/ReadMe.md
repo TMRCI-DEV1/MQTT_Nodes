@@ -1,5 +1,5 @@
 # TURNTABLE CONTROL
-This sketch is a firmware for an ESP32-based WiFi/MQTT turntable control node. It is designed to control a turntable for HO scale trains using various components such as a 3x3 membrane matrix keypad, a serial LCD 2004 20x4 display module with I2C interface, (2) 16 Channel I2C Interface Electromagnetic Relay Modules, a STEPPERONLINE CNC stepper motor driver, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead).
+This sketch is a firmware for an ESP32-based WiFi/MQTT turntable control node. It is designed to control a turntable for HO scale trains using various components such as a 3x4 membrane matrix keypad, a serial LCD 2004 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C Interface Electromagnetic Relay Module, a STEPPERONLINE CNC stepper motor driver, a photo-interrupter "homing" sensor, a reset button, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead).
 
 The ESP32 Node connects to a WiFi network and subscribes to MQTT messages published by JMRI (Java Model Railroad Interface) software. The turntable can be controlled by entering a 2-digit track number on the keypad, followed by '*' or '#' to select the head-end or tail-end, respectively.
 
@@ -14,7 +14,9 @@ The sketch utilizes the following libraries:
 
 **LiquidCrystal_I2C**: This library allows easy control of the Liquid Crystal display with I2C interface. It can be found at [https://github.com/johnrickman/LiquidCrystal_I2C].
 
-**PCF8575**: This library enables communication with I2C relay boards based on the PCF8575 IC. It can be found at [https://github.com/xreef/PCF8575_library/tree/master].
+**PCF8575**: This library enables communication with I2C 16-channel relay board based on the PCF8575 IC. It can be found at [https://github.com/xreef/PCF8575_library/tree/master].
+
+**PCF8574**: This library enables communication with I2C 8-channel relay board based on the PCF8575 IC. It can be found at [https://github.com/xreef/PCF8574_library].
 
 **AccelStepper**: This library provides advanced stepper motor control, including acceleration and deceleration. It can be found at [https://github.com/waspinator/AccelStepper].
 
