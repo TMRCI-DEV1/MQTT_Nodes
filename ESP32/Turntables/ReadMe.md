@@ -24,7 +24,7 @@ The sketch utilizes the following libraries:
 - Keypad: [https://github.com/Chris--A/Keypad](https://github.com/Chris--A/Keypad)
 - LiquidCrystal_I2C: [https://github.com/johnrickman/LiquidCrystal_I2C](https://github.com/johnrickman/LiquidCrystal_I2C)
 - PCF8575: [https://github.com/xreef/PCF8575_library/tree/master](https://github.com/xreef/PCF8575_library/tree/master)
-- PCF8574: [https://github.com/xreef/PCF8575_library/tree/master](https://github.com/xreef/PCF8575_library/tree/master)
+- PCF8574: [https://github.com/xreef/PCF8574_library](https://github.com/xreef/PCF8574_library)
 - AccelStepper: [https://github.com/waspinator/AccelStepper](https://github.com/waspinator/AccelStepper)
 - PubSubClient: [https://github.com/knolleary/pubsubclient](https://github.com/knolleary/pubsubclient)
 - EEPROM: [https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM](https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM)
