@@ -1,7 +1,7 @@
 # TURNTABLE CONTROL
 This sketch is a firmware for an ESP32-based WiFi/MQTT turntable control node. It is designed to control a turntable for HO scale trains using various components such as a 3x4 membrane matrix keypad, a serial LCD 2004 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C Interface Electromagnetic Relay Module, a STEPPERONLINE CNC stepper motor driver, a photo-interrupter "homing" sensor, a reset button, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead).
 
-The ESP32 Node connects to a WiFi network and subscribes to MQTT messages published by JMRI (Java Model Railroad Interface) software. The turntable can be controlled by entering a 2-digit track number on the keypad, followed by '*' or '#' to select the head-end or tail-end, respectively.
+The ESP32 Node connects to a WiFi network and subscribes to MQTT messages published by JMRI (Java Model Railroad Interface) software. The turntable can be controlled by entering a 1 or 2-digit track number on the keypad, followed by '*' or '#' to select the head-end or tail-end, respectively.
 
 ## Libraries Used
 The sketch utilizes the following libraries:
@@ -71,15 +71,13 @@ After uploading the sketch, the ESP32 Node will attempt to connect to the WiFi n
 Once the ESP32 Node is connected to the WiFi network, it will enter calibration mode. On the LCD screen, you should see a message indicating that the system is in "Calibration Mode." This mode allows you to set the head and tail positions for each track on the turntable.
 
 **Step 5**: Select a Track and Position
-Using the 3x4 membrane matrix keypad, enter the 2-digit track number you want to calibrate. The track number should be within the range of 01 to 24. Press the '*' key to select the head-end position or the '#' key to select the tail-end position.
+Using the 3x4 membrane matrix keypad, enter the 1 or 2-digit track number you want to calibrate. The track number should be within the range of 1 to 24. Press the '*' key to select the head-end position or the '#' key to select the tail-end position.
 
 **Step 6**: Save or Discard the Position
 After selecting the track number and position, the LCD screen will prompt you to confirm whether you want to save or discard the position. Press '1' to save the position or '3' to discard it.
 
 If you choose to save the position, the current position of the turntable will be saved as either the head or tail position for the selected track. The saved positions will be used for future track control.
 If you choose to discard the position, the current position will not be saved, and the system will return to the calibration mode screen.
-
-**Note**: Enter single-digit track numbers (1-9) as 01-09 with leading zeros.
 
 **Step 7**: Repeat for Other Tracks
 Repeat steps 5 and 6 to calibrate the head and tail positions for other tracks on the turntable. Each track can have its own unique head and tail positions.
