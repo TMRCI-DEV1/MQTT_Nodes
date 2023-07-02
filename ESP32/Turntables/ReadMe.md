@@ -10,7 +10,7 @@ The sketch utilizes the following libraries:
 
 **WiFi**: This library provides the necessary functions to connect to a WiFi network. It is part of the official ESP32 Arduino core and can be found at [https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi].
 
-**Keypad**: This library provides necessary functions for the 3x3 membrane keypad. The library can be found at [https://github.com/Chris--A/Keypad].
+**Keypad**: This library provides necessary functions for the 3x4 membrane keypad. The library can be found at [https://github.com/Chris--A/Keypad].
 
 **LiquidCrystal_I2C**: This library allows easy control of the Liquid Crystal display with I2C interface. It can be found at [https://github.com/johnrickman/LiquidCrystal_I2C].
 
