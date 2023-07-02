@@ -1,7 +1,7 @@
 # Gilberton Turntable Control
 
 ## Overview
-This Arduino sketch is designed to control the Gilberton Turntable using an ESP32 Node. The turntable can be controlled by entering a 2-digit track number on a keypad, or by receiving MQTT messages published by JMRI. The sketch also supports calibration of the turntable positions.
+This Arduino sketch is designed to control the Gilberton Turntable using an ESP32 Node. The turntable can be controlled by entering a 1 or 2-digit track number on a keypad, or by receiving MQTT messages published by JMRI. The sketch also supports calibration of the turntable positions.
 
 ## Components
 The system utilizes the following components:
