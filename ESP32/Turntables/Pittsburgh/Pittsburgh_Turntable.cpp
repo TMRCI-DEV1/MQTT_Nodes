@@ -2,8 +2,8 @@
   Aisle-Node: Pittsburgh Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
-  Date: 2023-07-02
+  Version: 1.0.2
+  Date: 2023-07-03
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Pittsburgh Turntable. It utilizes a 3x4 membrane matrix keypad, 
   a serial LCD 2004 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C 
@@ -37,10 +37,9 @@ const int RESET_BUTTON_PIN = 19;
 const char* MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#";
 const int TRACK_NUMBERS[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
 const int STEPPER_SPEED = 200;
-const int DELAY_TIMES[] = {500, 2000, 10, 3000};
 const int EEPROM_SIZE = 512;
-const int RELAY_BOARD1_I2C_ADDRESS = 0x20; // relay board 1 with I2C address 0x20
-const int RELAY_BOARD2_I2C_ADDRESS = 0x21; // relay board 2 with I2C address 0x21
+const int RELAY_BOARD1_I2C_ADDRESS = 0x20; // I2C address of relay board 1
+const int RELAY_BOARD2_I2C_ADDRESS = 0x21; // I2C address of relay board 2
 byte KEYPAD_ROW_PINS[] = {13, 12, 14, 27};
 byte KEYPAD_COLUMN_PINS[] = {16, 17, 18};
 const bool CALIBRATION_MODE = true; // Set to true during calibration, false otherwise
@@ -49,8 +48,8 @@ const char CONFIRM_NO = '3';
 const int STEP_MOVE_SINGLE_KEYPRESS = 10;
 const int STEP_MOVE_HELD_KEYPRESS = 100;
 bool emergencyStop = false;
-String keypadTrackNumber = "";
-String mqttTrackNumber = "";
+char keypadTrackNumber[3] = "";
+char mqttTrackNumber[3] = "";
 
 // Define network credentials and MQTT broker address
 const char* ssid = "###############";
@@ -103,7 +102,13 @@ void connectToWiFi() {
     delay(500);
     Serial.println("Connecting to WiFi...");
   }
-  Serial.println("Connected to WiFi");
+  if(WiFi.status() == WL_CONNECTED){
+    Serial.println("Connected to WiFi");
+  } else {
+    Serial.println("Failed to connect to WiFi");
+    delay(5000); // Wait 5 seconds before retrying
+    connectToWiFi(); // Retry connecting to WiFi
+  }
 }
 
 // Function to connect to MQTT
@@ -112,19 +117,22 @@ void connectToMQTT() {
     Serial.println("Connecting to MQTT...");
     if (client.connect("ESP32Client")) {
       Serial.println("Connected to MQTT");
+      client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic
     } else {
       Serial.print("failed with state ");
       Serial.print(client.state());
       delay(2000);
     }
   }
+  if(!client.connected()){
+    Serial.println("Failed to connect to MQTT");
+    delay(5000); // Wait 5 seconds before retrying
+    connectToMQTT(); // Retry connecting to MQTT
+  }
 }
 
 // Arduino setup function to initialize the system
 void setup() {
-  // Initialize the keys array
-  initializeKeysArray();
-
   // Start Serial and Wire communications
   Serial.begin(115200);
   Wire.begin();
@@ -212,9 +220,6 @@ void setup() {
   // Turn on the relay for the turntable bridge (relay 0 on the first board)
   relayBoard1.digitalWrite(0, LOW);
   
-  // Initialize the keys array
-  initializeKeysArray();
-  
   // Initialize the LCD and print IP
   lcd.begin(20, 4);
   lcd.print("IP: ");
@@ -256,6 +261,9 @@ void setup() {
   stepper.setMaxSpeed(STEPPER_SPEED);
   stepper.setAcceleration(2000);
   stepper.setCurrentPosition(currentPosition);
+
+  // Initialize the keys array
+  initializeKeysArray();
 }
 
 // Add a counter for the '9' key
@@ -263,8 +271,11 @@ int emergencyStopCounter = 0;
 
 // Arduino loop function to handle MQTT messages and keypad inputs
 void loop() {
+  if (WiFi.status() != WL_CONNECTED) {
+    connectToWiFi(); // Reconnect to WiFi if the connection is lost
+  }
   if (!client.connected()) {
-    connectToMQTT();
+    connectToMQTT(); // Reconnect to MQTT if the connection is lost
   }
   client.loop();
   ArduinoOTA.handle();
@@ -308,7 +319,7 @@ void loop() {
         stepper.move(direction * STEP_MOVE_HELD_KEYPRESS);
       }
     } else if (key == '*' || key == '#') {
-      int trackNumber = keypadTrackNumber.toInt();
+      int trackNumber = atoi(keypadTrackNumber);
       int endNumber = (key == '*') ? 0 : 1;
       if (CALIBRATION_MODE) {
         // Store the current position to the appropriate track head or tail-end position
@@ -328,16 +339,27 @@ void loop() {
         delay(2000);
         lcd.clear();
       } else {
-        int targetPosition = calculateTargetPosition(trackNumber, endNumber);
-        moveToTargetPosition(targetPosition);
+        if (trackNumber >= 1 && trackNumber <= 23) {
+          int targetPosition = calculateTargetPosition(trackNumber, endNumber);
+          moveToTargetPosition(targetPosition);
+        } else {
+          lcd.setCursor(0, 0);
+          lcd.print("Invalid track number!");
+          delay(2000);
+          lcd.clear();
+        }
       }
-      keypadTrackNumber = "0"; // Reset keypadTrackNumber after storing position or moving
+      keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving
     } else {
-      keypadTrackNumber += key; // Append key to keypadTrackNumber
-      if (keypadTrackNumber.length() > 2) {
-        keypadTrackNumber = keypadTrackNumber.substring(1); // Keep only the last two digits
+      size_t keypadTrackNumberLength = strlen(keypadTrackNumber);
+      if (keypadTrackNumberLength < 2) {
+        keypadTrackNumber[keypadTrackNumberLength] = key;
+        keypadTrackNumber[keypadTrackNumberLength + 1] = '\0'; // Null-terminate the char array
       }
     }
+  } else {
+    isKeyHeld = false;  // Reset isKeyHeld when no key is pressed
+    keyHoldTime = 0;  // Reset keyHoldTime when no key is pressed
   }
 
   // Check for reset button press
@@ -362,24 +384,29 @@ void loop() {
 
 // MQTT callback function to handle incoming messages
 void callback(char* topic, byte* payload, unsigned int length) {
-  String messageTemp;
+  char messageTemp[8]; // Char array to store the MQTT message
   for (int i = 0; i < length; i++) {
-    messageTemp += (char)payload[i];
+    messageTemp[i] = (char)payload[i];
   }
-  mqttTrackNumber = messageTemp.substring(5, 7); // Extract track number from MQTT message
-  int trackNumber = mqttTrackNumber.toInt();
-  int endNumber = (messageTemp.charAt(7) == 'H') ? 0 : 1;
-  int targetPosition = calculateTargetPosition(trackNumber, endNumber);
-  moveToTargetPosition(targetPosition);
+  messageTemp[length] = '\0'; // Null-terminate the char array
+  
+  char mqttTrackNumber[3];
+  strncpy(mqttTrackNumber, messageTemp + 5, 2); // Extract track number from MQTT topic
+  mqttTrackNumber[2] = '\0'; // Null-terminate the char array
+  
+  int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer
+  int endNumber = (messageTemp[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end
+  int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position
+  moveToTargetPosition(targetPosition); // Move to the target position
 }
 
 // Function to calculate target position based on track number and end number
 int calculateTargetPosition(int trackNumber, int endNumber) {
   int targetPosition;
   if (CALIBRATION_MODE) {
-    targetPosition = trackNumber * STEPS_PER_REV;
+    targetPosition = trackNumber; // In calibration mode, the target position is the track number itself
   } else {
-    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1];
+    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1]; // Retrieve the corresponding head or tail position
   }
   return targetPosition;
 }
@@ -389,16 +416,15 @@ void controlRelays(int trackNumber) {
   // Turn off all relays
   for (uint8_t i = 0; i < 16; i++) {
     relayBoard1.digitalWrite(i, HIGH);
-    if(i < 8) { // Only do this for the first 8 pins of the second relay board
-        relayBoard2.digitalWrite(i, HIGH);
+    if (i < 8) {
+      relayBoard2.digitalWrite(i, HIGH);
     }
   }
-
+  
   // Turn on the relay corresponding to the selected track
-  if (trackNumber < 15) {
+  if (trackNumber <= 14) {
     relayBoard1.digitalWrite(trackNumber + 1, LOW); // +1 because relay 0 is for the turntable bridge
-  }
-  else if(trackNumber < 23) {
+  } else if (trackNumber <= 22) {
     relayBoard2.digitalWrite(trackNumber - 15, LOW); // -15 because the first 15 tracks are on the first relay board
   }
 }
@@ -407,27 +433,25 @@ void controlRelays(int trackNumber) {
 void moveToTargetPosition(int targetPosition) {
   // Turn off the turntable bridge track power before starting the move
   relayBoard1.digitalWrite(0, HIGH);
-
+  
   if (targetPosition < currentPosition) {
     stepper.moveTo(targetPosition);
   } else if (targetPosition > currentPosition) {
     stepper.moveTo(targetPosition);
-  } else {
-    // Do nothing if target position is the same as current position
   }
-
+  
   while (stepper.distanceToGo() != 0) {
     stepper.run();
   }
-
+  
   currentPosition = targetPosition; // Update current position after moving
-
+  
   // Turn on the track power for the target position after the move is complete
   controlRelays(targetPosition);
-
+  
   // Turn the turntable bridge track power back ON (LOW) once the turntable has completed its move
   relayBoard1.digitalWrite(0, LOW);
-
+  
   if (!CALIBRATION_MODE) {
     EEPROM.put(EEPROM_POSITION_ADDRESS, currentPosition); // Save current position to EEPROM
     EEPROM.commit();
