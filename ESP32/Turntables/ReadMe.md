@@ -121,9 +121,9 @@ The sketch includes several functions:
 
 - `connectToMQTT()`: This function attempts to connect the ESP32 to the MQTT broker. It will keep trying to connect until a successful connection is established. Once connected, it subscribes to the MQTT topic defined in MQTT_TOPIC.
 
-- `setup()`: This is the Arduino setup function, which is called once when the program starts. It initializes the Serial and Wire communications, connects to the WiFi network, initializes the EEPROM, prints the IP address to the serial monitor, sets the hostname, initializes OTA updates, sets up the MQTT client, moves to the home position at startup, initializes the relay boards, initializes the LCD and prints the IP address, displays the calibration mode message, initializes the stepper, and initializes the keys array.
+- `setup()`: This is the ESP32 setup function, which is called once when the program starts. It initializes the Serial and Wire communications, connects to the WiFi network, initializes the EEPROM, prints the IP address to the serial monitor, sets the hostname, initializes OTA updates, sets up the MQTT client, moves to the home position at startup, initializes the relay boards, initializes the LCD and prints the IP address, displays the calibration mode message, initializes the stepper, and initializes the keys array.
 
-- `loop()`: This is the Arduino main loop function, which is called repeatedly in a loop. It handles MQTT messages and keypad inputs, checks for emergency stop, checks for keypad input, checks for reset button press, and runs the stepper.
+- `loop()`: This is the ESP32 main loop function, which is called repeatedly in a loop. It handles MQTT messages and keypad inputs, checks for emergency stop, checks for keypad input, checks for reset button press, and runs the stepper.
 
 - `callback(char* topic, byte* payload, unsigned int length)`: This is the MQTT callback function, which is called when a subscribed topic receives a message. It extracts the track number and end number from the MQTT message, calculates the target position, and moves to the target position.
 
