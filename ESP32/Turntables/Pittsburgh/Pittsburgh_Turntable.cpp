@@ -2,7 +2,7 @@
   Aisle-Node: Pittsburgh Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.2
+  Version: 1.0.3
   Date: 2023-07-03
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Pittsburgh Turntable. It utilizes a 3x4 membrane matrix keypad, 
@@ -28,7 +28,7 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Define constants
-const int STEPS_PER_REV = 6400;
+const int STEPS_PER_REV = 6400; // microsteps per full revolution
 const int EEPROM_POSITION_ADDRESS = 0;
 const int EEPROM_HEADS_ADDRESS = 100;
 const int EEPROM_TAILS_ADDRESS = 200;
@@ -36,7 +36,7 @@ const int HOMING_SENSOR_PIN = 25;
 const int RESET_BUTTON_PIN = 19;
 const char* MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#";
 const int TRACK_NUMBERS[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
-const int STEPPER_SPEED = 200;
+const int STEPPER_SPEED = 200; // Change stepper speed as necessary in order for full revolution to take ~30 seconds
 const int EEPROM_SIZE = 512;
 const int RELAY_BOARD1_I2C_ADDRESS = 0x20; // I2C address of relay board 1
 const int RELAY_BOARD2_I2C_ADDRESS = 0x21; // I2C address of relay board 2
@@ -45,8 +45,8 @@ byte KEYPAD_COLUMN_PINS[] = {16, 17, 18};
 const bool CALIBRATION_MODE = true; // Set to true during calibration, false otherwise
 const char CONFIRM_YES = '1';
 const char CONFIRM_NO = '3';
-const int STEP_MOVE_SINGLE_KEYPRESS = 10;
-const int STEP_MOVE_HELD_KEYPRESS = 100;
+const int STEP_MOVE_SINGLE_KEYPRESS = 10; // Change step count as necessary for single key presses when calibrating track positions
+const int STEP_MOVE_HELD_KEYPRESS = 100;  // Change step count as necessary for held key presses when calibration track positions
 bool emergencyStop = false;
 char keypadTrackNumber[3] = "";
 char mqttTrackNumber[3] = "";
@@ -61,8 +61,8 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // Create instances for stepper and LCD screen
-AccelStepper stepper(AccelStepper::DRIVER, 33, 32);
-LiquidCrystal_I2C lcd(0x27, 20, 4);
+AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // Stepper driver step (pulse) pin, direction pin
+LiquidCrystal_I2C lcd(0x27, 20, 4); // I2C address of LCD, rows, and columns
 
 // Create instances for PCF8574 & PCF8575
 PCF8575 relayBoard1(RELAY_BOARD1_I2C_ADDRESS);
@@ -144,8 +144,8 @@ void setup() {
   EEPROM.begin(EEPROM_SIZE);
   if (!CALIBRATION_MODE) {
     EEPROM.get(EEPROM_POSITION_ADDRESS, currentPosition);
-    EEPROM.get(EEPROM_HEADS_ADDRESS, trackHeads);  // load head positions from EEPROM
-    EEPROM.get(EEPROM_TAILS_ADDRESS, trackTails);  // load tail positions from EEPROM
+    EEPROM.get(EEPROM_HEADS_ADDRESS, trackHeads);  // Load head positions from EEPROM
+    EEPROM.get(EEPROM_TAILS_ADDRESS, trackTails);  // Load tail positions from EEPROM
   }
 
   // Print the IP address to the serial monitor
@@ -198,7 +198,7 @@ void setup() {
 
   // Move to home position at startup
   while (digitalRead(HOMING_SENSOR_PIN) == HIGH) {
-    stepper.move(-10);
+    stepper.move(-10); // Change step count for homing functionality if necessary
     stepper.run();
   }
   currentPosition = 0; // Set current position to zero after homing
@@ -259,7 +259,7 @@ void setup() {
 
   // Initialize the stepper
   stepper.setMaxSpeed(STEPPER_SPEED);
-  stepper.setAcceleration(2000);
+  stepper.setAcceleration(2000); // Change acceleration/deceleration rate as necessary to provide smooth prototype turntable movements 
   stepper.setCurrentPosition(currentPosition);
 
   // Initialize the keys array
@@ -310,12 +310,12 @@ void loop() {
     if (key == '4' || key == '6') {
       int direction = (key == '4') ? -1 : 1;  // Determine direction based on key
       if (!isKeyHeld) {
-        // Move the turntable by 10 steps in the direction specified by the key
+        // Move the turntable by X steps in the direction specified by the key
         stepper.move(direction * STEP_MOVE_SINGLE_KEYPRESS);
         isKeyHeld = true;
         keyHoldTime = millis();  // Start tracking the hold time
       } else if (millis() - keyHoldTime >= keyHoldDelay) {
-        // Move the turntable continuously by 100 steps in the direction specified by the key
+        // Move the turntable continuously by X steps in the direction specified by the key
         stepper.move(direction * STEP_MOVE_HELD_KEYPRESS);
       }
     } else if (key == '*' || key == '#') {
@@ -359,7 +359,7 @@ void loop() {
     }
   } else {
     isKeyHeld = false;  // Reset isKeyHeld when no key is pressed
-    keyHoldTime = 0;  // Reset keyHoldTime when no key is pressed
+    keyHoldTime = 0;    // Reset keyHoldTime when no key is pressed
   }
 
   // Check for reset button press
