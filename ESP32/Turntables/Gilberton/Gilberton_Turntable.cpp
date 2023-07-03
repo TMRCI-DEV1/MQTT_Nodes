@@ -124,7 +124,9 @@ void connectToMQTT() {
       delay(2000);
     }
   }
-  if(!client.connected()){
+  if (client.connected()) {
+    Serial.println("Connected to MQTT");
+  } else {
     Serial.println("Failed to connect to MQTT");
     delay(5000); // Wait 5 seconds before retrying
     connectToMQTT(); // Retry connecting to MQTT
