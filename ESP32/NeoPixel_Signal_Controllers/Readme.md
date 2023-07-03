@@ -1,4 +1,5 @@
 # Neopixel Signal Masts
+
 These sketches are designed for an ESP32 Node with WiFi and MQTT capabilities. They provide the functionality to control a set of signal masts using an ESP32 board, Neopixel LEDs, and MQTT. It allows for the wireless control of the signal aspects based on messages received from JMRI. The NodeID and IP address are displayed on an OLED display for easy identification. The sketch can be customized and extended to support additional signal mast configurations and features as needed.
 
 The sketch uses MQTT to subscribe to messages published by JMRI (Java Model Railroad Interface) for controlling the signal mast objects. The expected format of the incoming messages is 'Aspect; Lit (or Unlit); Unheld (or Held)'. The sketch listens to MQTT topics specific to each signal mast.
@@ -6,6 +7,7 @@ The sketch uses MQTT to subscribe to messages published by JMRI (Java Model Rail
 The NodeID and IP address of the ESP32 are displayed on an attached 128×64 OLED display. The NodeID is also used as the ESP32 host name for easy network identification.
 
 ## Libraries Used
+
 The sketch utilizes the following libraries:
 
 **Wire**: This library provides support for the I2C connection used by the ESP32. The library is available at [https://github.com/esp8266/Arduino/tree/master/libraries/Wire].
@@ -27,18 +29,21 @@ The sketch utilizes the following libraries:
 **ArduinoOTA**: This library enables Over-The-Air (OTA) updates for the ESP32. It allows you to upload new firmware to the ESP32 wirelessly. The library is available at [https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA].
 
 ## Network Configuration
+
 The sketch requires connecting to a WiFi network. The following configuration parameters need to be set:
 
 - **WIFI_SSID**: The SSID (name) of the WiFi network to connect to.
 - **WIFI_PASSWORD**: The password for the WiFi network.
 
 ## MQTT Configuration
+
 The sketch uses MQTT for communication with JMRI. The MQTT server details need to be configured:
 
 - **MQTT_SERVER**: The IP address or hostname of the MQTT server.
 - **MQTT_PORT**: The port number on which the MQTT server is running.
 
 ## Hardware Setup
+
 The sketch assumes the following hardware setup:
 
 ESP32 board with WiFi capabilities.
@@ -46,7 +51,9 @@ Neopixel LEDs connected to GPIO pins defined in the neoPixelPins array.
 128x64 OLED display connected via I2C.
 
 ## Functionality
+
 ### setup()
+
 The **setup()** function is responsible for initializing the sketch. It performs the following tasks:
 
 - Initializes serial communication for debugging.
@@ -58,6 +65,7 @@ The **setup()** function is responsible for initializing the sketch. It performs
 - Initializes the OLED display and shows the initial NodeID and IP address.
 
 ### loop()
+
 The **loop()** function is the main execution loop of the sketch. It performs the following tasks:
 
 - Handles OTA updates.
@@ -67,24 +75,21 @@ The **loop()** function is the main execution loop of the sketch. It performs th
 - Updates the OLED display if the NodeID or IP address has changed.
 
 ### reconnectMQTT()
+
 The **reconnectMQTT()** function is responsible for establishing a connection to the MQTT server. It attempts to reconnect until the connection is successful. Upon successful connection, it subscribes to the MQTT topics for all signal masts.
 
 ### reconnectWiFi()
+
 The **reconnectWiFi()** function is responsible for reconnecting to the WiFi network if the connection is lost. It attempts to reconnect until the connection is successful.
 
-### callback(char* topic, byte* payload, unsigned int length)
+### callback(char*topic, byte* payload, unsigned int length)
+
 The **callback()** function is called when a new message is received on an MQTT topic. It handles the parsing and processing of the message payload. The payload is expected to be in the format 'Aspect; Lit (or Unlit); Unheld (or Held)'.
 
 The function extracts the signal mast number from the topic, parses the payload into aspect, lit, and held strings, and then updates the Neopixel colors based on the aspect and lit status. The function also handles special cases such as unlit signals and held signals.
 
 ### updateDisplay()
+
 The **updateDisplay()** function is responsible for updating the OLED display with the current NodeID and IP address. It checks if the NodeID or IP address has changed since the last update and updates the display accordingly.
 
 The function uses the Adafruit SSD1306 library to control the display and displays the NodeID and IP address in a clear and readable format.
-
-
-
-
-
-
-
