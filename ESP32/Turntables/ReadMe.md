@@ -47,25 +47,111 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 ## How to Use
 
+### Preparation
+
+1. Ensure that the CALIBRATION_MODE constant in the sketch is set to true. This will allow the system to enter calibration mode.
+2. Upload the sketch to the ESP32 Node.
+
 ### Calibration Process
 
-1. Set the `CALIBRATION_MODE` constant to `true` in the sketch and upload it to the ESP32 Node.
-2. After the ESP32 Node starts up, the LCD will display a message asking you to confirm that you want to start calibration. Press '1' on the keypad to confirm and start calibration.
-3. Manually position the turntable at the head-end position for track 1 using the '4' (CCW) and '6' (CW) keys. Single key press moves the stepper by X steps. A held down key press moves the stepper continuously until key is depressed.
-4. Enter '1' on the keypad, followed by '*'. The LCD will display a message confirming that the position has been stored.
-5. Repeat steps 3 and 4 for each track number and end. For the tail-end positions, enter the track number followed by '#'. If you want to cancel the calibration of the current track, press '3' on the keypad.
-6. After all positions have been stored, set the `CALIBRATION_MODE` constant to `false` in the sketch and upload it again to the ESP32 Node.
+1. After the sketch is uploaded and the ESP32 Node is powered on, the LCD will display a message indicating that the system is in calibration mode. You will be prompted to press '1' to confirm and start the calibration process or '3' to cancel.
+2. Press '1' on the keypad to confirm and start the calibration process. The LCD will display a message indicating that calibration has started.
+3. Now, you will manually move the turntable to each track's head and tail positions and store these positions. To do this, use the '4' and '6' keys on the keypad to move the turntable counter-clockwise and clockwise, respectively. A single key press will move the turntable by a fixed number of steps (defined by `STEP_MOVE_SINGLE_KEYPRESS`), while holding the key will move the turntable continuously (defined by `STEP_MOVE_HELD_KEYPRESS`).
+4. Once the turntable is positioned at the head-end of a track, enter the track number on the keypad (1-23), and then press the '*' key. This will store the current position as the head-end position for the entered track number.
+5. Similarly, once the turntable is positioned at the tail-end of a track, enter the track number on the keypad (1-23), and then press the '#' key. This will store the current position as the tail-end position for the entered track number.
+6. Repeat steps 3-5 for each track on the turntable.
+7. After all track positions have been stored, set the `CALIBRATION_MODE` constant in the sketch back to `false` and re-upload the sketch to the ESP32 Node. This will exit calibration mode and allow the system to operate normally, using the stored track positions.
 
-### Operation
+### Notes
 
-1. After the ESP32 Node starts up, it will connect to the WiFi network and subscribe to the MQTT topic for the turntable.
-2. To move the turntable to a specific position, enter the track number on the keypad, followed by '*' for the head-end or '#' for the tail-end. The turntable will move to the stored position for that track number and end.
-3. To activate the emergency stop, press the '9' key on the keypad three times in a row. The turntable movement will be immediately halted.
+- During calibration, the system will not respond to MQTT messages. It will only respond to keypad inputs.
+- The stored track positions are saved in the ESP32's EEPROM, so they will persist even if the ESP32 is powered off or reset.
+- If you need to recalibrate the system in the future, simply set `CALIBRATION_MODE` back to `true` and repeat the calibration process.
+- If you trigger an emergency stop during calibration (by pressing the '9' key three times consecutively), the system will stop moving the turntable and display an emergency stop message. After this, you can continue the calibration process.
+- If you press the reset button during calibration, the system will trigger a homing sequence instead of restarting. The turntable will move to the home position, and the current position will be set to zero. After this, you can continue the calibration process.
 
-### Troubleshooting
+### Preparation
 
-1. **WiFi Connection Issues**: If the ESP32 Node fails to connect to the WiFi network, check that the SSID and password in the sketch match those of your network. Also, ensure that the ESP32 Node is within range of the WiFi router.
-2. **Turntable Movement Issues**: If the turntable doesn't move as expected, ensure that the stepper motor is correctly connected and powered. If the problem persists, you may need to recalibrate the turntable positions.
+1. Ensure that the `CALIBRATION_MODE` constant in the sketch is set to `false`. This will allow the system to operate normally.
+2. Upload the sketch to the ESP32 Node.
+
+### Operation Process
+
+1. After the sketch is uploaded and the ESP32 Node is powered on, the LCD will display the IP address of the ESP32 Node. This IP address is used for Over-The-Air (OTA) updates.
+2. The system is now ready to receive commands either from the keypad or via MQTT messages.
+
+### Keypad Operation
+
+1. To move the turntable to a specific track, enter the track number (1-23) on the keypad.
+2. After entering the track number, press the '*' key to move the turntable to the head-end of the track, or press the '#' key to move the turntable to the tail-end of the track.
+3. The turntable will then move to the commanded position, and the LCD will display the commanded track number and the head or tail position.
+
+### MQTT Operation
+
+1. The system is subscribed to MQTT messages published by JMRI. The expected MQTT message format is 'Tracknx', where 'n' represents the 2-digit track number (01-23) and 'x' represents 'H' for the head-end or 'T' for the tail-end.
+2. When an MQTT message is received, the system will extract the track number and end position from the message, calculate the target position, and move the turntable to the target position.
+
+### Emergency Stop
+
+1. If you need to stop the turntable immediately, press the '9' key three times consecutively. This will trigger an emergency stop, and the system will stop moving the turntable and display an emergency stop message on the LCD.
+
+### Reset Button
+
+1. If you press the reset button, the system will trigger a homing sequence instead of restarting. The turntable will move to the home position, and the current position will be set to zero.
+
+### Notes
+
+- The system will not respond to keypad inputs while it is moving the turntable. You must wait until the turntable has finished moving before entering a new command.
+- The system will save the current position of the turntable in the ESP32's EEPROM whenever it completes a move. This allows the system to remember its position even if it is powered off or reset.
+- The system supports OTA updates. You can update the sketch on the ESP32 Node over the WiFi network using the Arduino IDE. The IP address for OTA updates is displayed on the LCD when the system starts up.
+
+## Troubleshooting Guide for Turntable Control
+
+If you're experiencing issues with the Turntable Control system, you can refer to the following troubleshooting guide to help identify and resolve common problems.
+
+### The turntable is not moving:
+
+- Check the power supply to the ESP32 Node, stepper motor, and relay boards. Ensure they are properly connected and powered.
+- Verify the wiring connections between the ESP32 Node and the stepper motor. Make sure the step and direction pins are correctly connected.
+- Check the stepper motor driver settings, especially the microstepping settings. Ensure they match the `STEPS_PER_REV` constant in the sketch.
+
+### The turntable is not moving to the correct position:
+
+- Ensure the turntable has been properly calibrated. If not, switch to calibration mode and follow the calibration guide.
+- Check the EEPROM data. If the data is corrupted, you may need to clear the EEPROM and recalibrate the turntable.
+
+### The LCD is not displaying the correct information:
+
+- Check the I2C connection between the ESP32 Node and the LCD. Ensure the SDA and SCL pins are correctly connected.
+- Verify the I2C address of the LCD. Ensure it matches the address specified in the `LiquidCrystal_I2C lcd(0x27, 20, 4);` line of the sketch.
+
+### The keypad is not working:
+
+- Check the wiring connections between the ESP32 Node and the keypad. Ensure the row and column pins are correctly connected.
+- Test each key on the keypad. If a specific key is not working, there may be a problem with the keypad itself.
+
+### The system is not receiving MQTT messages:
+
+- Check the WiFi connection. Ensure the ESP32 Node is connected to the WiFi network and the MQTT broker.
+- Check the MQTT topic. Ensure the topic matches the one specified in the `const char* MQTT_TOPIC = "TMRCI/output/("location")/turntable/#";` line of the sketch.
+- Check the MQTT message format. Ensure the messages are in the 'Tracknx' format, where 'n' is the 2-digit track number and 'x' is 'H' for the head-end or 'T' for the tail-end.
+
+### The emergency stop is not working:
+
+- Ensure you are pressing the '9' key three times consecutively to trigger the emergency stop.
+
+### The reset button is not working:
+
+- Check the wiring connection between the ESP32 Node and the reset button. Ensure the button is correctly connected to the `RESET_BUTTON_PIN`.
+- Test the reset button. If it is not working, there may be a problem with the button itself.
+
+### OTA updates are not working:
+
+- Check the WiFi connection. Ensure the ESP32 Node is connected to the WiFi network.
+- Check the IP address of the ESP32 Node. Ensure it matches the one displayed on the LCD.
+- Check the OTA password. Ensure it matches the one specified in the `ArduinoOTA.setPassword("TMRCI");` line of the sketch.
+
+Remember, when troubleshooting, always start with the simplest and most obvious solutions first. Check all connections and settings, and ensure all components are functioning correctly. If you're still having trouble, you may need to consult with a more experienced member.
 
 ## Constants
 
