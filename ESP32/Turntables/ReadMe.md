@@ -51,7 +51,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 1. Set the `CALIBRATION_MODE` constant to `true` in the sketch and upload it to the ESP32 Node.
 2. After the ESP32 Node starts up, the LCD will display a message asking you to confirm that you want to start calibration. Press '1' on the keypad to confirm and start calibration.
-3. Manually position the turntable at the head-end position for track 1.
+3. Manually position the turntable at the head-end position for track 1 using the '4' (CCW) and '6' (CW) keys. Single key press moves the stepper by X steps. A held down key press moves the stepper continuously until key is depressed.
 4. Enter '1' on the keypad, followed by '*'. The LCD will display a message confirming that the position has been stored.
 5. Repeat steps 3 and 4 for each track number and end. For the tail-end positions, enter the track number followed by '#'.
 6. After all positions have been stored, set the `CALIBRATION_MODE` constant to `false` in the sketch and upload it again to the ESP32 Node.
@@ -71,7 +71,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 The sketch defines several constants:
 
-- `STEPS_PER_REV`: The number of steps per revolution for the stepper motor.
+- `STEPS_PER_REV`: The number of microsteps per revolution for the stepper motor.
 - `EEPROM_POSITION_ADDRESS`: The EEPROM address for storing the turntable positions.
 - `EEPROM_HEADS_ADDRESS`: The EEPROM address for storing the track head positions.
 - `EEPROM_TAILS_ADDRESS`: The EEPROM address for storing the track tail positions.
