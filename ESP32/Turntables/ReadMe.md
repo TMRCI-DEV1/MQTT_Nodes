@@ -109,43 +109,43 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 If you're experiencing issues with the Turntable Control system, you can refer to the following troubleshooting guide to help identify and resolve common problems.
 
-### The turntable is not moving:
+### The turntable is not moving
 
 - Check the power supply to the ESP32 Node, stepper motor, and relay boards. Ensure they are properly connected and powered.
 - Verify the wiring connections between the ESP32 Node and the stepper motor. Make sure the step and direction pins are correctly connected.
 - Check the stepper motor driver settings, especially the microstepping settings. Ensure they match the `STEPS_PER_REV` constant in the sketch.
 
-### The turntable is not moving to the correct position:
+### The turntable is not moving to the correct position
 
 - Ensure the turntable has been properly calibrated. If not, switch to calibration mode and follow the calibration guide.
 - Check the EEPROM data. If the data is corrupted, you may need to clear the EEPROM and recalibrate the turntable.
 
-### The LCD is not displaying the correct information:
+### The LCD is not displaying the correct information
 
 - Check the I2C connection between the ESP32 Node and the LCD. Ensure the SDA and SCL pins are correctly connected.
 - Verify the I2C address of the LCD. Ensure it matches the address specified in the `LiquidCrystal_I2C lcd(0x27, 20, 4);` line of the sketch.
 
-### The keypad is not working:
+### The keypad is not working
 
 - Check the wiring connections between the ESP32 Node and the keypad. Ensure the row and column pins are correctly connected.
 - Test each key on the keypad. If a specific key is not working, there may be a problem with the keypad itself.
 
-### The system is not receiving MQTT messages:
+### The system is not receiving MQTT messages
 
 - Check the WiFi connection. Ensure the ESP32 Node is connected to the WiFi network and the MQTT broker.
 - Check the MQTT topic. Ensure the topic matches the one specified in the `const char* MQTT_TOPIC = "TMRCI/output/("location")/turntable/#";` line of the sketch.
 - Check the MQTT message format. Ensure the messages are in the 'Tracknx' format, where 'n' is the 2-digit track number and 'x' is 'H' for the head-end or 'T' for the tail-end.
 
-### The emergency stop is not working:
+### The emergency stop is not working
 
 - Ensure you are pressing the '9' key three times consecutively to trigger the emergency stop.
 
-### The reset button is not working:
+### The reset button is not working
 
 - Check the wiring connection between the ESP32 Node and the reset button. Ensure the button is correctly connected to the `RESET_BUTTON_PIN`.
 - Test the reset button. If it is not working, there may be a problem with the button itself.
 
-### OTA updates are not working:
+### OTA updates are not working
 
 - Check the WiFi connection. Ensure the ESP32 Node is connected to the WiFi network.
 - Check the IP address of the ESP32 Node. Ensure it matches the one displayed on the LCD.
