@@ -47,7 +47,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 ## How to Use
 
-### Preparation
+### Calibration Preparation
 
 1. Ensure that the CALIBRATION_MODE constant in the sketch is set to true. This will allow the system to enter calibration mode.
 2. Upload the sketch to the ESP32 Node.
@@ -62,7 +62,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 6. Repeat steps 3-5 for each track on the turntable.
 7. After all track positions have been stored, set the `CALIBRATION_MODE` constant in the sketch back to `false` and re-upload the sketch to the ESP32 Node. This will exit calibration mode and allow the system to operate normally, using the stored track positions.
 
-### Notes
+### Calibration Notes
 
 - During calibration, the system will not respond to MQTT messages. It will only respond to keypad inputs.
 - The stored track positions are saved in the ESP32's EEPROM, so they will persist even if the ESP32 is powered off or reset.
@@ -70,7 +70,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 - If you trigger an emergency stop during calibration (by pressing the '9' key three times consecutively), the system will stop moving the turntable and display an emergency stop message. After this, you can continue the calibration process.
 - If you press the reset button during calibration, the system will trigger a homing sequence instead of restarting. The turntable will move to the home position, and the current position will be set to zero. After this, you can continue the calibration process.
 
-### Preparation
+### Operation Preparation
 
 1. Ensure that the `CALIBRATION_MODE` constant in the sketch is set to `false`. This will allow the system to operate normally.
 2. Upload the sketch to the ESP32 Node.
@@ -99,7 +99,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 1. If you press the reset button, the system will trigger a homing sequence instead of restarting. The turntable will move to the home position, and the current position will be set to zero.
 
-### Notes
+### Operation Notes
 
 - The system will not respond to keypad inputs while it is moving the turntable. You must wait until the turntable has finished moving before entering a new command.
 - The system will save the current position of the turntable in the ESP32's EEPROM whenever it completes a move. This allows the system to remember its position even if it is powered off or reset.
