@@ -2,16 +2,16 @@
   Aisle-Node: Pittsburgh Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.5
+  Version: 1.0.7
   Date: 2023-07-03
   Description:
-  This sketch is designed for an OTA-enabled ESP32 Node controlling the Pittsburgh Turntable. It utilizes a 3x4 membrane matrix keypad, 
-  a serial LCD 2004 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C 
-  Interface Electromagnetic Relay Module, a STEPPERONLINE CNC stepper motor driver, a photo-interrupter "homing" sensor, a reset button, 
-  and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi network, subscribes 
-  to MQTT messages published by JMRI, and enables control of the turntable by entering a 1 or 2-digit track number on the keypad, followed 
-  by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents the 
-  2-digit track number (01-23) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the 
+  This sketch is designed for an OTA-enabled ESP32 Node controlling the Pittsburgh Turntable. It utilizes a 3x4 membrane matrix keypad,
+  a serial LCD 2004 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C
+  Interface Electromagnetic Relay Module, a STEPPERONLINE CNC stepper motor driver, a photo-interrupter "homing" sensor, a reset button,
+  and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi network, subscribes
+  to MQTT messages published by JMRI, and enables control of the turntable by entering a 1 or 2-digit track number on the keypad, followed
+  by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents the
+  2-digit track number (01-23) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the
   commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname.
 */
 
@@ -30,16 +30,16 @@
 // Define constants
 const int STEPS_PER_REV = 6400; // Number of microsteps per full revolution
 const int EEPROM_POSITION_ADDRESS = 0; // EEPROM address for storing position
-const int EEPROM_HEADS_ADDRESS = 100; // EEPROM address for storing track head positions
-const int EEPROM_TAILS_ADDRESS = 200; // EEPROM address for storing track tail positions
+const int EEPROM_TRACK_HEADS_ADDRESS = 100; // EEPROM address for storing track head positions
+const int EEPROM_TRACK_TAILS_ADDRESS = 200; // EEPROM address for storing track tail positions
 const int HOMING_SENSOR_PIN = 25; // Pin for the homing sensor
 const int RESET_BUTTON_PIN = 19; // Pin for the reset button
 const char* MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#"; // MQTT topic for subscribing to turntable commands
 const int TRACK_NUMBERS[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23}; // Array of valid track numbers
 const int STEPPER_SPEED = 200; // Stepper motor speed (steps per second)
 const int EEPROM_SIZE = 512; // EEPROM size in bytes
-const int RELAY_BOARD1_I2C_ADDRESS = 0x20; // I2C address of relay board 1
-const int RELAY_BOARD2_I2C_ADDRESS = 0x21; // I2C address of relay board 2
+const int RELAY_BOARD1_ADDRESS = 0x20; // I2C address of relay board 1
+const int RELAY_BOARD2_ADDRESS = 0x21; // I2C address of relay board 2
 byte KEYPAD_ROW_PINS[] = {13, 12, 14, 27}; // Row pins of the keypad
 byte KEYPAD_COLUMN_PINS[] = {16, 17, 18}; // Column pins of the keypad
 const bool CALIBRATION_MODE = true; // Set to true during calibration, false otherwise
@@ -65,13 +65,13 @@ AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // Stepper driver step (puls
 LiquidCrystal_I2C lcd(0x27, 20, 4); // I2C address of LCD, number of rows and columns
 
 // Create instances for PCF8574 & PCF8575
-PCF8575 relayBoard1(RELAY_BOARD1_I2C_ADDRESS);
-PCF8574 relayBoard2(RELAY_BOARD2_I2C_ADDRESS);
+PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS);
+PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS);
 
 // Define keypad layout and create instance
-const byte ROW_NUM = 4; 
-const byte COLUMN_NUM = 3; 
-const char KEYPAD_LAYOUT[][COLUMN_NUM] = {{'1','2','3'}, {'4','5','6'}, {'7','8','9'}, {'*','0','#'}};
+const byte ROW_NUM = 4;
+const byte COLUMN_NUM = 3;
+const char KEYPAD_LAYOUT[][COLUMN_NUM] = {{'1', '2', '3'}, {'4', '5', '6'}, {'7', '8', '9'}, {'*', '0', '#'}};
 char keys[ROW_NUM][COLUMN_NUM];
 Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM);
 
@@ -102,7 +102,7 @@ void connectToWiFi() {
     delay(500);
     Serial.println("Connecting to WiFi...");
   }
-  if(WiFi.status() == WL_CONNECTED){
+  if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Connected to WiFi");
   } else {
     Serial.println("Failed to connect to WiFi");
@@ -138,7 +138,10 @@ void setup() {
   // Start Serial and Wire communications
   Serial.begin(115200);
   Wire.begin();
-  
+
+  // Initialize the keys array
+  initializeKeysArray();
+
   // Connect to the WiFi network
   connectToWiFi();
 
@@ -146,8 +149,8 @@ void setup() {
   EEPROM.begin(EEPROM_SIZE);
   if (!CALIBRATION_MODE) {
     EEPROM.get(EEPROM_POSITION_ADDRESS, currentPosition);
-    EEPROM.get(EEPROM_HEADS_ADDRESS, trackHeads);  // Load head positions from EEPROM
-    EEPROM.get(EEPROM_TAILS_ADDRESS, trackTails);  // Load tail positions from EEPROM
+    EEPROM.get(EEPROM_TRACK_HEADS_ADDRESS, trackHeads);  // Load head positions from EEPROM
+    EEPROM.get(EEPROM_TRACK_TAILS_ADDRESS, trackTails);  // Load tail positions from EEPROM
   }
 
   // Print the IP address to the serial monitor
@@ -208,20 +211,20 @@ void setup() {
   // Initialize the relay boards
   relayBoard1.begin();
   relayBoard2.begin();
-  
+
   // Set the pin modes and initial state (HIGH - Track power OFF)
-  for(int i = 0; i < 16; i++) {
+  for (int i = 0; i < 16; i++) {
     relayBoard1.pinMode(i, OUTPUT);
     relayBoard1.digitalWrite(i, HIGH);
-    if(i < 8) { // Only do this for the first 8 pins of the second relay board
-        relayBoard2.pinMode(i, OUTPUT);
-        relayBoard2.digitalWrite(i, HIGH);
+    if (i < 8) { // Only do this for the first 8 pins of the second relay board
+      relayBoard2.pinMode(i, OUTPUT);
+      relayBoard2.digitalWrite(i, HIGH);
     }
   }
-  
+
   // Turn on the relay for the turntable bridge (relay 0 on the first board)
   relayBoard1.digitalWrite(0, LOW);
-  
+
   // Initialize the LCD and print IP
   lcd.begin(20, 4);
   lcd.print("IP: ");
@@ -260,11 +263,8 @@ void setup() {
 
   // Initialize the stepper
   stepper.setMaxSpeed(STEPPER_SPEED);
-  stepper.setAcceleration(2000); // Change acceleration/deceleration rate as necessary to provide smooth prototype turntable movements 
+  stepper.setAcceleration(2000); // Change acceleration/deceleration rate as necessary to provide smooth prototype turntable movements
   stepper.setCurrentPosition(currentPosition);
-
-  // Initialize the keys array
-  initializeKeysArray();
 }
 
 // Add a counter for the '9' key
@@ -332,10 +332,10 @@ void loop() {
         // Store the current position to the appropriate track head or tail-end position in EEPROM
         if (endNumber == 0) {
           trackHeads[trackNumber - 1] = currentPosition;
-          EEPROM.put(EEPROM_HEADS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
+          EEPROM.put(EEPROM_TRACK_HEADS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
         } else {
           trackTails[trackNumber - 1] = currentPosition;
-          EEPROM.put(EEPROM_TAILS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
+          EEPROM.put(EEPROM_TRACK_TAILS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
         }
         EEPROM.commit();
         lcd.setCursor(0, 0);
@@ -424,16 +424,17 @@ void controlRelays(int trackNumber) {
   // Turn off all relays
   for (uint8_t i = 0; i < 16; i++) {
     relayBoard1.digitalWrite(i, HIGH);
-    if (i < 8) {
-      relayBoard2.digitalWrite(i, HIGH);
-    }
+  }
+
+  for (uint8_t i = 0; i < 8; i++) {
+    relayBoard2.digitalWrite(i, HIGH);
   }
 
   // Turn on the relay corresponding to the selected track
-  if (trackNumber <= 14) {
-    relayBoard1.digitalWrite(trackNumber + 1, LOW); // +1 because relay 0 is for the turntable bridge
-  } else if (trackNumber <= 22) {
-    relayBoard2.digitalWrite(trackNumber - 15, LOW); // -15 because the first 15 tracks are on the first relay board
+  if (trackNumber >= 1 && trackNumber <= 15) {
+    relayBoard1.digitalWrite(trackNumber, LOW);
+  } else if (trackNumber >= 16 && trackNumber <= 23) {
+    relayBoard2.digitalWrite(trackNumber - 16, LOW);
   }
 }
 
