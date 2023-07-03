@@ -1,9 +1,11 @@
 # Gilberton Turntable Control
 
 ## Overview
+
 This Arduino sketch is designed to control the Gilberton Turntable using an ESP32 Node. The turntable can be controlled by entering a 1 or 2-digit track number on a keypad, or by receiving MQTT messages published by JMRI. The sketch also supports calibration of the turntable positions.
 
 ## Components
+
 The system utilizes the following components:
 
 - ESP32 Node
@@ -17,6 +19,7 @@ The system utilizes the following components:
 - STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead)
 
 ## Libraries Used
+
 The sketch utilizes the following libraries:
 
 - Wire: [https://github.com/esp8266/Arduino/tree/master/libraries/Wire](https://github.com/esp8266/Arduino/tree/master/libraries/Wire)
@@ -31,6 +34,7 @@ The sketch utilizes the following libraries:
 - ArduinoOTA: [https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA](https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA)
 
 ## Functionality
+
 The ESP32 Node connects to a WiFi network and subscribes to MQTT messages published by JMRI. The expected MQTT message format is 'Tracknx', where 'n' represents the 2-digit track number (01-23) and 'x' represents 'H' for the head-end or 'T' for the tail-end.
 
 The LCD displays the IP address, the commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname.
@@ -44,6 +48,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 ## How to Use
 
 ### Calibration Process
+
 1. Set the `CALIBRATION_MODE` constant to `true` in the sketch and upload it to the ESP32 Node.
 2. After the ESP32 Node starts up, the LCD will display a message asking you to confirm that you want to start calibration. Press '1' on the keypad to confirm and start calibration.
 3. Manually position the turntable at the head-end position for track 1.
@@ -52,15 +57,18 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 6. After all positions have been stored, set the `CALIBRATION_MODE` constant to `false` in the sketch and upload it again to the ESP32 Node.
 
 ### Operation
+
 1. After the ESP32 Node starts up, it will connect to the WiFi network and subscribe to the MQTT topic for the turntable.
 2. To move the turntable to a specific position, enter the track number on the keypad, followed by '*' for the head-end or '#' for the tail-end. The turntable will move to the stored position for that track number and end.
 3. To activate the emergency stop, press the '9' key on the keypad three times in a row. The turntable movement will be immediately halted.
 
 ### Troubleshooting
+
 1. **WiFi Connection Issues**: If the ESP32 Node fails to connect to the WiFi network, check that the SSID and password in the sketch match those of your network. Also, ensure that the ESP32 Node is within range of the WiFi router.
 2. **Turntable Movement Issues**: If the turntable doesn't move as expected, ensure that the stepper motor is correctly connected and powered. If the problem persists, you may need to recalibrate the turntable positions.
 
 ## Constants
+
 The sketch defines several constants:
 
 - `STEPS_PER_REV`: The number of steps per revolution for the stepper motor.
@@ -85,6 +93,7 @@ The sketch defines several constants:
 - `STEP_MOVE_HELD_KEYPRESS`: The number of steps to move for a held keypress.
 
 ## Variables
+
 The sketch also defines several variables:
 
 - `emergencyStopCounter`: A counter for the emergency stop feature.
@@ -103,6 +112,7 @@ The sketch also defines several variables:
 - `keypad`: The keypad instance.
 
 ## Functions
+
 The sketch includes several functions:
 
 - `initializeKeysArray()`: Initializes the keys array for the keypad.
@@ -116,7 +126,9 @@ The sketch includes several functions:
 - `moveToTargetPosition()`: Moves the turntable to the target position, turns off the turntable bridge track power before starting the move, turns on the track power for the target position after the move is complete, and saves the current position to EEPROM.
 
 ### Contributing
+
 Contributions to this project are welcome. If you have a feature request, bug report, or want to contribute code, please open an issue or pull request on the project's GitHub page.
 
 ### License
+
 This project is licensed under the MIT License. See the LICENSE file in the project root for more information.
