@@ -53,7 +53,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 2. After the ESP32 Node starts up, the LCD will display a message asking you to confirm that you want to start calibration. Press '1' on the keypad to confirm and start calibration.
 3. Manually position the turntable at the head-end position for track 1 using the '4' (CCW) and '6' (CW) keys. Single key press moves the stepper by X steps. A held down key press moves the stepper continuously until key is depressed.
 4. Enter '1' on the keypad, followed by '*'. The LCD will display a message confirming that the position has been stored.
-5. Repeat steps 3 and 4 for each track number and end. For the tail-end positions, enter the track number followed by '#'.
+5. Repeat steps 3 and 4 for each track number and end. For the tail-end positions, enter the track number followed by '#'. If you want to cancel the calibration of the current track, press '3' on the keypad.
 6. After all positions have been stored, set the `CALIBRATION_MODE` constant to `false` in the sketch and upload it again to the ESP32 Node.
 
 ### Operation

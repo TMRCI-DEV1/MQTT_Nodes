@@ -2,7 +2,7 @@
   Aisle-Node: Pittsburgh Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.3
+  Version: 1.0.5
   Date: 2023-07-03
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Pittsburgh Turntable. It utilizes a 3x4 membrane matrix keypad, 
@@ -28,33 +28,33 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Define constants
-const int STEPS_PER_REV = 6400; // microsteps per full revolution
-const int EEPROM_POSITION_ADDRESS = 0;
-const int EEPROM_HEADS_ADDRESS = 100;
-const int EEPROM_TAILS_ADDRESS = 200;
-const int HOMING_SENSOR_PIN = 25;
-const int RESET_BUTTON_PIN = 19;
-const char* MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#";
-const int TRACK_NUMBERS[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
-const int STEPPER_SPEED = 200; // Change stepper speed as necessary in order for full revolution to take ~30 seconds
-const int EEPROM_SIZE = 512;
+const int STEPS_PER_REV = 6400; // Number of microsteps per full revolution
+const int EEPROM_POSITION_ADDRESS = 0; // EEPROM address for storing position
+const int EEPROM_HEADS_ADDRESS = 100; // EEPROM address for storing track head positions
+const int EEPROM_TAILS_ADDRESS = 200; // EEPROM address for storing track tail positions
+const int HOMING_SENSOR_PIN = 25; // Pin for the homing sensor
+const int RESET_BUTTON_PIN = 19; // Pin for the reset button
+const char* MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#"; // MQTT topic for subscribing to turntable commands
+const int TRACK_NUMBERS[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23}; // Array of valid track numbers
+const int STEPPER_SPEED = 200; // Stepper motor speed (steps per second)
+const int EEPROM_SIZE = 512; // EEPROM size in bytes
 const int RELAY_BOARD1_I2C_ADDRESS = 0x20; // I2C address of relay board 1
 const int RELAY_BOARD2_I2C_ADDRESS = 0x21; // I2C address of relay board 2
-byte KEYPAD_ROW_PINS[] = {13, 12, 14, 27};
-byte KEYPAD_COLUMN_PINS[] = {16, 17, 18};
+byte KEYPAD_ROW_PINS[] = {13, 12, 14, 27}; // Row pins of the keypad
+byte KEYPAD_COLUMN_PINS[] = {16, 17, 18}; // Column pins of the keypad
 const bool CALIBRATION_MODE = true; // Set to true during calibration, false otherwise
-const char CONFIRM_YES = '1';
-const char CONFIRM_NO = '3';
-const int STEP_MOVE_SINGLE_KEYPRESS = 10; // Change step count as necessary for single key presses when calibrating track positions
-const int STEP_MOVE_HELD_KEYPRESS = 100;  // Change step count as necessary for held key presses when calibration track positions
-bool emergencyStop = false;
-char keypadTrackNumber[3] = "";
-char mqttTrackNumber[3] = "";
+const char CONFIRM_YES = '1'; // Confirmation key for calibration mode
+const char CONFIRM_NO = '3'; // Cancellation key for calibration mode
+const int STEP_MOVE_SINGLE_KEYPRESS = 10; // Number of steps to move with a single key press during calibration
+const int STEP_MOVE_HELD_KEYPRESS = 100; // Number of steps to move with a held key press during calibration
+bool emergencyStop = false; // Flag for emergency stop condition
+char keypadTrackNumber[3] = ""; // Array to store entered track number on the keypad
+char mqttTrackNumber[3] = ""; // Array to store track number from MQTT message
 
 // Define network credentials and MQTT broker address
-const char* ssid = "###############";
-const char* password = "###############";
-const char* mqtt_broker = "###############";
+const char* ssid = "###############"; // WiFi network SSID
+const char* password = "###############"; // WiFi network password
+const char* mqtt_broker = "###############"; // MQTT broker address
 
 // Create instances for WiFi client and MQTT client
 WiFiClient espClient;
@@ -62,7 +62,7 @@ PubSubClient client(espClient);
 
 // Create instances for stepper and LCD screen
 AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // Stepper driver step (pulse) pin, direction pin
-LiquidCrystal_I2C lcd(0x27, 20, 4); // I2C address of LCD, rows, and columns
+LiquidCrystal_I2C lcd(0x27, 20, 4); // I2C address of LCD, number of rows and columns
 
 // Create instances for PCF8574 & PCF8575
 PCF8575 relayBoard1(RELAY_BOARD1_I2C_ADDRESS);
@@ -253,7 +253,6 @@ void setup() {
           lcd.print("CALIBRATION CANCELLED");
           delay(2000);
           lcd.clear();
-          ESP.restart();
         }
       }
     }
@@ -273,17 +272,22 @@ int emergencyStopCounter = 0;
 
 // Arduino loop function to handle MQTT messages and keypad inputs
 void loop() {
+  // Check and reconnect to WiFi if the connection is lost
   if (WiFi.status() != WL_CONNECTED) {
-    connectToWiFi(); // Reconnect to WiFi if the connection is lost
+    connectToWiFi();
   }
+
+  // Check and reconnect to MQTT if the connection is lost
   if (!client.connected()) {
-    connectToMQTT(); // Reconnect to MQTT if the connection is lost
+    connectToMQTT();
   }
+
   client.loop();
   ArduinoOTA.handle();
 
   // Check for emergency stop
   if (emergencyStop) {
+    // Stop the stepper and display an emergency stop message
     stepper.stop();
     lcd.setCursor(0, 0);
     lcd.print("EMERGENCY STOP");
@@ -302,6 +306,7 @@ void loop() {
     if (key == '9') {
       emergencyStopCounter++;
       if (emergencyStopCounter >= 3) {
+        // Activate emergency stop if the '9' key is pressed three times consecutively
         emergencyStop = true;
         emergencyStopCounter = 0; // Reset the counter
       }
@@ -312,19 +317,19 @@ void loop() {
     if (key == '4' || key == '6') {
       int direction = (key == '4') ? -1 : 1;  // Determine direction based on key
       if (!isKeyHeld) {
-        // Move the turntable by X steps in the direction specified by the key
+        // Move the turntable by a fixed number of steps in the direction specified by the key
         stepper.move(direction * STEP_MOVE_SINGLE_KEYPRESS);
         isKeyHeld = true;
         keyHoldTime = millis();  // Start tracking the hold time
       } else if (millis() - keyHoldTime >= keyHoldDelay) {
-        // Move the turntable continuously by X steps in the direction specified by the key
+        // Move the turntable continuously by a fixed number of steps in the direction specified by the key
         stepper.move(direction * STEP_MOVE_HELD_KEYPRESS);
       }
     } else if (key == '*' || key == '#') {
       int trackNumber = atoi(keypadTrackNumber);
       int endNumber = (key == '*') ? 0 : 1;
       if (CALIBRATION_MODE) {
-        // Store the current position to the appropriate track head or tail-end position
+        // Store the current position to the appropriate track head or tail-end position in EEPROM
         if (endNumber == 0) {
           trackHeads[trackNumber - 1] = currentPosition;
           EEPROM.put(EEPROM_HEADS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
@@ -355,6 +360,7 @@ void loop() {
     } else {
       size_t keypadTrackNumberLength = strlen(keypadTrackNumber);
       if (keypadTrackNumberLength < 2) {
+        // Append the pressed key to the keypadTrackNumber array
         keypadTrackNumber[keypadTrackNumberLength] = key;
         keypadTrackNumber[keypadTrackNumberLength + 1] = '\0'; // Null-terminate the char array
       }
@@ -378,7 +384,7 @@ void loop() {
     lcd.clear();
   }
 
-  // Run the stepper
+  // Run the stepper if there are remaining steps to move
   if (stepper.distanceToGo() != 0) {
     stepper.run();
   }
@@ -391,11 +397,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     messageTemp[i] = (char)payload[i];
   }
   messageTemp[length] = '\0'; // Null-terminate the char array
-  
+
   char mqttTrackNumber[3];
   strncpy(mqttTrackNumber, messageTemp + 5, 2); // Extract track number from MQTT topic
   mqttTrackNumber[2] = '\0'; // Null-terminate the char array
-  
+
   int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer
   int endNumber = (messageTemp[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end
   int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position
@@ -422,7 +428,7 @@ void controlRelays(int trackNumber) {
       relayBoard2.digitalWrite(i, HIGH);
     }
   }
-  
+
   // Turn on the relay corresponding to the selected track
   if (trackNumber <= 14) {
     relayBoard1.digitalWrite(trackNumber + 1, LOW); // +1 because relay 0 is for the turntable bridge
@@ -435,25 +441,25 @@ void controlRelays(int trackNumber) {
 void moveToTargetPosition(int targetPosition) {
   // Turn off the turntable bridge track power before starting the move
   relayBoard1.digitalWrite(0, HIGH);
-  
+
   if (targetPosition < currentPosition) {
     stepper.moveTo(targetPosition);
   } else if (targetPosition > currentPosition) {
     stepper.moveTo(targetPosition);
   }
-  
+
   while (stepper.distanceToGo() != 0) {
     stepper.run();
   }
-  
+
   currentPosition = targetPosition; // Update current position after moving
-  
+
   // Turn on the track power for the target position after the move is complete
   controlRelays(targetPosition);
-  
+
   // Turn the turntable bridge track power back ON (LOW) once the turntable has completed its move
   relayBoard1.digitalWrite(0, LOW);
-  
+
   if (!CALIBRATION_MODE) {
     EEPROM.put(EEPROM_POSITION_ADDRESS, currentPosition); // Save current position to EEPROM
     EEPROM.commit();
