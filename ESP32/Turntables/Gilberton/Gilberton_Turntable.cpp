@@ -15,6 +15,18 @@
   commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname.
 */
 
+// Include necessary libraries
+#include <Wire.h>              // Library for ESP32 I2C connection  https://github.com/esp8266/Arduino/tree/master/libraries/Wire
+#include <WiFi.h>              // Library for WiFi connection       https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+#include <Keypad.h>            // Library for 3x4 keypad            https://github.com/Chris--A/Keypad
+#include <LiquidCrystal_I2C.h> // Library for Liquid Crystal I2C    https://github.com/johnrickman/LiquidCrystal_I2C
+#include <PCF8574.h>           // Library for I2C (8) relay board   https://github.com/xreef/PCF8574_library
+#include <PCF8575.h>           // Library for I2C (16) relay board  https://github.com/xreef/PCF8575_library/tree/master
+#include <AccelStepper.h>      // Library for Accel Stepper         https://github.com/waspinator/AccelStepper
+#include <PubSubClient.h>      // Library for MQTT                  https://github.com/knolleary/pubsubclient
+#include <EEPROM.h>            // Library for EEPROM read/write     https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
+#include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
+
 // Define constants
 const int STEPS_PER_REV = 6400;
 const int EEPROM_POSITION_ADDRESS = 0;
@@ -44,18 +56,6 @@ String mqttTrackNumber = "";
 const char* ssid = "###############";
 const char* password = "###############";
 const char* mqtt_broker = "###############";
-
-// Include necessary libraries
-#include <Wire.h>              // Library for ESP32 I2C connection  https://github.com/esp8266/Arduino/tree/master/libraries/Wire
-#include <WiFi.h>              // Library for WiFi connection       https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
-#include <Keypad.h>            // Library for 3x4 keypad            https://github.com/Chris--A/Keypad
-#include <LiquidCrystal_I2C.h> // Library for Liquid Crystal I2C    https://github.com/johnrickman/LiquidCrystal_I2C
-#include <PCF8574.h>           // Library for I2C (8) relay board   https://github.com/xreef/PCF8574_library
-#include <PCF8575.h>           // Library for I2C (16) relay board  https://github.com/xreef/PCF8575_library/tree/master
-#include <AccelStepper.h>      // Library for Accel Stepper         https://github.com/waspinator/AccelStepper
-#include <PubSubClient.h>      // Library for MQTT                  https://github.com/knolleary/pubsubclient
-#include <EEPROM.h>            // Library for EEPROM read/write     https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
-#include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Create instances for WiFi client and MQTT client
 WiFiClient espClient;
