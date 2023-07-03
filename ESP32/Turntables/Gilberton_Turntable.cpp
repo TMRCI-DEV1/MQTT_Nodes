@@ -50,7 +50,7 @@ const char* mqtt_broker = "###############";
 #include <WiFi.h>              // Library for WiFi connection       https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 #include <Keypad.h>            // Library for 3x4 keypad            https://github.com/Chris--A/Keypad
 #include <LiquidCrystal_I2C.h> // Library for Liquid Crystal I2C    https://github.com/johnrickman/LiquidCrystal_I2C
-#include <PCF8574.h>           // Library for I2C (8) relay board   https://github.com/xreef/PCF8575_library/tree/master
+#include <PCF8574.h>           // Library for I2C (8) relay board   https://github.com/xreef/PCF8574_library
 #include <PCF8575.h>           // Library for I2C (16) relay board  https://github.com/xreef/PCF8575_library/tree/master
 #include <AccelStepper.h>      // Library for Accel Stepper         https://github.com/waspinator/AccelStepper
 #include <PubSubClient.h>      // Library for MQTT                  https://github.com/knolleary/pubsubclient
