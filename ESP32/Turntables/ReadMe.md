@@ -139,4 +139,4 @@ Contributions to this project are welcome. If you have a feature request, bug re
 
 ### License
 
-This project is licensed under the MIT License. See the LICENSE file in the project root for more information.
+This project is licensed under the  Creative Commons Attribution-ShareAlike 4.0 International License. See the LICENSE file in the project root for more information.
