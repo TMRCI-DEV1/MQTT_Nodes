@@ -115,23 +115,23 @@ The sketch also defines several variables:
 
 The sketch includes several functions:
 
-- 'initializeKeysArray()': This function initializes the keys array with the layout defined in KEYPAD_LAYOUT. This array is used to create the keypad instance.
+- `initializeKeysArray()`: This function initializes the keys array with the layout defined in KEYPAD_LAYOUT. This array is used to create the keypad instance.
 
-- 'connectToWiFi()': This function attempts to connect the ESP32 to the WiFi network using the provided SSID and password. It will keep trying to connect until a successful connection is established.
+- `connectToWiFi()`: This function attempts to connect the ESP32 to the WiFi network using the provided SSID and password. It will keep trying to connect until a successful connection is established.
 
-- 'connectToMQTT()': This function attempts to connect the ESP32 to the MQTT broker. It will keep trying to connect until a successful connection is established. Once connected, it subscribes to the MQTT topic defined in MQTT_TOPIC.
+- `connectToMQTT()`: This function attempts to connect the ESP32 to the MQTT broker. It will keep trying to connect until a successful connection is established. Once connected, it subscribes to the MQTT topic defined in MQTT_TOPIC.
 
-- 'setup()': This is the Arduino setup function, which is called once when the program starts. It initializes the Serial and Wire communications, connects to the WiFi network, initializes the EEPROM, prints the IP address to the serial monitor, sets the hostname, initializes OTA updates, sets up the MQTT client, moves to the home position at startup, initializes the relay boards, initializes the LCD and prints the IP address, displays the calibration mode message, initializes the stepper, and initializes the keys array.
+- `setup()`: This is the Arduino setup function, which is called once when the program starts. It initializes the Serial and Wire communications, connects to the WiFi network, initializes the EEPROM, prints the IP address to the serial monitor, sets the hostname, initializes OTA updates, sets up the MQTT client, moves to the home position at startup, initializes the relay boards, initializes the LCD and prints the IP address, displays the calibration mode message, initializes the stepper, and initializes the keys array.
 
-- 'loop()': This is the Arduino main loop function, which is called repeatedly in a loop. It handles MQTT messages and keypad inputs, checks for emergency stop, checks for keypad input, checks for reset button press, and runs the stepper.
+- `loop()`: This is the Arduino main loop function, which is called repeatedly in a loop. It handles MQTT messages and keypad inputs, checks for emergency stop, checks for keypad input, checks for reset button press, and runs the stepper.
 
-- 'callback(char* topic, byte* payload, unsigned int length)': This is the MQTT callback function, which is called when a subscribed topic receives a message. It extracts the track number and end number from the MQTT message, calculates the target position, and moves to the target position.
+- `callback(char* topic, byte* payload, unsigned int length)`: This is the MQTT callback function, which is called when a subscribed topic receives a message. It extracts the track number and end number from the MQTT message, calculates the target position, and moves to the target position.
 
-- 'calculateTargetPosition(int trackNumber, int endNumber)': This function calculates the target position based on the track number and end number. In calibration mode, the target position is the track number itself. Otherwise, it retrieves the corresponding head or tail position.
+- `calculateTargetPosition(int trackNumber, int endNumber)`: This function calculates the target position based on the track number and end number. In calibration mode, the target position is the track number itself. Otherwise, it retrieves the corresponding head or tail position.
 
-- 'controlRelays(int trackNumber)': This function controls the track power relays. It turns off all relays, then turns on the relay corresponding to the selected track.
+- `controlRelays(int trackNumber)`: This function controls the track power relays. It turns off all relays, then turns on the relay corresponding to the selected track.
 
-- 'moveToTargetPosition(int targetPosition)': This function moves the turntable to the target position. It turns off the turntable bridge track power before starting the move, moves the turntable to the target position, updates the current position after moving, turns on the track power for the target position after the move is complete, and turns the turntable bridge track power back on once the turntable has completed its move. If not in calibration mode, it also saves the current position to EEPROM.
+- `moveToTargetPosition(int targetPosition)`:  This function moves the turntable to the target position. It turns off the turntable bridge track power before starting the move, moves the turntable to the target position, updates the current position after moving, turns on the track power for the target position after the move is complete, and turns the turntable bridge track power back on once the turntable has completed its move. If not in calibration mode, it also saves the current position to EEPROM.
 
 ### Contributing
 
