@@ -2,7 +2,7 @@
   Aisle-Node: Pittsburgh Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.1.1
+  Version: 1.1.2
   Date: 2023-07-04
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Pittsburgh Turntable. It utilizes a 3x4 membrane matrix keypad,
@@ -12,7 +12,7 @@
   to MQTT messages published by JMRI, and enables control of the turntable by entering a 1 or 2-digit track number on the keypad, followed
   by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents the
   2-digit track number (01-23) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the
-  commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname.
+  commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname,("Pittsburgh_Turntable_Node").
   
   The turntable is used to rotate locomotives or cars from one track to another, and the ESP32 provides a convenient way to control it remotely via WiFi and MQTT.
 */
@@ -31,7 +31,7 @@
 
 // Define constants
 const int STEPS_PER_REV = 6400; // Number of microsteps per full revolution. Microsteps are used for smoother and more precise control of the stepper motor.
-const int EEPROM_POSITION_ADDRESS = 0; // EEPROM address for storing position
+const int CURRENT_POSITION_EEPROM_ADDRESS = 0; // EEPROM address for storing the current position of the turntable
 const int EEPROM_TRACK_HEADS_ADDRESS = 100; // EEPROM address for storing track head positions
 const int EEPROM_TRACK_TAILS_ADDRESS = 200; // EEPROM address for storing track tail positions
 const int HOMING_SENSOR_PIN = 25; // Pin for the homing sensor. The homing sensor is used to set a known position for the turntable.
@@ -198,7 +198,7 @@ void setup() {
   // Initialize EEPROM and retrieve last known positions
   EEPROM.begin(EEPROM_SIZE);
   if (!CALIBRATION_MODE) {
-    if (!readFromEEPROMWithVerification(EEPROM_POSITION_ADDRESS, currentPosition)) {
+    if (!readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition)) {
       // Handle EEPROM read error
     }
     if (!readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads)) {
@@ -468,7 +468,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   moveToTargetPosition(targetPosition); // Move to the target position
 }
 
-// Function to calculate target position based on track number and end number
+// Function to calculate the target position based on the track number and the end (head or tail) specified
 // This function is used to calculate the target position separately for better code organization and readability.
 // An array is used to store the track heads and tails for efficiency, as it allows for quick access to the head and tail positions of each track.
 int calculateTargetPosition(int trackNumber, int endNumber) {
@@ -528,6 +528,6 @@ void moveToTargetPosition(int targetPosition) {
   relayBoard1.digitalWrite(0, LOW);
 
   if (!CALIBRATION_MODE) {
-    writeToEEPROMWithVerification(EEPROM_POSITION_ADDRESS, currentPosition); // Save current position to EEPROM
+    writeToEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Save current position to EEPROM
   }
 }
