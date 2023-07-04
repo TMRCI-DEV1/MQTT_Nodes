@@ -167,7 +167,7 @@ The sketch defines several constants:
 - `TRACK_NUMBERS`: An array of track numbers.
 - `STEPPER_SPEED`: The speed of the stepper motor.
 - `DELAY_TIMES`: An array of delay times.
-- `EEPROM_SIZE`: The size of the EEPROM memory.
+- `EEPROM_TOTAL_SIZE_BYTES`: The size of the EEPROM memory.
 - `RELAY_BOARD1_I2C_ADDRESS`: The I2C address of the first relay board.
 - `RELAY_BOARD2_I2C_ADDRESS`: The I2C address of the second relay board.
 - `KEYPAD_ROW_PINS`: An array of row pins for the keypad.
