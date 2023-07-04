@@ -54,9 +54,9 @@ char keypadTrackNumber[3] = ""; // Array to store entered track number on the ke
 char mqttTrackNumber[3] = ""; // Array to store track number from MQTT message. This is where the track number from the MQTT message is stored.
 
 // Define network credentials and MQTT broker address
-const char* ssid = "MyAltice 976DFF"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
-const char* password = "lemon.463.loud"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
-const char* mqtt_broker = "129.213.106.87"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
+const char* ssid = "***************"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
+const char* password = "***************"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
+const char* mqtt_broker = "***************"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
 
 // Create instances for WiFi client and MQTT client
 WiFiClient espClient; // WiFi client instance. This is used for the network connection.
