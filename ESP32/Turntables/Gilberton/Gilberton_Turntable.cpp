@@ -2,7 +2,7 @@
   Aisle-Node: Gilberton Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.2.4
+  Version: 1.2.5
   Date: 2023-07-04
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad,
@@ -67,8 +67,8 @@ AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // Stepper driver step (puls
 LiquidCrystal_I2C lcd(0x27, 20, 4); // I2C address of LCD, number of rows and columns. This is used for controlling the LCD screen.
 
 // Create instances for PCF8574 & PCF8575
-PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS); // Instance for the 16-channel relay board. This is used for controlling the 16-channel relay board.
-PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS); // Instance for the 8-channel relay board. This is used for controlling the 8-channel relay board.
+PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS); // Instance for the 16-channel relay board. This is used for controlling the 16-channel relay board (turntable bridge and tracks 1-15.
+PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS); // Instance for the 8-channel relay board. This is used for controlling the 8-channel relay board (tracks 16-23).
 
 // Define keypad layout and create instance
 const byte ROW_NUM = 4; // Number of rows on the keypad.
@@ -104,16 +104,28 @@ void moveToTargetPosition(int targetPosition); // Function to move the turntable
 // memcmp is used for data verification to ensure that the data written to EEPROM is the same as the data intended to be written.
 template <typename T>
 void writeToEEPROMWithVerification(int address, const T& value) {
-  T originalValue;
-  EEPROM.get(address, originalValue); // Read original value from EEPROM
-  EEPROM.put(address, value); // Write new value to EEPROM
-  EEPROM.commit();
+  const int MAX_RETRIES = 3;
+  int retryCount = 0;
+  bool writeSuccess = false;
 
-  T readValue;
-  EEPROM.get(address, readValue); // Read the written value from EEPROM
+  while (retryCount < MAX_RETRIES && !writeSuccess) {
+    T originalValue;
+    EEPROM.get(address, originalValue); // Read original value from EEPROM.
+    EEPROM.put(address, value); // Write new value to EEPROM.
+    EEPROM.commit();
 
-  if (memcmp(&originalValue, &readValue, sizeof(T)) != 0) {
-    // Data verification failed, print an error message
+    T readValue;
+    EEPROM.get(address, readValue); // Read the written value from EEPROM.
+
+    if (memcmp(&originalValue, &readValue, sizeof(T)) != 0) {
+      retryCount++;
+      delay(500); // Delay before retrying
+    } else {
+      writeSuccess = true;
+    }
+  }
+
+  if (!writeSuccess) {
     Serial.println("EEPROM write error!");
   }
 }
@@ -123,20 +135,31 @@ void writeToEEPROMWithVerification(int address, const T& value) {
 // memcmp is used for data verification to ensure that the data read from EEPROM is the same as the data stored.
 template <typename T>
 bool readFromEEPROMWithVerification(int address, T& value) {
-  T originalValue;
-  EEPROM.get(address, originalValue);
-  memcpy(&value, &originalValue, sizeof(T));
+  const int MAX_RETRIES = 3;
+  int retryCount = 0;
+  bool readSuccess = false;
 
-  T readValue;
-  EEPROM.get(address, readValue);
+  while (retryCount < MAX_RETRIES && !readSuccess) {
+    T originalValue;
+    EEPROM.get(address, originalValue);
+    memcpy(&value, &originalValue, sizeof(T));
 
-  if (memcmp(&originalValue, &readValue, sizeof(T)) != 0) {
-    // Data verification failed, print an error message
-    Serial.println("EEPROM read error!");
-    return false;
+    T readValue;
+    EEPROM.get(address, readValue);
+
+    if (memcmp(&originalValue, &readValue, sizeof(T)) != 0) {
+      retryCount++;
+      delay(500); // Delay before retrying
+    } else {
+      readSuccess = true;
+    }
   }
 
-  return true;
+  if (!readSuccess) {
+    Serial.println("EEPROM read error!");
+  }
+
+  return readSuccess;
 }
 
 // Function to connect to WiFi
@@ -152,8 +175,8 @@ void connectToWiFi() {
     Serial.println("Connected to WiFi");
   } else {
     Serial.println("Failed to connect to WiFi");
-    delay(5000); // Wait 5 seconds before retrying
-    connectToWiFi(); // Retry connecting to WiFi
+    delay(5000); // Wait 5 seconds before retrying.
+    connectToWiFi(); // Retry connecting to WiFi.
   }
 }
 
@@ -165,7 +188,7 @@ void connectToMQTT() {
     Serial.println("Connecting to MQTT...");
     if (client.connect("ESP32Client")) {
       Serial.println("Connected to MQTT");
-      client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic
+      client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic.
     } else {
       Serial.print("failed with state ");
       Serial.print(client.state());
@@ -176,8 +199,8 @@ void connectToMQTT() {
     Serial.println("Connected to MQTT");
   } else {
     Serial.println("Failed to connect to MQTT");
-    delay(5000); // Wait 5 seconds before retrying
-    connectToMQTT(); // Retry connecting to MQTT
+    delay(5000); // Wait 5 seconds before retrying.
+    connectToMQTT(); // Retry connecting to MQTT.
   }
 }
 
@@ -262,10 +285,10 @@ void setup() {
 
   // Move to home position at startup
   while (digitalRead(HOMING_SENSOR_PIN) == HIGH) {
-    stepper.move(-10); // Change step count for homing functionality if necessary
+    stepper.move(-10); // Change step count for homing functionality if necessary.
     stepper.run();
   }
-  currentPosition = 0; // Set current position to zero after homing
+  currentPosition = 0; // Set current position to zero after homing.
 
   // Initialize the relay boards
   relayBoard1.begin();
@@ -275,7 +298,7 @@ void setup() {
   for (int i = 0; i < 16; i++) {
     relayBoard1.pinMode(i, OUTPUT);
     relayBoard1.digitalWrite(i, HIGH);
-    if (i < 8) { // Only do this for the first 8 pins of the second relay board
+    if (i < 8) { // Only do this for the first 8 pins of the second relay board.
       relayBoard2.pinMode(i, OUTPUT);
       relayBoard2.digitalWrite(i, HIGH);
     }
@@ -288,7 +311,7 @@ void setup() {
   lcd.begin(20, 4);
   lcd.print("IP: ");
   lcd.print(WiFi.localIP());
-  delay(3000); // Keep IP address on screen for 3 seconds before clearing
+  delay(3000); // Keep IP address on screen for 3 seconds before clearing.
   lcd.clear();
 
   // Display calibration mode message
@@ -322,7 +345,7 @@ void setup() {
 
   // Initialize the stepper
   stepper.setMaxSpeed(STEPPER_SPEED);
-  stepper.setAcceleration(2000); // Change acceleration/deceleration rate as necessary to provide smooth prototype turntable movements
+  stepper.setAcceleration(2000); // Change acceleration/deceleration rate as necessary to provide smooth prototype turntable movements.
   stepper.setCurrentPosition(currentPosition);
 }
 
@@ -359,9 +382,9 @@ void loop() {
 
   // Check for keypad input
   char key = keypad.getKey();
-  static bool isKeyHeld = false;  // Track if a key is held down
-  static unsigned long keyHoldTime = 0;  // Track the duration of key hold
-  const unsigned long keyHoldDelay = 500;  // Delay before continuous movement starts (in milliseconds)
+  static bool isKeyHeld = false;  // Track if a key is held down.
+  static unsigned long keyHoldTime = 0;  // Track the duration of key hold.
+  const unsigned long keyHoldDelay = 500;  // Delay before continuous movement starts (in milliseconds).
 
   if (key) {
     if (key == '9') {
@@ -369,14 +392,14 @@ void loop() {
       if (emergencyStopCounter >= 3) {
         // Activate emergency stop if the '9' key is pressed three times consecutively
         emergencyStop = true;
-        emergencyStopCounter = 0; // Reset the counter
+        emergencyStopCounter = 0; // Reset the counter.
       }
     } else {
-      emergencyStopCounter = 0; // Reset the counter if any other key is pressed
+      emergencyStopCounter = 0; // Reset the counter if any other key is pressed.
     }
 
     if (key == '4' || key == '6') {
-      int direction = (key == '4') ? -1 : 1;  // Determine direction based on key
+      int direction = (key == '4') ? -1 : 1;  // Determine direction based on key.
       if (!isKeyHeld) {
         // Move the turntable by a fixed number of steps in the direction specified by the key
         stepper.move(direction * STEP_MOVE_SINGLE_KEYPRESS);
@@ -417,18 +440,18 @@ void loop() {
           lcd.clear();
         }
       }
-      keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving
+      keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
     } else {
       size_t keypadTrackNumberLength = strlen(keypadTrackNumber);
       if (keypadTrackNumberLength < 2) {
         // Append the pressed key to the keypadTrackNumber array
         keypadTrackNumber[keypadTrackNumberLength] = key;
-        keypadTrackNumber[keypadTrackNumberLength + 1] = '\0'; // Null-terminate the char array
+        keypadTrackNumber[keypadTrackNumberLength + 1] = '\0'; // Null-terminate the char array.
       }
     }
   } else {
-    isKeyHeld = false;  // Reset isKeyHeld when no key is pressed
-    keyHoldTime = 0;    // Reset keyHoldTime when no key is pressed
+    isKeyHeld = false;  // Reset isKeyHeld when no key is pressed.
+    keyHoldTime = 0;    // Reset keyHoldTime when no key is pressed.
   }
 
   // Check for reset button press
@@ -438,7 +461,7 @@ void loop() {
       stepper.move(-10);
       stepper.run();
     }
-    currentPosition = 0; // Set current position to zero after homing
+    currentPosition = 0; // Set current position to zero after homing.
     lcd.setCursor(0, 0);
     lcd.print("HOMING SEQUENCE TRIGGERED");
     delay(2000);
@@ -455,24 +478,24 @@ void loop() {
 // This function uses a char array to store the MQTT message because the payload is received as a byte array, and converting it to a char array makes it easier to work with.
 // strncpy is used to extract the track number from the MQTT message because it allows for copying a specific number of characters from a string.
 void callback(char* topic, byte* payload, unsigned int length) {
-  char mqttMessage[8]; // Char array to store the MQTT message
+  char mqttMessage[8]; // Char array to store the MQTT message.
   for (int i = 0; i < length; i++) {
     mqttMessage[i] = (char)payload[i];
   }
-  mqttMessage[length] = '\0'; // Null-terminate the char array
+  mqttMessage[length] = '\0'; // Null-terminate the char array.
 
   // Print the received MQTT message
   Serial.print("Received MQTT message: ");
   Serial.println(mqttMessage);
 
   char mqttTrackNumber[3];
-  strncpy(mqttTrackNumber, mqttMessage + 5, 2); // Extract track number from MQTT topic
-  mqttTrackNumber[2] = '\0'; // Null-terminate the char array
+  strncpy(mqttTrackNumber, mqttMessage + 5, 2); // Extract track number from MQTT topic.
+  mqttTrackNumber[2] = '\0'; // Null-terminate the char array.
 
-  int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer
-  int endNumber = (mqttMessage[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end
-  int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position
-  moveToTargetPosition(targetPosition); // Move to the target position
+  int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer.
+  int endNumber = (mqttMessage[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
+  int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position.
+  moveToTargetPosition(targetPosition); // Move to the target position.
 }
 
 // Function to calculate the target position based on the track number and the end (head or tail) specified
@@ -481,9 +504,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 int calculateTargetPosition(int trackNumber, int endNumber) {
   int targetPosition;
   if (CALIBRATION_MODE) {
-    targetPosition = trackNumber; // In calibration mode, the target position is the track number itself
+    targetPosition = trackNumber; // In calibration mode, the target position is the track number itself.
   } else {
-    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1]; // Retrieve the corresponding head or tail position
+    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1]; // Retrieve the corresponding head or tail position.
   }
   return targetPosition;
 }
@@ -492,6 +515,12 @@ int calculateTargetPosition(int trackNumber, int endNumber) {
 // This function is used to control the relays separately for better code organization and readability.
 // A for loop is used to turn off all the relays because it allows for iterating through all the relays without having to write separate code for each one.
 void controlRelays(int trackNumber) {
+  // Check if the relay for the selected track is already on
+  if ((trackNumber >= 1 && trackNumber <= 15 && relayBoard1.digitalRead(trackNumber) == LOW) ||
+      (trackNumber >= 16 && trackNumber <= 23 && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
+    return; // If the relay for the selected track is already on, no need to change the state of any relay
+  }
+
   // Turn off all relays
   for (uint8_t i = 0; i < 16; i++) {
     relayBoard1.digitalWrite(i, HIGH);
