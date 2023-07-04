@@ -227,6 +227,8 @@ The sketch includes several functions:
 
 Contributions to this project are welcome. If you have a feature request, bug report, or want to contribute code, please open an issue or pull request on the project's GitHub page.
 
+Author: Thomas Seitz, TMRCI Layout Systems Engineer
+
 ### License
 
 This work is licensed under a
