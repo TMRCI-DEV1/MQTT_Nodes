@@ -2,7 +2,7 @@
   Aisle-Node: Gilberton Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.2.3
+  Version: 1.2.4
   Date: 2023-07-04
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad,
@@ -39,7 +39,7 @@ const int RESET_BUTTON_PIN = 19; // Pin for the reset button. The reset button i
 const char* MQTT_TOPIC = "TMRCI/output/Gilberton/turntable/#"; // MQTT topic for subscribing to turntable commands. The ESP32 will listen for messages on this topic.
 const int TRACK_NUMBERS[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23}; // Array of valid track numbers. These are the track numbers that the turntable can move to.
 const int STEPPER_SPEED = 200; // Stepper motor speed (steps per second). This is the speed at which the stepper motor will rotate.
-const int EEPROM_SIZE = 512; // EEPROM size in bytes. This is the total amount of storage available in the EEPROM.
+const int EEPROM_TOTAL_SIZE_BYTES = 512; // EEPROM size in bytes. This is the total amount of storage available in the EEPROM.
 const int RELAY_BOARD1_ADDRESS = 0x20; // I2C address of relay board 1. This is the address that the ESP32 will use to communicate with the first relay board.
 const int RELAY_BOARD2_ADDRESS = 0x21; // I2C address of relay board 2. This is the address that the ESP32 will use to communicate with the second relay board.
 byte KEYPAD_ROW_PINS[] = {13, 12, 14, 27}; // Row pins of the keypad. These are the pins that the keypad rows are connected to.
@@ -54,9 +54,9 @@ char keypadTrackNumber[3] = ""; // Array to store entered track number on the ke
 char mqttTrackNumber[3] = ""; // Array to store track number from MQTT message. This is where the track number from the MQTT message is stored.
 
 // Define network credentials and MQTT broker address
-const char* ssid = "###############"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
-const char* password = "###############"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
-const char* mqtt_broker = "###############"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
+const char* ssid = "MyAltice 976DFF"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
+const char* password = "lemon.463.loud"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
+const char* mqtt_broker = "129.213.106.87"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
 
 // Create instances for WiFi client and MQTT client
 WiFiClient espClient; // WiFi client instance. This is used for the network connection.
@@ -161,7 +161,7 @@ void connectToWiFi() {
 // This function uses a while loop to wait for the connection to be established.
 // If the connection fails, the function will retry the connection.
 void connectToMQTT() {
-  while (!client.connected()) {
+  while (!client.connected() && WiFi.status() == WL_CONNECTED) {
     Serial.println("Connecting to MQTT...");
     if (client.connect("ESP32Client")) {
       Serial.println("Connected to MQTT");
@@ -194,9 +194,12 @@ void setup() {
 
   // Connect to the WiFi network
   connectToWiFi();
+  
+  // Add a delay after connecting to WiFi to stabilize the connection
+  delay(2000);
 
   // Initialize EEPROM and retrieve last known positions
-  EEPROM.begin(EEPROM_SIZE);
+  EEPROM.begin(EEPROM_TOTAL_SIZE_BYTES);
   if (!CALIBRATION_MODE) {
     if (!readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition)) {
       // Handle EEPROM read error
@@ -452,18 +455,22 @@ void loop() {
 // This function uses a char array to store the MQTT message because the payload is received as a byte array, and converting it to a char array makes it easier to work with.
 // strncpy is used to extract the track number from the MQTT message because it allows for copying a specific number of characters from a string.
 void callback(char* topic, byte* payload, unsigned int length) {
-  char messageTemp[8]; // Char array to store the MQTT message
+  char mqttMessage[8]; // Char array to store the MQTT message
   for (int i = 0; i < length; i++) {
-    messageTemp[i] = (char)payload[i];
+    mqttMessage[i] = (char)payload[i];
   }
-  messageTemp[length] = '\0'; // Null-terminate the char array
+  mqttMessage[length] = '\0'; // Null-terminate the char array
+
+  // Print the received MQTT message
+  Serial.print("Received MQTT message: ");
+  Serial.println(mqttMessage);
 
   char mqttTrackNumber[3];
-  strncpy(mqttTrackNumber, messageTemp + 5, 2); // Extract track number from MQTT topic
+  strncpy(mqttTrackNumber, mqttMessage + 5, 2); // Extract track number from MQTT topic
   mqttTrackNumber[2] = '\0'; // Null-terminate the char array
 
   int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer
-  int endNumber = (messageTemp[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end
+  int endNumber = (mqttMessage[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end
   int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position
   moveToTargetPosition(targetPosition); // Move to the target position
 }
@@ -506,6 +513,12 @@ void controlRelays(int trackNumber) {
 // This function is used to move to the target position separately for better code organization and readability.
 // A while loop is used to wait for the stepper to finish moving to ensure that the turntable has reached the target position before proceeding.
 void moveToTargetPosition(int targetPosition) {
+  // Print the target position and current position
+  Serial.print("Moving to target position: ");
+  Serial.print(targetPosition);
+  Serial.print(", Current position: ");
+  Serial.println(currentPosition);
+  
   // Turn off the turntable bridge track power before starting the move
   relayBoard1.digitalWrite(0, HIGH);
 
@@ -518,8 +531,13 @@ void moveToTargetPosition(int targetPosition) {
   while (stepper.distanceToGo() != 0) {
     stepper.run();
   }
-
-  currentPosition = targetPosition; // Update current position after moving
+  
+  // Update current position after moving
+  currentPosition = targetPosition;
+  
+  // Print the updated current position
+  Serial.print("Move complete. Current position: ");
+  Serial.println(currentPosition);
 
   // Turn on the track power for the target position after the move is complete
   controlRelays(targetPosition);
