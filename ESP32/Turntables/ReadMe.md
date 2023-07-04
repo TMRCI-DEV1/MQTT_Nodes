@@ -158,7 +158,7 @@ Remember, when troubleshooting, always start with the simplest and most obvious 
 The sketch defines several constants:
 
 - `STEPS_PER_REV`: The number of microsteps per revolution for the stepper motor.
-- `EEPROM_POSITION_ADDRESS`: The EEPROM address for storing the turntable positions.
+- `CURRENT_POSITION_EEPROM_ADDRESS`: The EEPROM address for storing the turntable positions.
 - `EEPROM_HEADS_ADDRESS`: The EEPROM address for storing the track head positions.
 - `EEPROM_TAILS_ADDRESS`: The EEPROM address for storing the track tail positions.
 - `HOMING_SENSOR_PIN`: The pin number for the homing sensor.
