@@ -219,6 +219,10 @@ The sketch includes several functions:
 
 - `moveToTargetPosition(int targetPosition)`:  This function moves the turntable to the target position. It turns off the turntable bridge track power before starting the move, moves the turntable to the target position, updates the current position after moving, turns on the track power for the target position after the move is complete, and turns the turntable bridge track power back on once the turntable has completed its move. If not in calibration mode, it also saves the current position to EEPROM.
 
+- `writeToEEPROMWithVerification(int address, const T& value)`: This function writes data to the EEPROM at the specified address, while performing error checking to ensure data integrity. It reads the original value from the EEPROM, writes the new value to the EEPROM, commits the changes, reads the value that was written to the EEPROM, and verifies the data integrity by comparing the original value with the read value. If the verification fails, it prints an error message indicating an EEPROM write error.
+
+- `readFromEEPROMWithVerification(int address, T& value)`: This function reads data from the EEPROM at the specified address, while performing error checking to ensure data integrity. It reads the original value from the EEPROM, copies the original value to the `value` variable, reads the value from the EEPROM again, and verifies the data integrity by comparing the original value with the read value. If the verification fails, it prints an error message indicating an EEPROM read error and returns `false`. If the verification succeeds, it returns `true`.
+
 ### Contributing
 
 Contributions to this project are welcome. If you have a feature request, bug report, or want to contribute code, please open an issue or pull request on the project's GitHub page.
