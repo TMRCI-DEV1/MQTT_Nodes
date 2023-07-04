@@ -97,7 +97,7 @@ int trackTails[23]; // Array to store the positions of the tail ends of the trac
 void callback(char* topic, byte* payload, unsigned int length); // Callback function for MQTT messages. This function is called whenever an MQTT message is received.
 int calculateTargetPosition(int trackNumber, int endNumber); // Function to calculate the target position based on the track number and end number. This function is used to determine where the turntable should move to.
 void controlRelays(int trackNumber); // Function to control the track power relays. This function is used to turn on the relay for the selected track and turn off all other relays.
-void moveStepperToPosition(int targetPosition); // Function to move the stepper motor to a target position. This function is used to move the turntable to the desired position.
+void moveToTargetPosition(int targetPosition); // Function to move the turntable to a target position. This function is used to move the turntable to the desired position.
 
 // Function to write data to EEPROM with error checking
 // This function uses a template to allow for writing of different data types to EEPROM.
