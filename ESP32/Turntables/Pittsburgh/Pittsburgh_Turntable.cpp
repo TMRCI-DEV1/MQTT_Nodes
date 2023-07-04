@@ -2,8 +2,8 @@
   Aisle-Node: Pittsburgh Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.9
-  Date: 2023-07-03
+  Version: 1.1.1
+  Date: 2023-07-04
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Pittsburgh Turntable. It utilizes a 3x4 membrane matrix keypad,
   a serial LCD 2004 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C
@@ -18,16 +18,16 @@
 */
 
 // Include necessary libraries
-#include <Wire.h>              // Library for ESP32 I2C connection. Used for communication with the relay boards and LCD screen.
-#include <WiFi.h>              // Library for WiFi connection. Used for connecting to the WiFi network.
-#include <Keypad.h>            // Library for 3x4 keypad. Used for reading input from the keypad.
-#include <LiquidCrystal_I2C.h> // Library for Liquid Crystal I2C. Used for controlling the LCD screen.
-#include <PCF8574.h>           // Library for I2C (8) relay board. Used for controlling the 8-channel relay board.
-#include <PCF8575.h>           // Library for I2C (16) relay board. Used for controlling the 16-channel relay board.
-#include <AccelStepper.h>      // Library for Accel Stepper. Used for controlling the stepper motor.
-#include <PubSubClient.h>      // Library for MQTT. Used for subscribing to MQTT messages.
-#include <EEPROM.h>            // Library for EEPROM read/write. Used for storing the current position and track head/tail positions.
-#include <ArduinoOTA.h>        // Library for OTA updates. Used for updating the sketch over the air.
+#include <Wire.h>              // Library for ESP32 I2C connection. Used for communication with the relay boards and LCD screen.        https://github.com/esp8266/Arduino/tree/master/libraries/Wire
+#include <WiFi.h>              // Library for WiFi connection. Used for connecting to the WiFi network.                                 https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+#include <Keypad.h>            // Library for 3x4 keypad. Used for reading input from the keypad.                                       https://github.com/Chris--A/Keypad
+#include <LiquidCrystal_I2C.h> // Library for Liquid Crystal I2C. Used for controlling the LCD screen.                                  https://github.com/johnrickman/LiquidCrystal_I2C
+#include <PCF8574.h>           // Library for I2C (8) relay board. Used for controlling the 8-channel relay board.                      https://github.com/xreef/PCF8574_library
+#include <PCF8575.h>           // Library for I2C (16) relay board. Used for controlling the 16-channel relay board.                    https://github.com/xreef/PCF8575_library/tree/master
+#include <AccelStepper.h>      // Library for Accel Stepper. Used for controlling the stepper motor.                                    https://github.com/waspinator/AccelStepper
+#include <PubSubClient.h>      // Library for MQTT. Used for subscribing to MQTT messages.                                              https://github.com/knolleary/pubsubclient
+#include <EEPROM.h>            // Library for EEPROM read/write. Used for storing the current position and track head/tail positions.   https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
+#include <ArduinoOTA.h>        // Library for OTA updates. Used for updating the sketch over the air.                                   https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Define constants
 const int STEPS_PER_REV = 6400; // Number of microsteps per full revolution. Microsteps are used for smoother and more precise control of the stepper motor.
