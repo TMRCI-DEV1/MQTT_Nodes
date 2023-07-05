@@ -13,30 +13,69 @@
   by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents the
   2-digit track number (01-23) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the
   commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname,("Gilberton_Turntable_Node").
-  
+
   The turntable is used to rotate locomotives or cars from one track to another, and the ESP32 provides a convenient way to control it remotely via WiFi and MQTT.
 */
 
 /* Libraries */
 #include <Wire.h>              // Library for ESP32 I2C connection. Used for communication with the relay boards and LCD screen.        https://github.com/esp8266/Arduino/tree/master/libraries/Wire
+
 #include <WiFi.h>              // Library for WiFi connection. Used for connecting to the WiFi network.                                 https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+
 #include <Keypad.h>            // Library for 3x4 keypad. Used for reading input from the keypad.                                       https://github.com/Chris--A/Keypad
+
 #include <LiquidCrystal_I2C.h> // Library for Liquid Crystal I2C. Used for controlling the LCD screen.                                  https://github.com/johnrickman/LiquidCrystal_I2C
+
 #include <PCF8574.h>           // Library for I2C (8) relay board. Used for controlling the 8-channel relay board.                      https://github.com/xreef/PCF8574_library
+
 #include <PCF8575.h>           // Library for I2C (16) relay board. Used for controlling the 16-channel relay board.                    https://github.com/xreef/PCF8575_library/tree/master
+
 #include <AccelStepper.h>      // Library for Accel Stepper. Used for controlling the stepper motor.                                    https://github.com/waspinator/AccelStepper
+
 #include <PubSubClient.h>      // Library for MQTT. Used for subscribing to MQTT messages.                                              https://github.com/knolleary/pubsubclient
+
 #include <EEPROM.h>            // Library for EEPROM read/write. Used for storing the current position and track head/tail positions.   https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
+
 #include <ArduinoOTA.h>        // Library for OTA updates. Used for updating the sketch over the air.                                   https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 /* Constants */
 // Keypad Related
 const byte ROW_NUM = 4; // Number of rows on the keypad.
 const byte COLUMN_NUM = 3; // Number of columns on the keypad.
-const char KEYPAD_LAYOUT[][COLUMN_NUM] = {{'1', '2', '3'}, {'4', '5', '6'}, {'7', '8', '9'}, {'*', '0', '#'}}; // Layout of the keys on the keypad.
+const char KEYPAD_LAYOUT[][COLUMN_NUM] = {
+  {
+    '1',
+    '2',
+    '3'
+  },
+  {
+    '4',
+    '5',
+    '6'
+  },
+  {
+    '7',
+    '8',
+    '9'
+  },
+  {
+    '*',
+    '0',
+    '#'
+  }
+}; // Layout of the keys on the keypad.
 char keys[ROW_NUM][COLUMN_NUM]; // Array to store the current state of the keys on the keypad.
-byte KEYPAD_ROW_PINS[] = {13, 12, 14, 27}; // Row pins of the keypad. These are the pins that the keypad rows are connected to.
-byte KEYPAD_COLUMN_PINS[] = {16, 17, 18}; // Column pins of the keypad. These are the pins that the keypad columns are connected to.
+byte KEYPAD_ROW_PINS[] = {
+  13,
+  12,
+  14,
+  27
+}; // Row pins of the keypad. These are the pins that the keypad rows are connected to.
+byte KEYPAD_COLUMN_PINS[] = {
+  16,
+  17,
+  18
+}; // Column pins of the keypad. These are the pins that the keypad columns are connected to.
 Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM); // Keypad instance. This is used for reading input from the keypad.
 char keypadTrackNumber[3] = ""; // Array to store entered track number on the keypad. This is where the track number entered on the keypad is stored.
 
@@ -54,16 +93,40 @@ PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS); // Instance for the 8-channel relay b
 // Miscellaneous
 const int HOMING_SENSOR_PIN = 25; // Pin for the homing sensor. The homing sensor is used to set a known position for the turntable.
 const int RESET_BUTTON_PIN = 19; // Pin for the reset button. The reset button is used to trigger the homing sequence.
-const char* MQTT_TOPIC = "TMRCI/output/Gilberton/turntable/#"; // MQTT topic for subscribing to turntable commands. The ESP32 will listen for messages on this topic.
-const int TRACK_NUMBERS[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23}; // Array ofvalid track numbers. These are the track numbers that the turntable can move to.
+const char * MQTT_TOPIC = "TMRCI/output/Gilberton/turntable/#"; // MQTT topic for subscribing to turntable commands. The ESP32 will listen for messages on this topic.
+const int TRACK_NUMBERS[] = {
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23
+}; // Array ofvalid track numbers. These are the track numbers that the turntable can move to.
 const int EEPROM_TOTAL_SIZE_BYTES = 512; // EEPROM size in bytes. This is the total amount of storage available in the EEPROM.
 bool emergencyStop = false; // Flag for emergency stop condition. When this flag is set, the turntable will stop moving immediately.
 char mqttTrackNumber[3] = ""; // Array to store track number from MQTT message. This is where the track number from the MQTT message is stored.
 
 // Network and MQTT Related
-const char* ssid = "***************"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
-const char* password = "***************"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
-const char* mqtt_broker = "***************"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
+const char * ssid = "***************"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
+const char * password = "***************"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
+const char * mqtt_broker = "***************"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
 WiFiClient espClient; // WiFi client instance. This is used for the network connection.
 PubSubClient client(espClient); // MQTT client instance. This is used for subscribing to MQTT messages.
 
@@ -88,7 +151,7 @@ int trackHeads[23]; // Array to store the positions of the head ends of the trac
 int trackTails[23]; // Array to store the positions of the tail ends of the tracks. These positions are stored in EEPROM and loaded at startup.
 
 // Function prototypes
-void callback(char* topic, byte* payload, unsigned int length); // Callback function for MQTT messages. This function is called whenever an MQTT message is received.
+void callback(char * topic, byte * payload, unsigned int length); // Callback function for MQTT messages. This function is called whenever an MQTT message is received.
 int calculateTargetPosition(int trackNumber, int endNumber); // Function to calculate the target position based on the track number and end number. This function is used to determine where the turntable should move to.
 void controlRelays(int trackNumber); // Function to control the track power relays. This function is used to turn on the relay for the selected track and turn off all other relays.
 void moveToTargetPosition(int targetPosition); // Function to move the turntable to a target position. This function is used to move the turntable to the desired position.
@@ -96,65 +159,65 @@ void moveToTargetPosition(int targetPosition); // Function to move the turntable
 /* Function to write data to EEPROM with error checking
    This function uses a template to allow for writing of different data types to EEPROM.
    memcmp is used for data verification to ensure that the data written to EEPROM is the same as the data intended to be written. */
-template <typename T>
-void writeToEEPROMWithVerification(int address, const T& value) {
-  const int MAX_RETRIES = 3;
-  int retryCount = 0;
-  bool writeSuccess = false;
+template < typename T >
+  void writeToEEPROMWithVerification(int address, const T& value) {
+    const int MAX_RETRIES = 3;
+    int retryCount = 0;
+    bool writeSuccess = false;
 
-  while (retryCount < MAX_RETRIES && !writeSuccess) {
-    T originalValue;
-    EEPROM.get(address, originalValue); // Read original value from EEPROM.
-    EEPROM.put(address, value); // Write new value to EEPROM.
-    EEPROM.commit();
+    while (retryCount < MAX_RETRIES && !writeSuccess) {
+      T originalValue;
+      EEPROM.get(address, originalValue); // Read original value from EEPROM.
+      EEPROM.put(address, value); // Write new value to EEPROM.
+      EEPROM.commit();
 
-    T readValue;
-    EEPROM.get(address, readValue); // Read the written value from EEPROM.
+      T readValue;
+      EEPROM.get(address, readValue); // Read the written value from EEPROM.
 
-    if (memcmp(&originalValue, &readValue, sizeof(T)) != 0) {
-      retryCount++;
-      delay(500); // Delay before retrying
-    } else {
-      writeSuccess = true;
+      if (memcmp( & originalValue, & readValue, sizeof(T)) != 0) {
+        retryCount++;
+        delay(500); // Delay before retrying
+      } else {
+        writeSuccess = true;
+      }
+    }
+
+    if (!writeSuccess) {
+      Serial.println("EEPROM write error!");
     }
   }
-
-  if (!writeSuccess) {
-    Serial.println("EEPROM write error!");
-  }
-}
 
 /* Function to read data from EEPROM with error checking
    This function uses a template to allow for reading of different data types from EEPROM.
    memcmp is used for data verification to ensure that the data read from EEPROM is the same as the data stored. */
-template <typename T>
-bool readFromEEPROMWithVerification(int address, T& value) {
-  const int MAX_RETRIES = 3;
-  int retryCount = 0;
-  bool readSuccess = false;
+template < typename T >
+  bool readFromEEPROMWithVerification(int address, T & value) {
+    const int MAX_RETRIES = 3;
+    int retryCount = 0;
+    bool readSuccess = false;
 
-  while (retryCount < MAX_RETRIES && !readSuccess) {
-    T originalValue;
-    EEPROM.get(address, originalValue);
-    memcpy(&value, &originalValue, sizeof(T));
+    while (retryCount < MAX_RETRIES && !readSuccess) {
+      T originalValue;
+      EEPROM.get(address, originalValue);
+      memcpy( & value, & originalValue, sizeof(T));
 
-    T readValue;
-    EEPROM.get(address, readValue);
+      T readValue;
+      EEPROM.get(address, readValue);
 
-    if (memcmp(&originalValue, &readValue, sizeof(T)) != 0) {
-      retryCount++;
-      delay(500); // Delay before retrying
-    } else {
-      readSuccess = true;
+      if (memcmp( & originalValue, & readValue, sizeof(T)) != 0) {
+        retryCount++;
+        delay(500); // Delay before retrying
+      } else {
+        readSuccess = true;
+      }
     }
-  }
 
-  if (!readSuccess) {
-    Serial.println("EEPROM read error!");
-  }
+    if (!readSuccess) {
+      Serial.println("EEPROM read error!");
+    }
 
-  return readSuccess;
-}
+    return readSuccess;
+  }
 
 /* Function to connect to WiFi
    This function uses a while loop to wait for the connection to be established.
@@ -222,7 +285,7 @@ void setup() {
 
   // Connect to the WiFi network
   connectToWiFi();
-  
+
   // Add a delay after connecting to WiFi to stabilize the connection
   delay(2000);
 
@@ -387,9 +450,9 @@ void loop() {
 
   // Check for keypad input
   char key = keypad.getKey();
-  static bool isKeyHeld = false;  // Track if a key is held down.
-  static unsigned long keyHoldTime = 0;  // Track the duration of key hold.
-  const unsigned long keyHoldDelay = 500;  // Delay before continuous movement starts (in milliseconds).
+  static bool isKeyHeld = false; // Track if a key is held down.
+  static unsigned long keyHoldTime = 0; // Track the duration of key hold.
+  const unsigned long keyHoldDelay = 500; // Delay before continuous movement starts (in milliseconds).
 
   if (key) {
     if (key == '9') {
@@ -404,12 +467,12 @@ void loop() {
     }
 
     if (key == '4' || key == '6') {
-      int direction = (key == '4') ? -1 : 1;  // Determine direction based on key.
+      int direction = (key == '4') ? -1 : 1; // Determine direction based on key.
       if (!isKeyHeld) {
         // Move the turntable by a fixed number of steps in the direction specified by the key
         stepper.move(direction * STEP_MOVE_SINGLE_KEYPRESS);
         isKeyHeld = true;
-        keyHoldTime = millis();  // Start tracking the hold time
+        keyHoldTime = millis(); // Start tracking the hold time
       } else if (millis() - keyHoldTime >= keyHoldDelay) {
         // Move the turntable continuously by a fixed number of steps in the direction specified by the key
         stepper.move(direction * STEP_MOVE_HELD_KEYPRESS);
@@ -455,8 +518,8 @@ void loop() {
       }
     }
   } else {
-    isKeyHeld = false;  // Reset isKeyHeld when no key is pressed.
-    keyHoldTime = 0;    // Reset keyHoldTime when no key is pressed.
+    isKeyHeld = false; // Reset isKeyHeld when no key is pressed.
+    keyHoldTime = 0; // Reset keyHoldTime when no key is pressed.
   }
 
   // Check for reset button press
@@ -482,10 +545,10 @@ void loop() {
 /* MQTT callback function to handle incoming messages
    This function uses a char array to store the MQTT message because the payload is received as a byte array, and converting it to a char array makes it easier to work with.
    strncpy is used to extract the track number from the MQTT message because it allows for copying a specific number of characters from a string. */
-void callback(char* topic, byte* payload, unsigned int length) {
+void callback(char * topic, byte * payload, unsigned int length) {
   char mqttMessage[8]; // Char array to store the MQTT message.
   for (int i = 0; i < length; i++) {
-    mqttMessage[i] = (char)payload[i];
+    mqttMessage[i] = (char) payload[i];
   }
   mqttMessage[length] = '\0'; // Null-terminate the char array.
 
@@ -522,7 +585,7 @@ int calculateTargetPosition(int trackNumber, int endNumber) {
 void controlRelays(int trackNumber) {
   // Check if the relay for the selected track is already on
   if ((trackNumber >= 1 && trackNumber <= 15 && relayBoard1.digitalRead(trackNumber) == LOW) ||
-      (trackNumber >= 16 && trackNumber <= 23 && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
+    (trackNumber >= 16 && trackNumber <= 23 && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
     return; // If the relay for the selected track is already on, no need to change the state of any relay
   }
 
@@ -552,7 +615,7 @@ void moveToTargetPosition(int targetPosition) {
   Serial.print(targetPosition);
   Serial.print(", Current position: ");
   Serial.println(currentPosition);
-  
+
   // Turn off the turntable bridge track power before starting the move
   relayBoard1.digitalWrite(0, HIGH);
 
@@ -565,10 +628,10 @@ void moveToTargetPosition(int targetPosition) {
   while (stepper.distanceToGo() != 0) {
     stepper.run();
   }
-  
+
   // Update current position after moving
   currentPosition = targetPosition;
-  
+
   // Print the updated current position
   Serial.print("Move complete. Current position: ");
   Serial.println(currentPosition);
