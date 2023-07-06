@@ -2,7 +2,7 @@
   Aisle-Node: Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.5
+  Version: 1.0.6
   Date: 2023-07-06
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes a 3x4 membrane matrix keypad,
@@ -354,28 +354,22 @@ void loop() {
    This function uses a char array to store the MQTT message because the payload is received as a byte array, and converting it to a char array makes it easier to work with.
    strncpy is used to extract the track number from the MQTT message because it allows for copying a specific number of characters from a string. */
 void callback(char * topic, byte * payload, unsigned int length) {
-  char mqttMessage[8]; // Char array to store the MQTT message.
-  for (int i = 0; i < length; i++) {
-    mqttMessage[i] = (char) payload[i];
-  }
-  mqttMessage[length] = '\0'; // Null-terminate the char array.
-
-  // Print the received MQTT message
-  Serial.print("Received MQTT message: ");
-  Serial.println(mqttMessage);
+  // Print the received MQTT topic
+  Serial.print("Received MQTT topic: ");
+  Serial.println(topic);
 
   char mqttTrackNumber[3];
-  strncpy(mqttTrackNumber, mqttMessage + 5, 2); // Extract track number from MQTT topic.
+  strncpy(mqttTrackNumber, topic + 5, 2); // Extract track number from MQTT topic.
   mqttTrackNumber[2] = '\0'; // Null-terminate the char array.
 
   int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer.
   
   if(trackNumber > NUMBER_OF_TRACKS || trackNumber < 1) {
-    Serial.println("Invalid track number received in MQTT message");
+    Serial.println("Invalid track number received in MQTT topic");
     return;
   }
 
-  int endNumber = (mqttMessage[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
+  int endNumber = (topic[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
   int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position.
   moveToTargetPosition(targetPosition); // Move to the target position.
 }
