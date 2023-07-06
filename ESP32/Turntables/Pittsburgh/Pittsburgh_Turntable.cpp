@@ -2,7 +2,7 @@
   Aisle-Node: Pittsburgh Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.1.6
+  Version: 1.1.7
   Date: 2023-07-05
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Pittsburgh Turntable. It utilizes a 3x4 membrane matrix keypad,
@@ -118,7 +118,7 @@ const int TRACK_NUMBERS[] = {
   21,
   22,
   23
-}; // Array ofvalid track numbers. These are the track numbers that the turntable can move to.
+}; // Array of valid track numbers. These are the track numbers that the turntable can move to.
 const int EEPROM_TOTAL_SIZE_BYTES = 512; // EEPROM size in bytes. This is the total amount of storage available in the EEPROM.
 bool emergencyStop = false; // Flag for emergency stop condition. When this flag is set, the turntable will stop moving immediately.
 char mqttTrackNumber[3] = ""; // Array to store track number from MQTT message. This is where the track number from the MQTT message is stored.
