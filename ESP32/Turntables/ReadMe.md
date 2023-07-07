@@ -2,42 +2,44 @@
 
 ## Overview
 
-This ESP32 sketch is designed to control a Turntable using an ESP32 Node. The turntable can be controlled by entering a 1 or 2-digit track number on a keypad, or by receiving MQTT messages published by JMRI. The sketch also supports calibration of the turntable positions.
+This ESP32 sketch is designed to control a Turntable using an ESP32 Node. The turntable can be controlled by entering a 1 or 2-digit track number on a keypad or by receiving MQTT messages published by JMRI. The sketch also supports calibration of the turntable positions.
 
 ## Components
 
 The system utilizes the following components:
 
-- ESP32 Node
-- 3x4 membrane matrix keypad
-- Serial LCD 2004 20x4 display module with I2C interface
-- 16 Channel I2C Interface Electromagnetic Relay Module
-- 8 Channel I2C Interface Electromagnetic Relay Module
-- STEPPERONLINE CNC stepper motor driver
-- Photo-interrupter "homing" sensor
-- Reset button
-- STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead)
+- ESP32 Node: The main microcontroller responsible for controlling the turntable.
+- Input Devices:
+  - 3x4 membrane matrix keypad: Allows users to enter track numbers and control the turntable manually.
+- Output Devices:
+  - Serial LCD 2004 20x4 display module with I2C interface: Displays system information, track numbers, and positions.
+  - 16 Channel I2C Interface Electromagnetic Relay Module: Controls power to the tracks.
+  - 8 Channel I2C Interface Electromagnetic Relay Module: Controls power to the tracks.
+- Stepper Motor Components:
+  - STEPPERONLINE CNC stepper motor driver: Drives the stepper motor.
+  - Photo-interrupter "homing" sensor: Detects the home position of the turntable.
+  - STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead): Rotates the turntable.
 
 ## Libraries Used
 
 The sketch utilizes the following libraries:
 
-- Wire: [https://github.com/esp8266/Arduino/tree/master/libraries/Wire](https://github.com/esp8266/Arduino/tree/master/libraries/Wire)
-- WiFi: [https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi](https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi)
-- Keypad: [https://github.com/Chris--A/Keypad](https://github.com/Chris--A/Keypad)
-- LiquidCrystal_I2C: [https://github.com/johnrickman/LiquidCrystal_I2C](https://github.com/johnrickman/LiquidCrystal_I2C)
-- PCF8575: [https://github.com/xreef/PCF8575_library/tree/master](https://github.com/xreef/PCF8575_library/tree/master)
-- PCF8574: [https://github.com/xreef/PCF8574_library](https://github.com/xreef/PCF8574_library)
-- AccelStepper: [https://github.com/waspinator/AccelStepper](https://github.com/waspinator/AccelStepper)
-- PubSubClient: [https://github.com/knolleary/pubsubclient](https://github.com/knolleary/pubsubclient)
-- EEPROM: [https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM](https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM)
-- ArduinoOTA: [https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA](https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA)
+- Wire: [https://github.com/esp8266/Arduino/tree/master/libraries/Wire](https://github.com/esp8266/Arduino/tree/master/libraries/Wire) - Provides I2C communication for the peripherals.
+- WiFi: [https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi](https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi) - Enables WiFi connectivity for the ESP32 Node.
+- Keypad: [https://github.com/Chris--A/Keypad](https://github.com/Chris--A/Keypad) - Handles input from the keypad.
+- LiquidCrystal_I2C: [https://github.com/johnrickman/LiquidCrystal_I2C](https://github.com/johnrickman/LiquidCrystal_I2C) - Controls the LCD display.
+- PCF8575: [https://github.com/xreef/PCF8575_library/tree/master](https://github.com/xreef/PCF8575_library/tree/master) - Handles I2C communication with the relay modules.
+- PCF8574: [https://github.com/xreef/PCF8574_library](https://github.com/xreef/PCF8574_library) - Handles I2C communication with the relay modules.
+- AccelStepper: [https://github.com/waspinator/AccelStepper](https://github.com/waspinator/AccelStepper) - Controls the stepper motor movement.
+- PubSubClient: [https://github.com/knolleary/pubsubclient](https://github.com/knolleary/pubsubclient) - Enables MQTT communication with JMRI.
+- EEPROM: [https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM](https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM) - Allows data to be stored in the ESP32's EEPROM.
+- ArduinoOTA: [https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA](https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA) - Enables Over-The-Air (OTA) updates for the ESP32 Node.
 
 ## Functionality
 
 The ESP32 Node connects to a WiFi network and subscribes to MQTT messages published by JMRI. The expected MQTT message format is 'Tracknx', where 'n' represents the 2-digit track number (01-23) and 'x' represents 'H' for the head-end or 'T' for the tail-end.
 
-The LCD displays the IP address, the commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname.
+The turntable supports bidirectional movement, allowing it to move to both the head and tail positions. The LCD displays the IP address, the commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname.
 
 The sketch supports a calibration mode, which is used to set the positions of the turntable for each track number and end (head or tail). In calibration mode, the current position of the turntable is stored when a track number and end are entered on the keypad.
 
@@ -69,7 +71,8 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 ### Operation Process
 
 1. After uploading the sketch and powering on the ESP32 Node, the LCD will display the IP address of the ESP32 Node. This IP address is used for Over-The-Air (OTA) updates.
-2. The system is now ready to receive commands either from the keypad or via MQTT messages.
+2. Ensure that the turntable is in the home position.
+3. The system is now ready to receive commands either from the keypad or via MQTT messages.
 
 ### Keypad Operation
 
@@ -148,22 +151,27 @@ Remember, when troubleshooting, always start with the simplest and most obvious 
 
 The sketch defines several constants:
 
-- `STEPS_PER_REV`: The number of microsteps per revolution for the stepper motor.
-- `CURRENT_POSITION_EEPROM_ADDRESS`: The EEPROM address for storing the turntable positions.
-- `EEPROM_HEADS_ADDRESS`: The EEPROM address for storing the track head positions.
-- `EEPROM_TAILS_ADDRESS`: The EEPROM address for storing the track tail positions.
-- `HOMING_SENSOR_PIN`: The pin number for the homing sensor.
-- `RESET_BUTTON_PIN`: The pin number for the reset button.
-- `MQTT_TOPIC`: The MQTT topic to subscribe to for turntable commands.
-- `TRACK_NUMBERS`: An array of track numbers.
-- `STEPPER_SPEED`: The speed of the stepper motor.
-- `DELAY_TIMES`: An array of delay times.
-- `EEPROM_TOTAL_SIZE_BYTES`: The size of the EEPROM memory.
-- `RELAY_BOARD1_I2C_ADDRESS`: The I2C address of the first relay board.
-- `RELAY_BOARD2_I2C_ADDRESS`: The I2C address of the second relay board.
+- `VERSION_NUMBER`: A constant string that represents the version number of the sketch.
+- `ROW_NUM`: The number of rows for the keypad.
+- `COLUMN_NUM`: The number of columns for the keypad.
 - `KEYPAD_ROW_PINS`: An array of row pins for the keypad.
 - `KEYPAD_COLUMN_PINS`: An array of column pins for the keypad.
-- `CALIBRATION_MODE`: A boolean value indicating whether calibration mode is active.
+- `STEPS_PER_REV`: The number of microsteps per revolution for the stepper motor.
+- `STEPPER_SPEED`: The speed of the stepper motor.
+- `RELAY_BOARD1_ADDRESS`: The address of the first relay board.
+- `RELAY_BOARD2_ADDRESS`: The address of the second relay board.
+- `LCD_ADDRESS`: The address of the LCD display.
+- `LCD_COLUMNS`: The number of columns for the LCD display.
+- `LCD_ROWS`: The number of rows for the LCD display.
+- `HOMING_SENSOR_PIN`: The pin number for the homing sensor.
+- `RESET_BUTTON_PIN`: The pin number for the reset button.
+- `mqtt_port`: The MQTT broker port.
+- `ssid`: The WiFi network SSID.
+- `password`: The WiFi network password.
+- `mqtt_broker`: The MQTT broker address.
+- `CURRENT_POSITION_EEPROM_ADDRESS`: The EEPROM address for storing the current position.
+- `EEPROM_TRACK_HEADS_ADDRESS`: The EEPROM address for storing the track heads.
+- `EEPROM_TOTAL_SIZE_BYTES`: The total size of the EEPROM memory.
 - `CONFIRM_YES`: The character for confirming actions.
 - `CONFIRM_NO`: The character for canceling actions.
 - `STEP_MOVE_SINGLE_KEYPRESS`: The number of steps to move for a single keypress.
@@ -173,46 +181,63 @@ The sketch defines several constants:
 
 The sketch also defines several variables:
 
-- `emergencyStopCounter`: A counter for the emergency stop feature.
-- `currentPosition`: The current position of the turntable.
-- `trackHeads`: An array of track head positions.
-- `trackTails`: An array of track tail positions.
-- `ssid`: The SSID of the WiFi network.
-- `password`: The password of the WiFi network.
-- `mqtt_broker`: The MQTT broker address.
-- `espClient`: The WiFi client instance.
-- `client`: The MQTT client instance.
-- `stepper`: The stepper motor instance.
-- `lcd`: The LCD instance.
-- `relayBoard1`: The first relay board instance.
-- `relayBoard2`: The second relay board instance.
-- `keypad`: The keypad instance.
+- `MQTT_TOPIC`: A string variable that represents the MQTT topic.
+- `NUMBER_OF_TRACKS`: An integer variable that represents the number of tracks.
+- `TRACK_NUMBERS`: A pointer to an integer array that stores the track numbers.
+- `gilbertonTrackNumbers`: An integer array that stores the track numbers in the Gilberton location.
+- `pittsburghTrackNumbers`: An integer array that stores the track numbers in the Pittsburgh location.
+- `hobokenTrackNumbers`: An integer array that stores the track numbers in the Hoboken location.
+- `trackHeads`: A dynamically allocated integer array that stores the head positions of each track.
+- `trackTails`: A dynamically allocated integer array that stores the tail positions of each track.
+- `keypadTrackNumber`: A character array that stores the track number entered on the keypad.
+- `currentPosition`: An integer variable that represents the current position of the turntable.
+- `emergencyStop`: A boolean variable that indicates whether an emergency stop is triggered.
+- `calibrationMode`: A boolean variable that indicates whether the calibration mode is enabled.
+- `ssid`: A string variable that represents the WiFi network SSID.
+- `password`: A string variable that represents the WiFi network password.
+- `mqtt_broker`: A string variable that represents the MQTT broker address.
+- `mqtt_port`: An integer variable that represents the MQTT broker port.
+- `relayBoard1`: An instance of the "RelayBoard" class.
+- `relayBoard2`: An instance of the "RelayBoard" class.
+- `stepper`: An instance of the "StepperMotor" class.
+- `lcd`: An instance of the "LiquidCrystal_I2C" class.
+- `client`: An instance of the "WiFiClient" class.
+- `keypad`: An instance of the "Keypad" class.
+
+## Function Prototypes
+
+The sketch includes the following function prototypes:
+
+- `callback`: A function that handles the MQTT message callback.
+- `calculateTargetPosition`: A function that calculates the target position based on the track number.
+- `controlRelays`: A function that controls the relays for track selection.
+- `moveToTargetPosition`: A function that moves the turntable to the target position.
 
 ## Functions
 
 The sketch includes several functions:
 
-- `initializeKeysArray()`: This function initializes the keys array with the layout defined in KEYPAD_LAYOUT. This array is used to create the keypad instance.
+- `getEEPROMTrackTailsAddress()`: This function calculates and returns the EEPROM address for storing track tail positions.
 
-- `connectToWiFi()`: This function attempts to connect the ESP32 to the WiFi network using the provided SSID and password. It will keep trying to connect until a successful connection is established.
+- `writeToEEPROMWithVerification(int address, const T & value)`: This function writes data to EEPROM with error checking. It uses a template to allow for writing of different data types to EEPROM.
 
-- `connectToMQTT()`: This function attempts to connect the ESP32 to the MQTT broker. It will keep trying to connect until a successful connection is established. Once connected, it subscribes to the MQTT topic defined in MQTT_TOPIC.
+- `readFromEEPROMWithVerification(int address, T & value)`: This function reads data from EEPROM with error checking. It uses a template to allow for reading of different data types from EEPROM.
 
-- `setup()`: This is the ESP32 setup function, which is called once when the program starts. It initializes the Serial and Wire communications, connects to the WiFi network, initializes the EEPROM, prints the IP address to the serial monitor, sets the hostname, initializes OTA updates, sets up the MQTT client, moves to the home position at startup, initializes the relay boards, initializes the LCD and prints the IP address, displays the calibration mode message, initializes the stepper, and initializes the keys array.
+- `connectToWiFi()`: This function connects the ESP32 to the WiFi network.
 
-- `loop()`: This is the ESP32 main loop function, which is called repeatedly in a loop. It handles MQTT messages and keypad inputs, checks for emergency stop, checks for keypad input, checks for reset button press, and runs the stepper.
+- `connectToMQTT()`: This function connects the ESP32 to the MQTT broker and subscribes to the MQTT topic.
 
-- `callback(char* topic, byte* payload, unsigned int length)`: This is the MQTT callback function, which is called when a subscribed topic receives a message. It extracts the track number and end number from the MQTT message, calculates the target position, and moves to the target position.
+- `setup()`: This is the setup function for the ESP32. It initializes the system and connects to WiFi and MQTT.
 
-- `calculateTargetPosition(int trackNumber, int endNumber)`: This function calculates the target position based on the track number and end number. In calibration mode, the target position is the track number itself. Otherwise, it retrieves the corresponding head or tail position.
+- `loop()`: This is the main loop function for the ESP32. It handles MQTT messages and keypad inputs.
 
-- `controlRelays(int trackNumber)`: This function controls the track power relays. It turns off all relays, then turns on the relay corresponding to the selected track.
+- `callback(char * topic, byte * payload, unsigned int length)`: This is the MQTT callback function. It handles incoming MQTT messages.
 
-- `moveToTargetPosition(int targetPosition)`:  This function moves the turntable to the target position. It turns off the turntable bridge track power before starting the move, moves the turntable to the target position, updates the current position after moving, turns on the track power for the target position after the move is complete, and turns the turntable bridge track power back on once the turntable has completed its move. If not in calibration mode, it also saves the current position to EEPROM.
+- `calculateTargetPosition(int trackNumber, int endNumber)`: This function calculates the target position based on the track number and the end (head or tail) specified.
 
-- `writeToEEPROMWithVerification(int address, const T& value)`: This function writes data to the EEPROM at the specified address, while performing error checking to ensure data integrity. It reads the original value from the EEPROM, writes the new value to the EEPROM, commits the changes, reads the value that was written to the EEPROM, and verifies the data integrity by comparing the original value with the read value. If the verification fails, it prints an error message indicating an EEPROM write error.
+- `controlRelays(int trackNumber)`: This function controls the track power relays.
 
-- `readFromEEPROMWithVerification(int address, T& value)`: This function reads data from the EEPROM at the specified address, while performing error checking to ensure data integrity. It reads the original value from the EEPROM, copies the original value to the `value` variable, reads the value from the EEPROM again, and verifies the data integrity by comparing the original value with the read value. If the verification fails, it prints an error message indicating an EEPROM read error and returns `false`. If the verification succeeds, it returns `true`.
+- `moveToTargetPosition(int targetPosition)`: This function moves the turntable to the target position.
 
 ### Contributing
 
