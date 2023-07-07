@@ -1,10 +1,10 @@
-#define VERSION_NUMBER "1.0.9" // Define the version number
+#define VERSION_NUMBER "1.1.0" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Date: 2023-07-06
+  Date: 2023-07-07
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes a 3x4 membrane matrix keypad,
   a serial LCD 2004A 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C
@@ -247,6 +247,7 @@ int * trackTails;
 */
 void setup() {
   // Initialize libraries and peripherals
+  Serial.begin(115200); // Initialize serial communication
   Wire.begin(); // Initialize the I2C bus
   connectToWiFi(); // Connect to the WiFi network
   lcd.begin(LCD_COLUMNS, LCD_ROWS); // Initialize the LCD display
