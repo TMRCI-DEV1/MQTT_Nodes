@@ -2,7 +2,7 @@
   Aisle-Node: Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.6
+  Version: 1.0.7
   Date: 2023-07-06
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes a 3x4 membrane matrix keypad,
@@ -39,12 +39,6 @@ const int NUMBER_OF_TRACKS = 22;  // Number of tracks in Pittsburgh
 int pittsburghTrackNumbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 };  // Track numbers in Pittsburgh
 int* TRACK_NUMBERS = pittsburghTrackNumbers;  // Pointer to the array of track numbers
 #endif
-
-// Function prototypes
-void callback(char* topic, byte* payload, unsigned int length);   // Callback function for MQTT messages. This function is called whenever an MQTT message is received.
-int calculateTargetPosition(int trackNumber, int endNumber);      // Function to calculate the target position based on the track number and end number. This function is used to determine where the turntable should move to.
-void controlRelays(int trackNumber);                              // Function to control the track power relays. This function is used to turn on the relay for the selected track and turn off all other relays.
-void moveToTargetPosition(int targetPosition);                    // Function to move the turntable to a target position. This function is used to move the turntable to the desired position.
 
 /* Function to write data to EEPROM with error checking
    This function uses a template to allow for writing of different data types to EEPROM.
@@ -353,23 +347,23 @@ void loop() {
 /* MQTT callback function to handle incoming messages
    This function uses a char array to store the MQTT message because the payload is received as a byte array, and converting it to a char array makes it easier to work with.
    strncpy is used to extract the track number from the MQTT message because it allows for copying a specific number of characters from a string. */
-void callback(char * topic, byte * payload, unsigned int length) {
+void callback(char* topic, byte* payload, unsigned int length) {
   // Print the received MQTT topic
   Serial.print("Received MQTT topic: ");
   Serial.println(topic);
 
   char mqttTrackNumber[3];
-  strncpy(mqttTrackNumber, topic + 5, 2); // Extract track number from MQTT topic.
+  strncpy(mqttTrackNumber, topic + 6, 2); // Extract track number from MQTT topic.
   mqttTrackNumber[2] = '\0'; // Null-terminate the char array.
 
   int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer.
-  
-  if(trackNumber > NUMBER_OF_TRACKS || trackNumber < 1) {
+
+  if (trackNumber > NUMBER_OF_TRACKS || trackNumber < 1) {
     Serial.println("Invalid track number received in MQTT topic");
     return;
   }
 
-  int endNumber = (topic[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
+  int endNumber = (topic[8] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
   int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position.
   moveToTargetPosition(targetPosition); // Move to the target position.
 }

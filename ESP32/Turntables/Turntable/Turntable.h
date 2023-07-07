@@ -91,4 +91,10 @@ int currentPosition = 0; // Current position of the turntable. This is updated e
 extern const int NUMBER_OF_TRACKS;  // External constant variable representing the number of tracks available on the turntable. The value of this variable is defined in the main sketch file.
 extern int* TRACK_NUMBERS;  // External pointer to an integer array representing the track numbers on the turntable. The array contains the track numbers in the order they are arranged on the turntable. The value of this pointer is defined in the main sketch file.
 
+/* Function prototypes */
+void callback(char* topic, byte* payload, unsigned int length);   // Callback function for MQTT messages. This function is called whenever an MQTT message is received.
+int calculateTargetPosition(int trackNumber, int endNumber);      // Function to calculate the target position based on the track number and end number. This function is used to determine where the turntable should move to.
+void controlRelays(int trackNumber);                              // Function to control the track power relays. This function is used to turn on the relay for the selected track and turn off all other relays.
+void moveToTargetPosition(int targetPosition);                    // Function to move the turntable to a target position. This function is used to move the turntable to the desired position.
+
 #endif
