@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.2.0" // Define the version number
+#define VERSION_NUMBER "1.2.1" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -21,109 +21,21 @@
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
 // #define CALIBRATION_MODE
 
+// Depending on the location, define the MQTT topics, number of tracks, and track numbers
 // Define the GILBERTON constant to indicate that the sketch is configured for controlling the turntable in the Gilberton location.
 #define GILBERTON
+#include "GilbertonConfig.h"
 
 // Uncomment the following line to indicate that the sketch is configured for controlling the turntable in the Pittsburgh location.
 // #define PITTSBURGH  
+#include "PittsburghConfig.h"
 
 // Uncomment the following line to indicate that the sketch is configured for controlling the turntable in the Hoboken location.
 // #define HOBOKEN
+#include "HobokenConfig.h"
 
 // Include the Turntable header file which contains definitions and declarations related to the turntable control.
 #include "Turntable.h"
-
-// Depending on the location, define the MQTT topics, number of tracks, and track numbers
-#ifdef GILBERTON
-const char * MQTT_TOPIC = "TMRCI/output/Gilberton/turntable/#"; // MQTT topic for Gilberton turntable
-const int NUMBER_OF_TRACKS = 23; // Number of tracks in Gilberton
-int gilbertonTrackNumbers[] = {
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  15,
-  16,
-  17,
-  18,
-  19,
-  20,
-  21,
-  22,
-  23
-}; // Track numbers in Gilberton
-int * TRACK_NUMBERS = gilbertonTrackNumbers; // Pointer to the array of track numbers
-#endif
-
-#ifdef PITTSBURGH
-const char * MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#"; // MQTT topic for Pittsburgh turntable
-const int NUMBER_OF_TRACKS = 22; // Number of tracks in Pittsburgh
-int pittsburghTrackNumbers[] = {
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  15,
-  16,
-  17,
-  18,
-  19,
-  20,
-  21,
-  22
-}; // Track numbers in Pittsburgh
-int * TRACK_NUMBERS = pittsburghTrackNumbers; // Pointer to the array of track numbers
-#endif
-
-#ifdef HOBOKEN
-const char * MQTT_TOPIC = "TMRCI/output/Hoboken/turntable/#"; // MQTT topic for Hoboken turntable
-const int NUMBER_OF_TRACKS = 22; // Number of tracks in Hoboken
-int hobokenTrackNumbers[] = {
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  15,
-  16,
-  17,
-  18,
-  19,
-  20,
-  21,
-  22
-}; // Track numbers in Hoboken
-int * TRACK_NUMBERS = hobokenTrackNumbers; // Pointer to the array of track numbers
-#endif
 
 /*
   This function calculates and returns the EEPROM address for storing track tail positions.
