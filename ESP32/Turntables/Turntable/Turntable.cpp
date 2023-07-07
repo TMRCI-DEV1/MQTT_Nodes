@@ -22,7 +22,7 @@
 #include "Turntable.h"
 
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
-#define CALIBRATION_MODE  
+#define CALIBRATION_MODE
 
 // Define the GILBERTON constant to indicate that the sketch is configured for controlling the turntable in the Gilberton location.
 #define GILBERTON
@@ -219,7 +219,7 @@ void connectToMQTT() {
     if (WiFi.status() != WL_CONNECTED) {
       connectToWiFi();
     }
-    
+
     // Attempt to connect to the MQTT broker with address and port
     if (client.connect("ESP32Client")) { // ESP32Client is the Client ID
       Serial.println("Connected to MQTT");
@@ -256,10 +256,10 @@ void setup() {
   Serial.begin(115200); // Initialize serial communication
   Wire.begin(); // Initialize the I2C bus
   connectToWiFi(); // Connect to the WiFi network
-  
+
   // Connect to MQTT broker
   connectToMQTT(); // Connect to the MQTT broker and subscribe to the topic
-  
+
   lcd.begin(LCD_COLUMNS, LCD_ROWS); // Initialize the LCD display
 
   // Print the version number on the LCD
