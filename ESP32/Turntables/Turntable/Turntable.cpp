@@ -2,7 +2,7 @@
   Aisle-Node: Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.7
+  Version: 1.0.8
   Date: 2023-07-06
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes a 3x4 membrane matrix keypad,
@@ -118,6 +118,17 @@ void connectToWiFi() {
   }
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Connected to WiFi");
+
+    // Get the IP address and convert it to a string
+    IPAddress ipAddress = WiFi.localIP();
+    String ipAddressString = ipAddress.toString();
+
+    // Print the IP address to the LCD display
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("IP Address:");
+    lcd.setCursor(0, 1);
+    lcd.print(ipAddressString);
   } else {
     Serial.println("Failed to connect to WiFi");
     delay(5000); // Wait 5 seconds before retrying.
@@ -184,10 +195,12 @@ void setup() {
   trackTails = new int[22];  // Create an array to store the tail positions of each track
 #endif
   
+  if (!calibrationMode) {
   // Read data from EEPROM
   readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition);  // Read the current position from EEPROM with error checking
   readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads);  // Read the track heads from EEPROM with error checking
   readFromEEPROMWithVerification(EEPROM_TRACK_TAILS_ADDRESS, trackTails);  // Read the track tails from EEPROM with error checking
+}
 
   // Initialize keypad and LCD
   keypad.addEventListener([](char key) {
@@ -251,23 +264,24 @@ void loop() {
   }
 
   // Check for keypad input
-  char key = keypad.getKey();
-  static bool isKeyHeld = false; // Track if a key is held down.
-  static unsigned long keyHoldTime = 0; // Track the duration of key hold.
-  const unsigned long keyHoldDelay = 500; // Delay before continuous movement starts (in milliseconds).
+char key = keypad.getKey();
+static bool isKeyHeld = false; // Track if a key is held down.
+static unsigned long keyHoldTime = 0; // Track the duration of key hold.
+const unsigned long keyHoldDelay = 500; // Delay before continuous movement starts (in milliseconds).
 
-  if (key) {
-    if (key == '9') {
-      emergencyStopCounter++;
-      if (emergencyStopCounter >= 3) {
-        // Activate emergency stop if the '9' key is pressed three times consecutively
-        emergencyStop = true;
-        emergencyStopCounter = 0; // Reset the counter.
-      }
-    } else {
-      emergencyStopCounter = 0; // Reset the counter if any other key is pressed.
+if (key) {
+  if (key == '9') {
+    emergencyStopCounter++;
+    if (emergencyStopCounter >= 3) {
+      // Activate emergency stop if the '9' key is pressed three times consecutively
+      emergencyStop = true;
+      emergencyStopCounter = 0; // Reset the counter.
     }
+  } else {
+    emergencyStopCounter = 0; // Reset the counter if any other key is pressed.
+  }
 
+  if (calibrationMode) {
     if (key == '4' || key == '6') {
       int direction = (key == '4') ? -1 : 1; // Determine direction based on key.
       if (!isKeyHeld) {
@@ -282,33 +296,36 @@ void loop() {
     } else if (key == '*' || key == '#') {
       int trackNumber = atoi(keypadTrackNumber);
       int endNumber = (key == '*') ? 0 : 1;
-      if (calibrationMode) {
-        // Store the current position to the appropriate track head or tail-end position in EEPROM
-        if (endNumber == 0) {
-          trackHeads[trackNumber - 1] = currentPosition;
-          EEPROM.put(EEPROM_TRACK_HEADS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
-        } else {
-          trackTails[trackNumber - 1] = currentPosition;
-          EEPROM.put(EEPROM_TRACK_TAILS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
-        }
-        EEPROM.commit();
+      // Store the current position to the appropriate track head or tail-end position in EEPROM
+      if (endNumber == 0) {
+        trackHeads[trackNumber - 1] = currentPosition;
+        EEPROM.put(EEPROM_TRACK_HEADS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
+      } else {
+        trackTails[trackNumber - 1] = currentPosition;
+        EEPROM.put(EEPROM_TRACK_TAILS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
+      }
+      EEPROM.commit();
+      lcd.setCursor(0, 0);
+      lcd.print("Position stored for track ");
+      lcd.print(trackNumber);
+      lcd.setCursor(0, 1);
+      lcd.print((endNumber == 0) ? "Head-end" : "Tail-end");
+      delay(2000);
+      lcd.clear();
+      keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
+    }
+  } else {
+    if (key == '*' || key == '#') {
+      int trackNumber = atoi(keypadTrackNumber);
+      if (trackNumber >= 1 && trackNumber <= NUMBER_OF_TRACKS) {
+        int endNumber = (key == '*') ? 0 : 1;
+        int targetPosition = calculateTargetPosition(trackNumber, endNumber);
+        moveToTargetPosition(targetPosition);
+      } else {
         lcd.setCursor(0, 0);
-        lcd.print("Position stored for track ");
-        lcd.print(trackNumber);
-        lcd.setCursor(0, 1);
-        lcd.print((endNumber == 0) ? "Head-end" : "Tail-end");
+        lcd.print("Invalid track number!");
         delay(2000);
         lcd.clear();
-      } else {
-        if (trackNumber >= 1 && trackNumber <= NUMBER_OF_TRACKS) {
-          int targetPosition = calculateTargetPosition(trackNumber, endNumber);
-          moveToTargetPosition(targetPosition);
-        } else {
-          lcd.setCursor(0, 0);
-          lcd.print("Invalid track number!");
-          delay(2000);
-          lcd.clear();
-        }
       }
       keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
     } else {
@@ -319,10 +336,11 @@ void loop() {
         keypadTrackNumber[keypadTrackNumberLength + 1] = '\0'; // Null-terminate the char array.
       }
     }
-  } else {
-    isKeyHeld = false; // Reset isKeyHeld when no key is pressed.
-    keyHoldTime = 0; // Reset keyHoldTime when no key is pressed.
   }
+} else {
+  isKeyHeld = false; // Reset isKeyHeld when no key is pressed.
+  keyHoldTime = 0; // Reset keyHoldTime when no key is pressed.
+}
 
   // Check for reset button press
   if (digitalRead(RESET_BUTTON_PIN) == LOW) {
@@ -353,19 +371,32 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println(topic);
 
   char mqttTrackNumber[3];
-  strncpy(mqttTrackNumber, topic + 6, 2); // Extract track number from MQTT topic.
+  strncpy(mqttTrackNumber, topic + 5, 2); // Extract track number from MQTT topic.
   mqttTrackNumber[2] = '\0'; // Null-terminate the char array.
 
   int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer.
 
   if (trackNumber > NUMBER_OF_TRACKS || trackNumber < 1) {
     Serial.println("Invalid track number received in MQTT topic");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Invalid track number received in MQTT topic");
     return;
   }
 
-  int endNumber = (topic[8] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
+  int endNumber = (topic[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
   int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position.
   moveToTargetPosition(targetPosition); // Move to the target position.
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Track selected:");
+  lcd.setCursor(0, 1);
+  lcd.print(trackNumber);
+  lcd.setCursor(0, 2);
+  lcd.print("Position:");
+  lcd.setCursor(0, 3);
+  lcd.print(targetPosition);
 }
 
 /* Function to calculate the target position based on the track number and the end (head or tail) specified

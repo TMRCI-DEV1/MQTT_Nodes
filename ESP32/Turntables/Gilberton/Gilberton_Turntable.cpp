@@ -2,8 +2,8 @@
   Aisle-Node: Gilberton Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.2.7
-  Date: 2023-07-05
+  Version: 1.2.8
+  Date: 2023-07-06
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling the Gilberton Turntable. It utilizes a 3x4 membrane matrix keypad,
   a serial LCD 2004 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C
@@ -466,21 +466,21 @@ void loop() {
       emergencyStopCounter = 0; // Reset the counter if any other key is pressed.
     }
 
-    if (key == '4' || key == '6') {
-      int direction = (key == '4') ? -1 : 1; // Determine direction based on key.
-      if (!isKeyHeld) {
-        // Move the turntable by a fixed number of steps in the direction specified by the key
-        stepper.move(direction * STEP_MOVE_SINGLE_KEYPRESS);
-        isKeyHeld = true;
-        keyHoldTime = millis(); // Start tracking the hold time
-      } else if (millis() - keyHoldTime >= keyHoldDelay) {
-        // Move the turntable continuously by a fixed number of steps in the direction specified by the key
-        stepper.move(direction * STEP_MOVE_HELD_KEYPRESS);
-      }
-    } else if (key == '*' || key == '#') {
-      int trackNumber = atoi(keypadTrackNumber);
-      int endNumber = (key == '*') ? 0 : 1;
-      if (CALIBRATION_MODE) {
+    if (CALIBRATION_MODE) {
+      if (key == '4' || key == '6') {
+        int direction = (key == '4') ? -1 : 1; // Determine direction based on key.
+        if (!isKeyHeld) {
+          // Move the turntable by a fixed number of steps in the direction specified by the key
+          stepper.move(direction * STEP_MOVE_SINGLE_KEYPRESS);
+          isKeyHeld = true;
+          keyHoldTime = millis(); // Start tracking the hold time
+        } else if (millis() - keyHoldTime >= keyHoldDelay) {
+          // Move the turntable continuously by a fixed number of steps in the direction specified by the key
+          stepper.move(direction * STEP_MOVE_HELD_KEYPRESS);
+        }
+      } else if (key == '*' || key == '#') {
+        int trackNumber = atoi(keypadTrackNumber);
+        int endNumber = (key == '*') ? 0 : 1;
         // Store the current position to the appropriate track head or tail-end position in EEPROM
         if (endNumber == 0) {
           trackHeads[trackNumber - 1] = currentPosition;
@@ -497,7 +497,19 @@ void loop() {
         lcd.print((endNumber == 0) ? "Head-end" : "Tail-end");
         delay(2000);
         lcd.clear();
+        keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
       } else {
+        size_t keypadTrackNumberLength = strlen(keypadTrackNumber);
+        if (keypadTrackNumberLength < 2) {
+          // Append the pressed key to the keypadTrackNumber array
+          keypadTrackNumber[keypadTrackNumberLength] = key;
+          keypadTrackNumber[keypadTrackNumberLength + 1] = '\0'; // Null-terminate the char array.
+        }
+      }
+    } else {
+      if (key == '*' || key == '#') {
+        int trackNumber = atoi(keypadTrackNumber);
+        int endNumber = (key == '*') ? 0 : 1;
         if (trackNumber >= 1 && trackNumber <= 23) {
           int targetPosition = calculateTargetPosition(trackNumber, endNumber);
           moveToTargetPosition(targetPosition);
@@ -507,14 +519,14 @@ void loop() {
           delay(2000);
           lcd.clear();
         }
-      }
-      keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
-    } else {
-      size_t keypadTrackNumberLength = strlen(keypadTrackNumber);
-      if (keypadTrackNumberLength < 2) {
-        // Append the pressed key to the keypadTrackNumber array
-        keypadTrackNumber[keypadTrackNumberLength] = key;
-        keypadTrackNumber[keypadTrackNumberLength + 1] = '\0'; // Null-terminate the char array.
+        keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
+      } else {
+        size_t keypadTrackNumberLength = strlen(keypadTrackNumber);
+        if (keypadTrackNumberLength < 2) {
+          // Append the pressed key to the keypadTrackNumber array
+          keypadTrackNumber[keypadTrackNumberLength] = key;
+          keypadTrackNumber[keypadTrackNumberLength + 1] = '\0'; // Null-terminate the char array.
+        }
       }
     }
   } else {
