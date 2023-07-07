@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.1.3" // Define the version number
+#define VERSION_NUMBER "1.1.4" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -18,9 +18,6 @@
   The turntable is used to rotate locomotives or cars from one track to another, and the ESP32 provides a convenient way to control it remotely via WiFi and MQTT.
 */
 
-// Include the Turntable header file which contains definitions and declarations related to the turntable control.
-#include "Turntable.h"
-
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
 #define CALIBRATION_MODE
 
@@ -29,6 +26,9 @@
 
 // Uncomment the following line to indicate that the sketch is configured for controlling the turntable in the Pittsburgh location.
 // #define PITTSBURGH  
+
+// Include the Turntable header file which contains definitions and declarations related to the turntable control.
+#include "Turntable.h"
 
 // Depending on the location, define the MQTT topics, number of tracks, and track numbers
 #ifdef GILBERTON
