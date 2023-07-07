@@ -97,8 +97,7 @@ int * TRACK_NUMBERS = pittsburghTrackNumbers; // Pointer to the array of track n
   memcmp is used for data verification to ensure that the data written to EEPROM is the same as the data intended to be written.
 */
 template < typename T >
-  void writeToEEPROMWithVerification(int address,
-    const T & value) {
+  void writeToEEPROMWithVerification(int address, const T & value) {
     // Define maximum number of write retries
     const int MAX_RETRIES = 3;
     int retryCount = 0;

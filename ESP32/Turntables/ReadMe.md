@@ -49,46 +49,37 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 ### Calibration Preparation
 
-1. Ensure that the CALIBRATION_MODE constant in the sketch is set to true. This will allow the system to enter calibration mode.
+1. Uncomment the `//#define calibrationMode` line in the sketch to enable calibration mode. This will allow the system to enter calibration mode.
 2. Upload the sketch to the ESP32 Node.
 
 ### Calibration Process
 
-1. After the sketch is uploaded and the ESP32 Node is powered on, the LCD will display a message indicating that the system is in calibration mode. You will be prompted to press '1' to confirm and start the calibration process or '3' to cancel.
-2. Press '1' on the keypad to confirm and start the calibration process. The LCD will display a message indicating that calibration has started.
-3. Now, you will manually move the turntable to each track's head and tail positions and store these positions. To do this, use the '4' and '6' keys on the keypad to move the turntable counter-clockwise and clockwise, respectively. A single key press will move the turntable by a fixed number of steps (defined by `STEP_MOVE_SINGLE_KEYPRESS`), while holding the key will move the turntable continuously (defined by `STEP_MOVE_HELD_KEYPRESS`).
-4. Once the turntable is positioned at the head-end of a track, enter the track number on the keypad (1-23), and then press the '*' key. This will store the current position as the head-end position for the entered track number.
-5. Similarly, once the turntable is positioned at the tail-end of a track, enter the track number on the keypad (1-23), and then press the '#' key. This will store the current position as the tail-end position for the entered track number.
-6. Repeat steps 3-5 for each track on the turntable.
-7. After all track positions have been stored, set the `CALIBRATION_MODE` constant in the sketch back to `false` and re-upload the sketch to the ESP32 Node. This will exit calibration mode and allow the system to operate normally, using the stored track positions.
-
-### Calibration Notes
-
-- During calibration, the system will not respond to MQTT messages. It will only respond to keypad inputs.
-- The stored track positions are saved in the ESP32's EEPROM, so they will persist even if the ESP32 is powered off or reset.
-- If you need to recalibrate the system in the future, simply set `CALIBRATION_MODE` back to `true` and repeat the calibration process.
-- If you trigger an emergency stop during calibration (by pressing the '9' key three times consecutively), the system will stop moving the turntable and display an emergency stop message. After this, you can continue the calibration process.
-- If you press the reset button during calibration, the system will trigger a homing sequence instead of restarting. The turntable will move to the home position, and the current position will be set to zero. After this, you can continue the calibration process.
+1. After uploading the sketch and powering on the ESP32 Node, the LCD will display a message indicating that the system is in calibration mode.
+2. Manually move the turntable to each track's head and tail positions using the '4' and '6' keys on the keypad. Each key press will move the turntable by a fixed number of steps (defined by `STEP_MOVE_SINGLE_KEYPRESS`). Holding down a key will move the turntable continuously (defined by `STEP_MOVE_HELD_KEYPRESS`).
+3. Once the turntable is positioned at the head-end of a track, enter the track number on the keypad (1 to `NUMBER_OF_TRACKS`), and then press the '*' key. This will store the current position as the head-end position for the entered track number.
+4. Similarly, once the turntable is positioned at the tail-end of a track, enter the track number on the keypad (1 to `NUMBER_OF_TRACKS`), and then press the '#' key. This will store the current position as the tail-end position for the entered track number.
+5. Repeat steps 2-4 for each track on the turntable.
+6. After storing all track positions, comment out the `//#define calibrationMode` line in the sketch to disable calibration mode.
+7. Upload the modified sketch to the ESP32 Node to exit calibration mode and allow the system to operate using the stored track positions.
 
 ### Operation Preparation
 
-1. Ensure that the `CALIBRATION_MODE` constant in the sketch is set to `false`. This will allow the system to operate normally.
-2. Upload the sketch to the ESP32 Node.
+1. Upload the modified sketch (with calibration mode disabled) to the ESP32 Node.
 
 ### Operation Process
 
-1. After the sketch is uploaded and the ESP32 Node is powered on, the LCD will display the IP address of the ESP32 Node. This IP address is used for Over-The-Air (OTA) updates.
+1. After uploading the sketch and powering on the ESP32 Node, the LCD will display the IP address of the ESP32 Node. This IP address is used for Over-The-Air (OTA) updates.
 2. The system is now ready to receive commands either from the keypad or via MQTT messages.
 
 ### Keypad Operation
 
-1. To move the turntable to a specific track, enter the track number (1-23) on the keypad.
+1. To move the turntable to a specific track, enter the track number (1 to `NUMBER_OF_TRACKS`) on the keypad.
 2. After entering the track number, press the '*' key to move the turntable to the head-end of the track, or press the '#' key to move the turntable to the tail-end of the track.
-3. The turntable will then move to the commanded position, and the LCD will display the commanded track number and the head or tail position.
+3. The turntable will move to the commanded position, and the LCD will display the commanded track number and the head or tail position.
 
 ### MQTT Operation
 
-1. The system is subscribed to MQTT messages published by JMRI. The expected MQTT message format is 'Tracknx', where 'n' represents the 2-digit track number (01-23) and 'x' represents 'H' for the head-end or 'T' for the tail-end.
+1. The system is subscribed to MQTT messages published by JMRI. The expected MQTT message format is 'Tracknx', where 'n' represents the 2-digit track number (01 to `NUMBER_OF_TRACKS`) and 'x' represents 'H' for the head-end or 'T' for the tail-end.
 2. When an MQTT message is received, the system will extract the track number and end position from the message, calculate the target position, and move the turntable to the target position.
 
 ### Emergency Stop
