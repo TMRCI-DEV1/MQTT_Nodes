@@ -217,9 +217,9 @@ void connectToMQTT() {
     if (WiFi.status() != WL_CONNECTED) {
       connectToWiFi();
     }
-
+    
     // Attempt to connect to the MQTT broker with address and port
-    if (client.connect("ESP32Client", mqtt_broker, String(mqtt_port).c_str())) {
+    if (client.connect("ESP32Client")) { // ESP32Client is the Client ID
       Serial.println("Connected to MQTT");
       client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic
     } else {
@@ -254,6 +254,9 @@ void setup() {
   Serial.begin(115200); // Initialize serial communication
   Wire.begin(); // Initialize the I2C bus
   connectToWiFi(); // Connect to the WiFi network
+  
+  // Connect to MQTT broker
+  connectToMQTT(); // Connect to the MQTT broker and subscribe to the topic
   lcd.begin(LCD_COLUMNS, LCD_ROWS); // Initialize the LCD display
 
   // Print the version number on the LCD
@@ -282,9 +285,6 @@ void setup() {
   #ifdef PITTSBURGH
   WiFi.setHostname("Pittsburgh_Turntable_Node"); // Set the hostname for the Pittsburgh turntable node
   #endif
-
-  // Connect to MQTT broker
-  connectToMQTT(); // Connect to the MQTT broker and subscribe to the topic
 
   #ifdef GILBERTON
   trackHeads = new int[23]; // Create an array to store the head positions of each track
