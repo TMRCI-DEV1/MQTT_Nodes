@@ -87,9 +87,9 @@ bool emergencyStop = false; // Flag for emergency stop condition. When this flag
 char mqttTrackNumber[3] = ""; // Array to store track number from MQTT message. This is where the track number from the MQTT message is stored.
 
 // Network and MQTT Related
-const char * ssid = "Your_WiFi_SSID"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
-const char * password = "Your_WiFi_Password"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
-const char * mqtt_broker = "192.168.0.1"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
+const char * ssid = "MyAltice 976DFF"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
+const char * password = "lemon.463.loud"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
+const char * mqtt_broker = "129.213.106.87"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
 const int mqtt_port = 1883; // MQTT port number.
 WiFiClient espClient; // WiFi client instance. This is used for the network connection.
 PubSubClient client(espClient); // MQTT client instance. This is used for subscribing to MQTT messages.

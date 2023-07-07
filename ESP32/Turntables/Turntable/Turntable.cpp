@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.1.1" // Define the version number
+#define VERSION_NUMBER "1.1.3" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -22,7 +22,7 @@
 #include "Turntable.h"
 
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
-// #define calibrationMode  
+#define CALIBRATION_MODE  
 
 // Define the GILBERTON constant to indicate that the sketch is configured for controlling the turntable in the Gilberton location.
 #define GILBERTON
@@ -211,6 +211,8 @@ void connectToWiFi() {
   If the connection fails, the function will retry the connection.
 */
 void connectToMQTT() {
+  client.setServer(mqtt_broker, mqtt_port); // Connect to MQTT broker
+
   // Loop until MQTT connection is established
   while (!client.connected()) {
     // Check if WiFi connection is lost and reconnect if necessary
@@ -257,6 +259,7 @@ void setup() {
   
   // Connect to MQTT broker
   connectToMQTT(); // Connect to the MQTT broker and subscribe to the topic
+  
   lcd.begin(LCD_COLUMNS, LCD_ROWS); // Initialize the LCD display
 
   // Print the version number on the LCD
