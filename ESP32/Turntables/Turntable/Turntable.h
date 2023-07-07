@@ -97,8 +97,7 @@ PubSubClient client(espClient); // MQTT client instance. This is used for subscr
 // EEPROM Related
 const int CURRENT_POSITION_EEPROM_ADDRESS = 0; // EEPROM address for storing the current position of the turntable
 const int EEPROM_TRACK_HEADS_ADDRESS = 100; // EEPROM address for storing track head positions
-const int EEPROM_TRACK_TAILS_ADDRESS = 200; // EEPROM address for storing track tail positions
-const int EEPROM_TOTAL_SIZE_BYTES = 512; // EEPROM size in bytes. This is the total amount of storage available in the EEPROM.
+const int EEPROM_TOTAL_SIZE_BYTES = 4096; // EEPROM size in bytes. This is the total amount of storage available in the EEPROM.
 
 // Calibration Related
 #ifdef CALIBRATION_MODE // Set to true during calibration, false otherwise. In calibration mode, the turntable will move to the position specified by the track number directly.

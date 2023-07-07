@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.1.6" // Define the version number
+#define VERSION_NUMBER "1.2.0" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -26,6 +26,9 @@
 
 // Uncomment the following line to indicate that the sketch is configured for controlling the turntable in the Pittsburgh location.
 // #define PITTSBURGH  
+
+// Uncomment the following line to indicate that the sketch is configured for controlling the turntable in the Hoboken location.
+// #define HOBOKEN
 
 // Include the Turntable header file which contains definitions and declarations related to the turntable control.
 #include "Turntable.h"
@@ -92,12 +95,53 @@ int pittsburghTrackNumbers[] = {
 int * TRACK_NUMBERS = pittsburghTrackNumbers; // Pointer to the array of track numbers
 #endif
 
+#ifdef HOBOKEN
+const char * MQTT_TOPIC = "TMRCI/output/Hoboken/turntable/#"; // MQTT topic for Hoboken turntable
+const int NUMBER_OF_TRACKS = 22; // Number of tracks in Hoboken
+int hobokenTrackNumbers[] = {
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22
+}; // Track numbers in Hoboken
+int * TRACK_NUMBERS = hobokenTrackNumbers; // Pointer to the array of track numbers
+#endif
+
+/*
+  This function calculates and returns the EEPROM address for storing track tail positions.
+  It does this by adding the size (in bytes) of the total number of track heads to the 
+  starting address of the track heads in the EEPROM. The result is the starting address 
+  for the track tails in the EEPROM.
+*/
+int getEEPROMTrackTailsAddress() {
+  return EEPROM_TRACK_HEADS_ADDRESS + NUMBER_OF_TRACKS * sizeof(int);
+}
+
 /*
   Function to write data to EEPROM with error checking. This function uses a template to allow for writing of different data types to EEPROM.
   memcmp is used for data verification to ensure that the data written to EEPROM is the same as the data intended to be written.
 */
 template < typename T >
-  void writeToEEPROMWithVerification(int address, const T & value) {
+  void writeToEEPROMWithVerification(int address,
+    const T & value) {
     // Define maximum number of write retries
     const int MAX_RETRIES = 3;
     int retryCount = 0;
@@ -114,8 +158,8 @@ template < typename T >
       T readValue;
       EEPROM.get(address, readValue); // Read the written value from EEPROM.
 
-      // If the original and read values are not the same, increment retry count and delay before retrying
-      if (memcmp( & originalValue, & readValue, sizeof(T)) != 0) {
+      // If the new value and read values are not the same, increment retry count and delay before retrying
+      if (memcmp( & value, & readValue, sizeof(T)) != 0) {
         retryCount++;
         delay(500);
       } else {
@@ -256,6 +300,7 @@ void setup() {
   // Initialize libraries and peripherals
   Serial.begin(115200); // Initialize serial communication
   Wire.begin(); // Initialize the I2C bus
+  EEPROM.begin(EEPROM_TOTAL_SIZE_BYTES); // Initialize EEPROM
   connectToWiFi(); // Connect to the WiFi network
 
   // Connect to MQTT broker
@@ -290,6 +335,10 @@ void setup() {
   WiFi.setHostname("Pittsburgh_Turntable_Node"); // Set the hostname for the Pittsburgh turntable node
   #endif
 
+  #ifdef HOBOKEN
+  WiFi.setHostname("Hoboken_Turntable_Node"); // Set the hostname for the Hoboken turntable node
+  #endif
+
   #ifdef GILBERTON
   trackHeads = new int[23]; // Create an array to store the head positions of each track
   trackTails = new int[23]; // Create an array to store the tail positions of each track
@@ -300,21 +349,26 @@ void setup() {
   trackTails = new int[22]; // Create an array to store the tail positions of each track
   #endif
 
-  if (!calibrationMode) {
-  // Read data from EEPROM
-  bool currentPositionReadSuccess = readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Read the current position from EEPROM with error checking
-  bool trackHeadsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads); // Read the track heads from EEPROM with error checking
-  bool trackTailsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_TAILS_ADDRESS, trackTails); // Read the track tails from EEPROM with error checking
+  #ifdef HOBOKEN
+  trackHeads = new int[22]; // Create an array to store the head positions of each track
+  trackTails = new int[22]; // Create an array to store the tail positions of each track
+  #endif
 
-  // If any of the EEPROM read operations failed, set some default values
-  if (!currentPositionReadSuccess || !trackHeadsReadSuccess || !trackTailsReadSuccess) {
-    currentPosition = 0;
-    for (int i = 0; i < NUMBER_OF_TRACKS; i++) {
-      trackHeads[i] = 0;
-      trackTails[i] = 0;
+  if (!calibrationMode) {
+    // Read data from EEPROM
+    bool currentPositionReadSuccess = readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Read the current position from EEPROM with error checking
+    bool trackHeadsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads); // Read the track heads from EEPROM with error checking
+    bool trackTailsReadSuccess = readFromEEPROMWithVerification(getEEPROMTrackTailsAddress(), trackTails); // Read the track tails from EEPROM with error checking
+
+    // If any of the EEPROM read operations failed, set some default values
+    if (!currentPositionReadSuccess || !trackHeadsReadSuccess || !trackTailsReadSuccess) {
+      currentPosition = 0;
+      for (int i = 0; i < NUMBER_OF_TRACKS; i++) {
+        trackHeads[i] = 0;
+        trackTails[i] = 0;
+      }
     }
-  } 
-}
+  }
 
   // Initialize keypad and LCD
   keypad.addEventListener([](char key) {
@@ -423,7 +477,7 @@ void loop() {
           EEPROM.put(EEPROM_TRACK_HEADS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
         } else {
           trackTails[trackNumber - 1] = currentPosition;
-          EEPROM.put(EEPROM_TRACK_TAILS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
+          EEPROM.put(getEEPROMTrackTailsAddress() + (trackNumber - 1) * sizeof(int), currentPosition);
         }
         EEPROM.commit();
         lcd.setCursor(0, 0);
@@ -494,7 +548,7 @@ void callback(char * topic, byte * payload, unsigned int length) {
   Serial.println(topic);
 
   // Find the position of "Track" in the topic string
-  char* trackPosition = strstr(topic, "Track");
+  char * trackPosition = strstr(topic, "Track");
   if (trackPosition == NULL) {
     Serial.println("Invalid MQTT topic: 'Track' not found");
     return;
