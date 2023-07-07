@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.1.0" // Define the version number
+#define VERSION_NUMBER "1.1.1" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -181,13 +181,17 @@ void connectToWiFi() {
     delay(500);
     Serial.println("Connecting to WiFi...");
   }
-  // If WiFi connection is successful, print the IP address to the LCD display
+  // If WiFi connection is successful, print the IP address to the serial monitor and the LCD display
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Connected to WiFi");
 
     // Get the IP address and convert it to a string
     IPAddress ipAddress = WiFi.localIP();
     String ipAddressString = ipAddress.toString();
+
+    // Print the IP address to the serial monitor
+    Serial.print("IP Address: ");
+    Serial.println(ipAddressString);
 
     // Print the IP address to the LCD display
     lcd.clear();
@@ -207,28 +211,28 @@ void connectToWiFi() {
   If the connection fails, the function will retry the connection.
 */
 void connectToMQTT() {
-  // Wait until MQTT connection is established
+  // Loop until MQTT connection is established
   while (!client.connected()) {
-    // If WiFi connection is lost, reconnect to WiFi
+    // Check if WiFi connection is lost and reconnect if necessary
     if (WiFi.status() != WL_CONNECTED) {
       connectToWiFi();
     }
 
-    // Try to connect to MQTT
-    if (client.connect("ESP32Client")) {
+    // Attempt to connect to the MQTT broker with address and port
+    if (client.connect("ESP32Client", mqtt_broker, String(mqtt_port).c_str())) {
       Serial.println("Connected to MQTT");
-      client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic.
+      client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic
     } else {
-      // If MQTT connection failed, print an error message and wait 2 seconds before retrying
+      // If MQTT connection failed, print an error message and retry after a delay
       Serial.print("Failed to connect to MQTT. Retrying in 2 seconds... ");
       delay(2000);
     }
   }
-  // If MQTT connection is successful, print a success message
+
+  // Check MQTT connection status and print success/failure message
   if (client.connected()) {
     Serial.println("Connected to MQTT");
   } else {
-    // If MQTT connection failed, print an error message and wait 5 seconds before retrying
     Serial.println("Failed to connect to MQTT");
     delay(5000);
   }
