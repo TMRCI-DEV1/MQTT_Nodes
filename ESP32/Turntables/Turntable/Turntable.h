@@ -27,13 +27,38 @@
 const byte ROW_NUM = 4; // Number of rows on the keypad.
 const byte COLUMN_NUM = 3; // Number of columns on the keypad.
 char keys[ROW_NUM][COLUMN_NUM] = { // Layout of the keys on the keypad.
-  {'1', '2', '3'},
-  {'4', '5', '6'},
-  {'7', '8', '9'},
-  {'*', '0', '#'}
+  {
+    '1',
+    '2',
+    '3'
+  },
+  {
+    '4',
+    '5',
+    '6'
+  },
+  {
+    '7',
+    '8',
+    '9'
+  },
+  {
+    '*',
+    '0',
+    '#'
+  }
 };
-byte KEYPAD_ROW_PINS[] = {13, 12, 14, 27}; // Row pins of the keypad. These are the pins that the keypad rows are connected to.
-byte KEYPAD_COLUMN_PINS[] = {16, 17, 18}; // Column pins of the keypad. These are the pins that the keypad columns are connected to.
+byte KEYPAD_ROW_PINS[] = {
+  13,
+  12,
+  14,
+  27
+}; // Row pins of the keypad. These are the pins that the keypad rows are connected to.
+byte KEYPAD_COLUMN_PINS[] = {
+  16,
+  17,
+  18
+}; // Column pins of the keypad. These are the pins that the keypad columns are connected to.
 Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM); // Keypad instance. This is used for reading input from the keypad.
 char keypadTrackNumber[3] = ""; // Array to store entered track number on the keypad. This is where the track number entered on the keypad is stored.
 
@@ -62,9 +87,9 @@ bool emergencyStop = false; // Flag for emergency stop condition. When this flag
 char mqttTrackNumber[3] = ""; // Array to store track number from MQTT message. This is where the track number from the MQTT message is stored.
 
 // Network and MQTT Related
-const char * ssid = "***************"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
-const char * password = "***************"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
-const char * mqtt_broker = "***************"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
+const char * ssid = "Your_WiFi_SSID"; // WiFi network SSID. This is the name of the WiFi network that the ESP32 will connect to.
+const char * password = "Your_WiFi_Password"; // WiFi network password. This is the password for the WiFi network that the ESP32 will connect to.
+const char * mqtt_broker = "Your_MQTT_Broker"; // MQTT broker address. This is the address of the MQTT broker that the ESP32 will connect to.
 WiFiClient espClient; // WiFi client instance. This is used for the network connection.
 PubSubClient client(espClient); // MQTT client instance. This is used for subscribing to MQTT messages.
 
@@ -88,13 +113,14 @@ const int STEP_MOVE_HELD_KEYPRESS = 100; // Number of steps to move with a held 
 
 // Position and Track Numbers
 int currentPosition = 0; // Current position of the turntable. This is updated every time the turntable moves.
-extern const int NUMBER_OF_TRACKS;  // External constant variable representing the number of tracks available on the turntable. The value of this variable is defined in the main sketch file.
-extern int* TRACK_NUMBERS;  // External pointer to an integer array representing the track numbers on the turntable. The array contains the track numbers in the order they are arranged on the turntable. The value of this pointer is defined in the main sketch file.
+extern
+const int NUMBER_OF_TRACKS; // External constant variable representing the number of tracks available on the turntable. The value of this variable is defined in the main sketch file.
+extern int * TRACK_NUMBERS; // External pointer to an integer array representing the track numbers on the turntable. The array contains the track numbers in the order they are arranged on the turntable. The value of this pointer is defined in the main sketch file.
 
 /* Function prototypes */
-void callback(char* topic, byte* payload, unsigned int length);   // Callback function for MQTT messages. This function is called whenever an MQTT message is received.
-int calculateTargetPosition(int trackNumber, int endNumber);      // Function to calculate the target position based on the track number and end number. This function is used to determine where the turntable should move to.
-void controlRelays(int trackNumber);                              // Function to control the track power relays. This function is used to turn on the relay for the selected track and turn off all other relays.
-void moveToTargetPosition(int targetPosition);                    // Function to move the turntable to a target position. This function is used to move the turntable to the desired position.
+void callback(char * topic, byte * payload, unsigned int length); // Callback function for MQTT messages. This function is called whenever an MQTT message is received.
+int calculateTargetPosition(int trackNumber, int endNumber); // Function to calculate the target position based on the track number and end number. This function is used to determine where the turntable should move to.
+void controlRelays(int trackNumber); // Function to control the track power relays. This function is used to turn on the relay for the selected track and turn off all other relays.
+void moveToTargetPosition(int targetPosition); // Function to move the turntable to a target position. This function is used to move the turntable to the desired position.
 
 #endif
