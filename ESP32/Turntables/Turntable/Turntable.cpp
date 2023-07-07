@@ -22,7 +22,7 @@
 #include "Turntable.h"
 
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
-//#define calibrationMode  
+// #define calibrationMode  
 
 // Define the GILBERTON constant to indicate that the sketch is configured for controlling the turntable in the Gilberton location.
 #define GILBERTON
