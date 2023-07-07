@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.1.4" // Define the version number
+#define VERSION_NUMBER "1.1.6" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -19,7 +19,7 @@
 */
 
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
-#define CALIBRATION_MODE
+// #define CALIBRATION_MODE
 
 // Define the GILBERTON constant to indicate that the sketch is configured for controlling the turntable in the Gilberton location.
 #define GILBERTON
@@ -223,6 +223,7 @@ void connectToMQTT() {
     // Attempt to connect to the MQTT broker with address and port
     if (client.connect("ESP32Client")) { // ESP32Client is the Client ID
       Serial.println("Connected to MQTT");
+      client.setCallback(callback); // Set the callback function
       client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic
     } else {
       // If MQTT connection failed, print an error message and retry after a delay
@@ -300,11 +301,20 @@ void setup() {
   #endif
 
   if (!calibrationMode) {
-    // Read data from EEPROM
-    readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Read the current position from EEPROM with error checking
-    readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads); // Read the track heads from EEPROM with error checking
-    readFromEEPROMWithVerification(EEPROM_TRACK_TAILS_ADDRESS, trackTails); // Read the track tails from EEPROM with error checking
-  }
+  // Read data from EEPROM
+  bool currentPositionReadSuccess = readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Read the current position from EEPROM with error checking
+  bool trackHeadsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads); // Read the track heads from EEPROM with error checking
+  bool trackTailsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_TAILS_ADDRESS, trackTails); // Read the track tails from EEPROM with error checking
+
+  // If any of the EEPROM read operations failed, set some default values
+  if (!currentPositionReadSuccess || !trackHeadsReadSuccess || !trackTailsReadSuccess) {
+    currentPosition = 0;
+    for (int i = 0; i < NUMBER_OF_TRACKS; i++) {
+      trackHeads[i] = 0;
+      trackTails[i] = 0;
+    }
+  } 
+}
 
   // Initialize keypad and LCD
   keypad.addEventListener([](char key) {
@@ -483,8 +493,16 @@ void callback(char * topic, byte * payload, unsigned int length) {
   Serial.print("Received MQTT topic: ");
   Serial.println(topic);
 
+  // Find the position of "Track" in the topic string
+  char* trackPosition = strstr(topic, "Track");
+  if (trackPosition == NULL) {
+    Serial.println("Invalid MQTT topic: 'Track' not found");
+    return;
+  }
+
+  // Extract the track number and end (head or tail) from the MQTT topic
   char mqttTrackNumber[3];
-  strncpy(mqttTrackNumber, topic + 5, 2); // Extract track number from MQTT topic.
+  strncpy(mqttTrackNumber, trackPosition + 5, 2); // Extract track number from MQTT topic.
   mqttTrackNumber[2] = '\0'; // Null-terminate the char array.
 
   int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer.
@@ -497,7 +515,7 @@ void callback(char * topic, byte * payload, unsigned int length) {
     return;
   }
 
-  int endNumber = (topic[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
+  int endNumber = (trackPosition[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
   int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position.
   moveToTargetPosition(targetPosition); // Move to the target position.
 
