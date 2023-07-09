@@ -1,15 +1,19 @@
 #ifndef PITTSBURGH_CONFIG_H
 #define PITTSBURGH_CONFIG_H
 
-extern
-const char * MQTT_TOPIC;
-extern
-const int NUMBER_OF_TRACKS;
+// External declarations
+extern const char * MQTT_TOPIC;
+extern const int NUMBER_OF_TRACKS;
 extern int * TRACK_NUMBERS;
 
 #ifdef PITTSBURGH
-const char * MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#"; // MQTT topic for Pittsburgh turntable
-const int NUMBER_OF_TRACKS = 22; // Number of tracks in Pittsburgh
+// MQTT topic for Pittsburgh turntable
+const char * MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#";
+
+// Number of tracks in Pittsburgh
+const int NUMBER_OF_TRACKS = 22;
+
+// Track numbers in Pittsburgh
 int pittsburghTrackNumbers[] = {
   1,
   2,
@@ -33,8 +37,10 @@ int pittsburghTrackNumbers[] = {
   20,
   21,
   22
-}; // Track numbers in Pittsburgh
-int * TRACK_NUMBERS = pittsburghTrackNumbers; // Pointer to the array of track numbers
+};
+
+// Pointer to the array of track numbers
+int * TRACK_NUMBERS = pittsburghTrackNumbers;
 #endif
 
 #endif
