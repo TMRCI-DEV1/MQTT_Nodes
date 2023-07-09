@@ -1,4 +1,4 @@
-const char* VERSION_NUMBER = "1.1.29"; // Define the version number
+const char* VERSION_NUMBER = "1.1.31"; // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -19,7 +19,7 @@ const char* VERSION_NUMBER = "1.1.29"; // Define the version number
 */
 
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
-#define CALIBRATION_MODE
+// #define CALIBRATION_MODE
 
 // Depending on the location, define the MQTT topics, number of tracks, and track numbers
 // Uncomment one of these lines to indicate the location
@@ -117,6 +117,30 @@ void readDataFromEEPROM() {
     // Read data from EEPROM
     bool trackHeadsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads); // Read the track heads from EEPROM with error checking
     bool trackTailsReadSuccess = readFromEEPROMWithVerification(getEEPROMTrackTailsAddress(), trackTails); // Read the track tails from EEPROM with error checking
+
+    // Check if the read operations were successful
+    if (!trackHeadsReadSuccess) {
+      Serial.println("Error: Failed to read track heads from EEPROM!");
+      lcd.setCursor(0, 0);
+      lcd.print("EEPROM Error!");
+      lcd.setCursor(0, 1);
+      lcd.print("Track heads read fail");
+      // Set default values for track heads
+      for (int i = 0; i < NUMBER_OF_TRACKS; i++) {
+        trackHeads[i] = 0; // Set default value to 0
+      }
+    }
+    if (!trackTailsReadSuccess) {
+      Serial.println("Error: Failed to read track tails from EEPROM!");
+      lcd.setCursor(0, 2);
+      lcd.print("EEPROM Error!");
+      lcd.setCursor(0, 3);
+      lcd.print("Track tails read fail");
+      // Set default values for track tails
+      for (int i = 0; i < NUMBER_OF_TRACKS; i++) {
+        trackTails[i] = 0; // Set default value to 0
+      }
+    }
   }
 }
 
@@ -188,12 +212,19 @@ void setup() {
   // Connect to MQTT broker
   connectToMQTT(); // Connect to the MQTT broker and subscribe to the topic
 
+  // Initialize various components and settings
+  // This includes the LCD display, relay boards, stepper motor, hostname, and track head and tail arrays
   initializeLCD(); // Initialize the LCD display
   initializeRelayBoards(); // Initialize the relay boards
   initializeStepper(); // Initialize the stepper motor
   setHostname(); // Set the hostname based on the location
   initializeTrackHeadsAndTails(); // Initialize the track heads and tails arrays
-  readDataFromEEPROM(); // Read track positions from EEPROM
+
+  // Only read from EEPROM if not in calibration mode
+  #ifndef CALIBRATION_MODE
+    readDataFromEEPROM(); // Read track positions from EEPROM
+  #endif
+
   initializeKeypadAndLCD(); // Initialize the keypad and LCD
   enableOTAUpdates(); // Enable OTA updates for the ESP32
   performHomingSequence(); // Perform the homing sequence to calibrate the turntable
