@@ -1,15 +1,19 @@
 #ifndef GILBERTON_CONFIG_H
 #define GILBERTON_CONFIG_H
 
-extern
-const char * MQTT_TOPIC;
-extern
-const int NUMBER_OF_TRACKS;
+// External declarations
+extern const char * MQTT_TOPIC;
+extern const int NUMBER_OF_TRACKS;
 extern int * TRACK_NUMBERS;
 
 #ifdef GILBERTON
-const char * MQTT_TOPIC = "TMRCI/output/Gilberton/turntable/#"; // MQTT topic for Gilberton turntable
-const int NUMBER_OF_TRACKS = 23; // Number of tracks in Gilberton
+// MQTT topic for Gilberton turntable
+const char * MQTT_TOPIC = "TMRCI/output/Gilberton/turntable/#";
+
+// Number of tracks in Gilberton
+const int NUMBER_OF_TRACKS = 23;
+
+// Track numbers in Gilberton
 int gilbertonTrackNumbers[] = {
   1,
   2,
@@ -34,8 +38,10 @@ int gilbertonTrackNumbers[] = {
   21,
   22,
   23
-}; // Track numbers in Gilberton
-int * TRACK_NUMBERS = gilbertonTrackNumbers; // Pointer to the array of track numbers
+};
+
+// Pointer to the array of track numbers
+int * TRACK_NUMBERS = gilbertonTrackNumbers;
 #endif
 
 #endif
