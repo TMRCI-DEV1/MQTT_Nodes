@@ -10,15 +10,15 @@ The system utilizes the following components:
 
 - ESP32 Node: The main microcontroller responsible for controlling the turntable.
 - Input Devices:
-  - 3x4 membrane matrix keypad: Allows users to enter track numbers and control the turntable manually.
+  - DIYables 3x4 membrane matrix keypad: Allows users to enter track numbers and control the turntable manually.
 - Output Devices:
-  - Serial LCD 2004 20x4 display module with I2C interface: Displays system information, track numbers, and positions.
-  - 16 Channel I2C Interface Electromagnetic Relay Module: Controls power to the tracks.
-  - 8 Channel I2C Interface Electromagnetic Relay Module: Controls power to the tracks.
+  - GeeekPi IIC I2C TWI Serial LCD 2004 20x4 Display Module with I2C Interface: Displays system information, track numbers, and positions.
+  - KRIDA Electronics 16 Channel Electromagnetic Relay Module with I2C Interface: Controls power to the tracks.
+  - KRIDA Electronics 8 Channel Electromagnetic Relay Module with I2C Interface: Controls power to the tracks.
 - Stepper Motor Components:
-  - STEPPERONLINE CNC stepper motor driver: Drives the stepper motor.
-  - Photo-interrupter "homing" sensor: Detects the home position of the turntable.
-  - STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead): Rotates the turntable.
+  - STEPPERONLINE DM320T 2-Phase digital Stepper Drive: Drives the stepper motor.
+  - TT Electronics Photologic Slotted Optical Switch OPB492T11Z "homing" sensor: Detects the home position of the turntable.
+  - STEPPERONLINE stepper motor (Nema 17 Bipolar 0.9deg 46Ncm (65.1oz.in) 2A 42x42x48mm 4 Wires): Rotates the turntable.
 
 ## Libraries Used
 
