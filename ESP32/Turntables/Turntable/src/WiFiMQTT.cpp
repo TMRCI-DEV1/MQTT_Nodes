@@ -1,9 +1,9 @@
 #include "WiFiMQTT.h"
 
 // Network and MQTT Related
-const char *ssid = "MyAltice 976DFF";          // SSID of the WiFi network
-const char *password = "lemon.463.loud";       // Password of the WiFi network
-const char *mqtt_broker = "129.213.106.87";    // MQTT broker address
+const char *ssid = "Your_WiFi_SSID";           // SSID of the WiFi network
+const char *password = "Your_WiFi_Password";   // Password of the WiFi network
+const char *mqtt_broker = "Your_MQTT_Broker";  // MQTT broker address
 const int mqtt_port = 1883;                    // MQTT broker port
 WiFiClient espClient;                          // WiFiClient object for MQTT communication
 PubSubClient client(espClient);                // PubSubClient object for MQTT communication
