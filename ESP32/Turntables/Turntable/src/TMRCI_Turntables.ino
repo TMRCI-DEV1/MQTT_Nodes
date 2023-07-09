@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.1.27" // Define the version number
+#define VERSION_NUMBER "1.1.28" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -282,7 +282,8 @@ void loop() {
   }
 
   // Check for reset button press
-  if (digitalRead(RESET_BUTTON_PIN) == LOW) {
+  bool currentResetButtonState = digitalRead(RESET_BUTTON_PIN);
+  if (resetButtonState == LOW && currentResetButtonState == HIGH) {
     // Trigger homing sequence instead of restarting ESP32
     while (digitalRead(HOMING_SENSOR_PIN) == HIGH) {
       stepper.move(-10);
@@ -294,6 +295,7 @@ void loop() {
     delay(2000);
     lcd.clear();
   }
+  resetButtonState = currentResetButtonState;
 
   // Run the stepper if there are remaining steps to move
   if (stepper.distanceToGo() != 0) {

@@ -46,6 +46,7 @@ extern const int HOMING_SENSOR_PIN;         // Pin connected to the homing senso
 extern const int RESET_BUTTON_PIN;          // Pin connected to the reset button
 extern bool emergencyStop;                  // Flag to indicate emergency stop condition
 extern char mqttTrackNumber[3];             // Character array to store the track number received via MQTT
+extern bool resetButtonState;               // State of the reset button in the previous iteration
 
 // Calibration Related
 extern const bool calibrationMode;               // Flag to indicate calibration mode

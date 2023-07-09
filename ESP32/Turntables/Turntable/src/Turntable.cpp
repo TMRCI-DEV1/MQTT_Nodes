@@ -61,6 +61,7 @@ const int HOMING_SENSOR_PIN = 25;             // Pin connected to the homing sen
 const int RESET_BUTTON_PIN = 19;              // Pin connected to the reset button
 bool emergencyStop = false;                   // Flag to indicate emergency stop condition
 char mqttTrackNumber[3] = "";                 // Variable to store the track number received via MQTT
+bool resetButtonState = HIGH;                 // Assume the button is not pressed initially
 
 // Calibration Related
 #ifdef CALIBRATION_MODE
