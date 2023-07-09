@@ -73,14 +73,8 @@ template < typename T >
       T readValue;
       EEPROM.get(address, readValue); // Read the value from EEPROM.
 
-      T writtenValue = value; // Store the read value for verification.
-      EEPROM.put(address, writtenValue); // Write the value back to EEPROM.
-      EEPROM.commit();
-      delay(10);
-      EEPROM.get(address, writtenValue); // Read the written value from EEPROM.
-
-      // If the read and written values are not the same, increment retry count and delay before retrying
-      if (memcmp( & readValue, & writtenValue, sizeof(T)) != 0) {
+      // If the read and stored values are not the same, increment retry count and delay before retrying
+      if (memcmp( & value, & readValue, sizeof(T)) != 0) {
         retryCount++;
         delay(500);
       } else {

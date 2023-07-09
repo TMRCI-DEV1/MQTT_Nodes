@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.1.28" // Define the version number
+const char* VERSION_NUMBER = "1.1.29"; // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -6,21 +6,20 @@
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
   Date: 2023-07-09
   Description:
-  This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes a DIYables 3x4 membrane matrix keypad,
-  a GeeekPi IIC I2C TWI Serial LCD 2004 20x4 Display Module with I2C Interface, a KRIDA Electronics 16 Channel Electromagnetic Relay Module with I2C Interface, 
-  KRIDA Electronics 8 Channel Electromagnetic Relay Module with I2C Interface, a STEPPERONLINE DM320T 2-Phase digital Stepper Drive, a TT Electronics Photologic 
-  Slotted Optical Switch OPB492T11Z "homing" sensor, a reset button, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 0.9deg 46Ncm (65.1oz.in) 2A 42x42x48mm 4 Wires). 
+  This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes various components, including a DIYables 3x4 membrane matrix keypad,
+  a GeeekPi IIC I2C TWI Serial LCD 2004 20x4 Display Module with I2C Interface, KRIDA Electronics Relay Modules, a STEPPERONLINE Stepper Drive, a TT Electronics Photologic 
+  Slotted Optical Switch, a reset button, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 0.9deg 46Ncm (65.1oz.in) 2A 42x42x48mm 4 Wires). 
   
   The ESP32 Node connects to a WiFi network, subscribes to MQTT messages published by JMRI, and enables control of the turntable by entering a 1 or 2-digit track 
   number on the keypad, followed by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents 
   the 2-digit track number (01-24, depending on location) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the
-  commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname,("LOCATION_Turntable_Node").
+  commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname, "LOCATION_Turntable_Node".
 
   The turntable is used to rotate locomotives or cars from one track to another, and the ESP32 provides a convenient way to control it remotely via WiFi and MQTT.
 */
 
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
-// #define CALIBRATION_MODE
+#define CALIBRATION_MODE
 
 // Depending on the location, define the MQTT topics, number of tracks, and track numbers
 // Uncomment one of these lines to indicate the location
@@ -31,20 +30,16 @@
 
 #ifdef GILBERTON
 #include "GilbertonConfig.h"
-
 #elif defined(HOBOKEN)
 #include "HobokenConfig.h"
-
 #elif defined(PITTSBURGH)
 #include "PittsburghConfig.h"
-
 #endif
 
 // Include the Turntable header file which contains definitions and declarations related to the turntable control.
 #include "Turntable.h"
 
 #include "EEPROMConfig.h"
-
 #include "WiFiMQTT.h"
 
 // Array to store the head positions of each track. The head position is the starting point of a track.
@@ -53,21 +48,8 @@ int * trackHeads;
 // Array to store the tail positions of each track. The tail position is the ending point of a track.
 int * trackTails;
 
-/*
-  ESP32 setup function to initialize the system
-  This function uses a separate function to connect to WiFi for better code organization and readability.
-  A while loop is used to wait for the homing sensor to ensure that the system is properly initialized before proceeding.
-*/
-void setup() {
-  // Initialize libraries and peripherals
-  Serial.begin(115200); // Initialize serial communication
-  Wire.begin(); // Initialize the I2C bus
-  EEPROM.begin(EEPROM_TOTAL_SIZE_BYTES); // Initialize EEPROM
-  connectToWiFi(); // Connect to the WiFi network
-
-  // Connect to MQTT broker
-  connectToMQTT(); // Connect to the MQTT broker and subscribe to the topic
-
+// Function to initialize LCD
+void initializeLCD() {
   lcd.begin(LCD_COLUMNS, LCD_ROWS); // Initialize the LCD display
 
   // Print the version number on the LCD
@@ -77,62 +59,69 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print(VERSION_NUMBER);
 
-  #ifdef calibrationMode
+#ifdef CALIBRATION_MODE
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Calibration Mode");
-  #endif
+#endif
+}
 
+// Function to initialize Relay Boards
+void initializeRelayBoards() {
   relayBoard1.begin(); // Initialize the first relay board
   relayBoard2.begin(); // Initialize the second relay board
+}
+
+// Function to initialize Stepper
+void initializeStepper() {
   stepper.setMaxSpeed(STEPPER_SPEED); // Set the maximum speed for the stepper motor
   stepper.setAcceleration(STEPPER_SPEED); // Set the acceleration for the stepper motor
+}
 
-  // Set hostname based on location
-  #ifdef GILBERTON
+// Function to set hostname based on location
+void setHostname() {
+#ifdef GILBERTON
   WiFi.setHostname("Gilberton_Turntable_Node"); // Set the hostname for the Gilberton turntable node
-  #endif
+#endif
 
-  #ifdef PITTSBURGH
+#ifdef PITTSBURGH
   WiFi.setHostname("Pittsburgh_Turntable_Node"); // Set the hostname for the Pittsburgh turntable node
-  #endif
+#endif
 
-  #ifdef HOBOKEN
+#ifdef HOBOKEN
   WiFi.setHostname("Hoboken_Turntable_Node"); // Set the hostname for the Hoboken turntable node
-  #endif
+#endif
+}
 
-  #ifdef GILBERTON
+// Function to initialize track heads and tails
+void initializeTrackHeadsAndTails() {
+#ifdef GILBERTON
   trackHeads = new int[23]; // Create an array to store the head positions of each track
   trackTails = new int[23]; // Create an array to store the tail positions of each track
-  #endif
+#endif
 
-  #ifdef PITTSBURGH
+#ifdef PITTSBURGH
   trackHeads = new int[22]; // Create an array to store the head positions of each track
   trackTails = new int[22]; // Create an array to store the tail positions of each track
-  #endif
+#endif
 
-  #ifdef HOBOKEN
+#ifdef HOBOKEN
   trackHeads = new int[22]; // Create an array to store the head positions of each track
   trackTails = new int[22]; // Create an array to store the tail positions of each track
-  #endif
+#endif
+}
 
+// Function to read data from EEPROM
+void readDataFromEEPROM() {
   if (!calibrationMode) {
     // Read data from EEPROM
-    // bool currentPositionReadSuccess = readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Read the current position from EEPROM with error checking
     bool trackHeadsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads); // Read the track heads from EEPROM with error checking
     bool trackTailsReadSuccess = readFromEEPROMWithVerification(getEEPROMTrackTailsAddress(), trackTails); // Read the track tails from EEPROM with error checking
-
-    // If any of the EEPROM read operations failed, set default values for trackHeads and trackTails
-    // if (!currentPositionReadSuccess || !trackHeadsReadSuccess || !trackTailsReadSuccess) {
-    //   currentPosition = 0;
-    //   for (int i = 0; i < NUMBER_OF_TRACKS; i++) {
-    //     trackHeads[i] = 0;
-    //     trackTails[i] = 0;
-    //   }
-    // }
   }
+}
 
-  // Initialize keypad and LCD
+// Function to initialize keypad and LCD
+void initializeKeypadAndLCD() {
   keypad.addEventListener([](char key) {
     int trackNumber = atoi(keypadTrackNumber); // Get the track number entered on the keypad
 
@@ -164,9 +153,50 @@ void setup() {
 
     keypadTrackNumber[0] = '\0'; // Reset track number input
   });
+}
 
-  // Enable OTA updates
+// Function to enable OTA updates
+void enableOTAUpdates() {
   ArduinoOTA.begin();
+}
+
+// Function to perform homing sequence
+void performHomingSequence() {
+  while (digitalRead(HOMING_SENSOR_PIN) == HIGH) {
+    stepper.move(-10);
+    stepper.run();
+  }
+  currentPosition = 0; // Set current position to zero after homing.
+  lcd.setCursor(0, 0);
+  lcd.print("HOMING SEQUENCE TRIGGERED");
+  delay(2000);
+  lcd.clear();
+}
+
+/*
+  ESP32 setup function to initialize the system
+  This function uses a separate function to connect to WiFi for better code organization and readability.
+  A while loop is used to wait for the homing sensor to ensure that the system is properly initialized before proceeding.
+*/
+void setup() {
+  // Initialize libraries and peripherals
+  Serial.begin(115200); // Initialize serial communication
+  Wire.begin(); // Initialize the I2C bus
+  EEPROM.begin(EEPROM_TOTAL_SIZE_BYTES); // Initialize EEPROM
+  connectToWiFi(); // Connect to the WiFi network
+
+  // Connect to MQTT broker
+  connectToMQTT(); // Connect to the MQTT broker and subscribe to the topic
+
+  initializeLCD(); // Initialize the LCD display
+  initializeRelayBoards(); // Initialize the relay boards
+  initializeStepper(); // Initialize the stepper motor
+  setHostname(); // Set the hostname based on the location
+  initializeTrackHeadsAndTails(); // Initialize the track heads and tails arrays
+  readDataFromEEPROM(); // Read track positions from EEPROM
+  initializeKeypadAndLCD(); // Initialize the keypad and LCD
+  enableOTAUpdates(); // Enable OTA updates for the ESP32
+  performHomingSequence(); // Perform the homing sequence to calibrate the turntable
 }
 
 /* 
@@ -284,7 +314,7 @@ void loop() {
   // Check for reset button press
   bool currentResetButtonState = digitalRead(RESET_BUTTON_PIN);
   if (resetButtonState == LOW && currentResetButtonState == HIGH) {
-    // Trigger homing sequence instead of restarting ESP32
+    // Trigger the homing sequence instead of restarting the ESP32
     while (digitalRead(HOMING_SENSOR_PIN) == HIGH) {
       stepper.move(-10);
       stepper.run();
