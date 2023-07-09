@@ -1,18 +1,19 @@
-#define VERSION_NUMBER "1.2.1" // Define the version number
+#define VERSION_NUMBER "1.2.8" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Date: 2023-07-07
+  Date: 2023-07-09
   Description:
-  This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes a 3x4 membrane matrix keypad,
-  a serial LCD 2004A 20x4 display module with I2C interface, a 16 Channel I2C Interface Electromagnetic Relay Module, an 8 Channel I2C
-  Interface Electromagnetic Relay Module, a STEPPERONLINE CNC stepper motor driver, a photo-interrupter "homing" sensor, a reset button,
-  and a STEPPERONLINE stepper motor (Nema 17 Bipolar 40mm 64oz.in(45Ncm) 2A 4 Lead). The ESP32 Node connects to a WiFi network, subscribes
-  to MQTT messages published by JMRI, and enables control of the turntable by entering a 1 or 2-digit track number on the keypad, followed
-  by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents the
-  2-digit track number (01-24, depending on location) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the
+  This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes a DIYables 3x4 membrane matrix keypad,
+  a GeeekPi IIC I2C TWI Serial LCD 2004 20x4 Display Module with I2C Interface, a KRIDA Electronics 16 Channel Electromagnetic Relay Module with I2C Interface, 
+  KRIDA Electronics 8 Channel Electromagnetic Relay Module with I2C Interface, a STEPPERONLINE DM320T 2-Phase digital Stepper Drive, a TT Electronics Photologic 
+  Slotted Optical Switch OPB492T11Z "homing" sensor, a reset button, and a STEPPERONLINE stepper motor (Nema 17 Bipolar 0.9deg 46Ncm (65.1oz.in) 2A 42x42x48mm 4 Wires). 
+  
+  The ESP32 Node connects to a WiFi network, subscribes to MQTT messages published by JMRI, and enables control of the turntable by entering a 1 or 2-digit track 
+  number on the keypad, followed by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents 
+  the 2-digit track number (01-24, depending on location) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the
   commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname,("LOCATION_Turntable_Node").
 
   The turntable is used to rotate locomotives or cars from one track to another, and the ESP32 provides a convenient way to control it remotely via WiFi and MQTT.
@@ -22,180 +23,29 @@
 // #define CALIBRATION_MODE
 
 // Depending on the location, define the MQTT topics, number of tracks, and track numbers
-// Define the GILBERTON constant to indicate that the sketch is configured for controlling the turntable in the Gilberton location.
+// Uncomment one of these lines to indicate the location
+
 #define GILBERTON
+// #define HOBOKEN
+// #define PITTSBURGH
+
+#ifdef GILBERTON
 #include "GilbertonConfig.h"
 
-// Uncomment the following line to indicate that the sketch is configured for controlling the turntable in the Pittsburgh location.
-// #define PITTSBURGH  
+#elif defined(HOBOKEN)
+#include "HobokenConfig.h"
+
+#elif defined(PITTSBURGH)
 #include "PittsburghConfig.h"
 
-// Uncomment the following line to indicate that the sketch is configured for controlling the turntable in the Hoboken location.
-// #define HOBOKEN
-#include "HobokenConfig.h"
+#endif
 
 // Include the Turntable header file which contains definitions and declarations related to the turntable control.
 #include "Turntable.h"
 
-/*
-  This function calculates and returns the EEPROM address for storing track tail positions.
-  It does this by adding the size (in bytes) of the total number of track heads to the 
-  starting address of the track heads in the EEPROM. The result is the starting address 
-  for the track tails in the EEPROM.
-*/
-int getEEPROMTrackTailsAddress() {
-  return EEPROM_TRACK_HEADS_ADDRESS + NUMBER_OF_TRACKS * sizeof(int);
-}
+#include "EEPROMConfig.h"
 
-/*
-  Function to write data to EEPROM with error checking. This function uses a template to allow for writing of different data types to EEPROM.
-  memcmp is used for data verification to ensure that the data written to EEPROM is the same as the data intended to be written.
-*/
-template < typename T >
-  void writeToEEPROMWithVerification(int address,
-    const T & value) {
-    // Define maximum number of write retries
-    const int MAX_RETRIES = 3;
-    int retryCount = 0;
-    bool writeSuccess = false;
-
-    // Retry writing to EEPROM until successful or maximum retries reached
-    while (retryCount < MAX_RETRIES && !writeSuccess) {
-      T originalValue;
-      EEPROM.get(address, originalValue); // Read original value from EEPROM.
-      EEPROM.put(address, value); // Write new value to EEPROM.
-      EEPROM.commit();
-      delay(10);
-
-      T readValue;
-      EEPROM.get(address, readValue); // Read the written value from EEPROM.
-
-      // If the new value and read values are not the same, increment retry count and delay before retrying
-      if (memcmp( & value, & readValue, sizeof(T)) != 0) {
-        retryCount++;
-        delay(500);
-      } else {
-        writeSuccess = true;
-      }
-    }
-
-    // If writing to EEPROM failed, print an error message
-    if (!writeSuccess) {
-      Serial.println("EEPROM write error!");
-    }
-  }
-
-/*
-  Function to read data from EEPROM with error checking. This function uses a template to allow for reading of different data types from EEPROM.
-  memcmp is used for data verification to ensure that the data read from EEPROM is the same as the data stored.
-*/
-template < typename T >
-  bool readFromEEPROMWithVerification(int address, T & value) {
-    // Define maximum number of read retries
-    const int MAX_RETRIES = 3;
-    int retryCount = 0;
-    bool readSuccess = false;
-
-    // Retry reading from EEPROM until successful or maximum retries reached
-    while (retryCount < MAX_RETRIES && !readSuccess) {
-      T readValue;
-      EEPROM.get(address, readValue); // Read the value from EEPROM.
-
-      T writtenValue = value; // Store the read value for verification.
-      EEPROM.put(address, writtenValue); // Write the value back to EEPROM.
-      EEPROM.commit();
-      delay(10);
-      EEPROM.get(address, writtenValue); // Read the written value from EEPROM.
-
-      // If the read and written values are not the same, increment retry count and delay before retrying
-      if (memcmp( & readValue, & writtenValue, sizeof(T)) != 0) {
-        retryCount++;
-        delay(500);
-      } else {
-        value = readValue;
-        readSuccess = true;
-      }
-    }
-
-    // If reading from EEPROM failed, print an error message
-    if (!readSuccess) {
-      Serial.println("EEPROM read error!");
-    }
-
-    return readSuccess;
-  }
-
-/*
-  Function to connect to WiFi. This function uses a while loop to wait for the connection to be established.
-  If the connection fails, the function will retry the connection.
-*/
-void connectToWiFi() {
-  // Begin WiFi connection with the given ssid and password
-  WiFi.begin(ssid, password);
-  // Wait until WiFi connection is established
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.println("Connecting to WiFi...");
-  }
-  // If WiFi connection is successful, print the IP address to the serial monitor and the LCD display
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("Connected to WiFi");
-
-    // Get the IP address and convert it to a string
-    IPAddress ipAddress = WiFi.localIP();
-    String ipAddressString = ipAddress.toString();
-
-    // Print the IP address to the serial monitor
-    Serial.print("IP Address: ");
-    Serial.println(ipAddressString);
-
-    // Print the IP address to the LCD display
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("IP Address:");
-    lcd.setCursor(0, 1);
-    lcd.print(ipAddressString);
-  } else {
-    // If WiFi connection failed, print an error message and wait 5 seconds before retrying
-    Serial.println("Failed to connect to WiFi");
-    delay(5000);
-  }
-}
-
-/*
-  Function to connect to MQTT. This function uses a while loop to wait for the connection to be established.
-  If the connection fails, the function will retry the connection.
-*/
-void connectToMQTT() {
-  client.setServer(mqtt_broker, mqtt_port); // Connect to MQTT broker
-
-  // Loop until MQTT connection is established
-  while (!client.connected()) {
-    // Check if WiFi connection is lost and reconnect if necessary
-    if (WiFi.status() != WL_CONNECTED) {
-      connectToWiFi();
-    }
-
-    // Attempt to connect to the MQTT broker with address and port
-    if (client.connect("ESP32Client")) { // ESP32Client is the Client ID
-      Serial.println("Connected to MQTT");
-      client.setCallback(callback); // Set the callback function
-      client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic
-    } else {
-      // If MQTT connection failed, print an error message and retry after a delay
-      Serial.print("Failed to connect to MQTT. Retrying in 2 seconds... ");
-      delay(2000);
-    }
-  }
-
-  // Check MQTT connection status and print success/failure message
-  if (client.connected()) {
-    Serial.println("Connected to MQTT");
-  } else {
-    Serial.println("Failed to connect to MQTT");
-    delay(5000);
-  }
-}
+#include "WiFiMQTT.h"
 
 // Array to store the head positions of each track. The head position is the starting point of a track.
 int * trackHeads;
@@ -268,18 +118,18 @@ void setup() {
 
   if (!calibrationMode) {
     // Read data from EEPROM
-    bool currentPositionReadSuccess = readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Read the current position from EEPROM with error checking
+    // bool currentPositionReadSuccess = readFromEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Read the current position from EEPROM with error checking
     bool trackHeadsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads); // Read the track heads from EEPROM with error checking
     bool trackTailsReadSuccess = readFromEEPROMWithVerification(getEEPROMTrackTailsAddress(), trackTails); // Read the track tails from EEPROM with error checking
 
-    // If any of the EEPROM read operations failed, set some default values
-    if (!currentPositionReadSuccess || !trackHeadsReadSuccess || !trackTailsReadSuccess) {
-      currentPosition = 0;
-      for (int i = 0; i < NUMBER_OF_TRACKS; i++) {
-        trackHeads[i] = 0;
-        trackTails[i] = 0;
-      }
-    }
+    // If any of the EEPROM read operations failed, set default values for trackHeads and trackTails
+    // if (!currentPositionReadSuccess || !trackHeadsReadSuccess || !trackTailsReadSuccess) {
+    //   currentPosition = 0;
+    //   for (int i = 0; i < NUMBER_OF_TRACKS; i++) {
+    //     trackHeads[i] = 0;
+    //     trackTails[i] = 0;
+    //   }
+    // }
   }
 
   // Initialize keypad and LCD
@@ -295,7 +145,7 @@ void setup() {
         moveToTargetPosition(targetPosition); // Move the turntable to the target position
         controlRelays(trackNumber); // Control the track power relays
 
-        writeToEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition);
+        // writeToEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition);
 
         // Update the LCD display with the selected track information
         lcd.clear();
@@ -446,137 +296,5 @@ void loop() {
   // Run the stepper if there are remaining steps to move
   if (stepper.distanceToGo() != 0) {
     stepper.run();
-  }
-}
-
-/* 
-  MQTT callback function to handle incoming messages
-  This function uses a char array to store the MQTT message because the payload is received as a byte array, and converting it to a char array makes it easier to work with.
-  strncpy is used to extract the track number from the MQTT message because it allows for copying a specific number of characters from a string.
-*/
-void callback(char * topic, byte * payload, unsigned int length) {
-  // Print the received MQTT topic
-  Serial.print("Received MQTT topic: ");
-  Serial.println(topic);
-
-  // Find the position of "Track" in the topic string
-  char * trackPosition = strstr(topic, "Track");
-  if (trackPosition == NULL) {
-    Serial.println("Invalid MQTT topic: 'Track' not found");
-    return;
-  }
-
-  // Extract the track number and end (head or tail) from the MQTT topic
-  char mqttTrackNumber[3];
-  strncpy(mqttTrackNumber, trackPosition + 5, 2); // Extract track number from MQTT topic.
-  mqttTrackNumber[2] = '\0'; // Null-terminate the char array.
-
-  int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer.
-
-  if (trackNumber > NUMBER_OF_TRACKS || trackNumber < 1) {
-    Serial.println("Invalid track number received in MQTT topic");
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Invalid track number received in MQTT topic");
-    return;
-  }
-
-  int endNumber = (trackPosition[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
-  int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position.
-  moveToTargetPosition(targetPosition); // Move to the target position.
-
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Track selected:");
-  lcd.setCursor(0, 1);
-  lcd.print(trackNumber);
-  lcd.setCursor(0, 2);
-  lcd.print("Position:");
-  lcd.setCursor(0, 3);
-  lcd.print(targetPosition);
-}
-
-/* 
-  Function to calculate the target position based on the track number and the end (head or tail) specified
-  This function is used to calculate the target position separately for better code organization and readability.
-  An array is used to store the track heads and tails for efficiency, as it allows for quick access to the head and tail positions of each track.
-*/
-int calculateTargetPosition(int trackNumber, int endNumber) {
-  int targetPosition;
-  if (calibrationMode) {
-    targetPosition = trackNumber; // In calibration mode, the target position is the track number itself.
-  } else {
-    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1]; // Retrieve the corresponding head or tail position.
-  }
-  return targetPosition;
-}
-
-/* Function to control track power relays
-   This function is used to control the relays separately for better code organization and readability.
-   A for loop is used to turn off all the relays because it allows for iterating through all the relays without having to write separate code for each one. */
-void controlRelays(int trackNumber) {
-  // Check if the relay for the selected track is already on
-  if ((trackNumber >= 1 && trackNumber <= 15 && relayBoard1.digitalRead(trackNumber) == LOW) ||
-    (trackNumber >= 16 && trackNumber <= NUMBER_OF_TRACKS && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
-    return; // If the relay for the selected track is already on, no need to change the state of any relay
-  }
-
-  // Turn off all relays
-  for (uint8_t i = 0; i < 16; i++) {
-    relayBoard1.digitalWrite(i, HIGH);
-  }
-
-  for (uint8_t i = 0; i < 8; i++) {
-    relayBoard2.digitalWrite(i, HIGH);
-  }
-
-  // Turn on the relay corresponding to the selected track
-  if (trackNumber >= 1 && trackNumber <= 15) {
-    relayBoard1.digitalWrite(trackNumber, LOW);
-  } else if (trackNumber >= 16 && trackNumber <= NUMBER_OF_TRACKS) {
-    relayBoard2.digitalWrite(trackNumber - 16, LOW);
-  }
-}
-
-/* 
-  Function to move the turntable to the target position
-  This function is used to move to the target position separately for better code organization and readability.
-  A while loop is used to wait for the stepper to finish moving to ensure that the turntable has reached the target position before proceeding.
-*/
-void moveToTargetPosition(int targetPosition) {
-  // Print the target position and current position
-  Serial.print("Moving to target position: ");
-  Serial.print(targetPosition);
-  Serial.print(", Current position: ");
-  Serial.println(currentPosition);
-
-  // Turn off the turntable bridge track power before starting the move
-  relayBoard1.digitalWrite(0, HIGH);
-
-  if (targetPosition < currentPosition) {
-    stepper.moveTo(targetPosition);
-  } else if (targetPosition > currentPosition) {
-    stepper.moveTo(targetPosition);
-  }
-
-  while (stepper.distanceToGo() != 0) {
-    stepper.run();
-  }
-
-  // Update current position after moving
-  currentPosition = targetPosition;
-
-  // Print the updated current position
-  Serial.print("Move complete. Current position: ");
-  Serial.println(currentPosition);
-
-  // Turn on the track power for the target position after the move is complete
-  controlRelays(targetPosition);
-
-  // Turn the turntable bridge track power back ON (LOW) once the turntable has completed its move
-  relayBoard1.digitalWrite(0, LOW);
-
-  if (!calibrationMode) {
-    writeToEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Save current position to EEPROM
   }
 }
