@@ -37,75 +37,76 @@ byte KEYPAD_COLUMN_PINS[] = {
   18
 }; // Column pins of the keypad. These are the pins that the keypad columns are connected to.
 Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM);
-char keypadTrackNumber[3] = ""; // Variable to store the entered track number from the keypad
+char keypadTrackNumber[3] = "";               // Variable to store the entered track number from the keypad
 
 // Stepper Motor Related
-const int STEPS_PER_REV = 6400; // Number of steps per revolution for the stepper motor
-const int STEPPER_SPEED = 800; // Maximum speed for the stepper motor (full revolution in ~30 seconds)
-AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // AccelStepper object to control the stepper motor
+const int STEPS_PER_REV = 6400;               // Number of steps per revolution for the stepper motor
+const int STEPPER_SPEED = 800;                // Maximum speed for the stepper motor (full revolution in ~30 seconds)
+AccelStepper stepper(AccelStepper::DRIVER, 33, 32);  // AccelStepper object to control the stepper motor
 
 // Relay Board Related
-const int RELAY_BOARD1_ADDRESS = 0x20; // I2C address of the first relay board
-const int RELAY_BOARD2_ADDRESS = 0x21; // I2C address of the second relay board
-PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS); // PCF8575 object to control the first relay board
-PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS); // PCF8574 object to control the second relay board
+const int RELAY_BOARD1_ADDRESS = 0x20;        // I2C address of the first relay board
+const int RELAY_BOARD2_ADDRESS = 0x21;        // I2C address of the second relay board
+PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS);    // PCF8575 object to control the first relay board
+PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS);    // PCF8574 object to control the second relay board
 
 // LCD Related
-const int LCD_ADDRESS = 0x27; // I2C address of the LCD display
-const int LCD_COLUMNS = 20; // Number of columns in the LCD display
-const int LCD_ROWS = 4; // Number of rows in the LCD display
-LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS); // LiquidCrystal_I2C object to control the LCD display
+const int LCD_ADDRESS = 0x27;                 // I2C address of the LCD display
+const int LCD_COLUMNS = 20;                   // Number of columns in the LCD display
+const int LCD_ROWS = 4;                       // Number of rows in the LCD display
+LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);   // LiquidCrystal_I2C object to control the LCD display
 
 // Miscellaneous
-const int HOMING_SENSOR_PIN = 25; // Pin connected to the homing sensor
-const int RESET_BUTTON_PIN = 19; // Pin connected to the reset button
-bool emergencyStop = false; // Flag to indicate emergency stop condition
-char mqttTrackNumber[3] = ""; // Variable to store the track number received via MQTT
+const int HOMING_SENSOR_PIN = 25;             // Pin connected to the homing sensor
+const int RESET_BUTTON_PIN = 19;              // Pin connected to the reset button
+bool emergencyStop = false;                   // Flag to indicate emergency stop condition
+char mqttTrackNumber[3] = "";                 // Variable to store the track number received via MQTT
 
 // Calibration Related
 #ifdef CALIBRATION_MODE
-const bool calibrationMode = true; // Flag to indicate calibration mode
+const bool calibrationMode = true;            // Flag to indicate calibration mode
 #else
 const bool calibrationMode = false;
 #endif
-const char CONFIRM_YES = '1'; // Character to confirm an action
-const char CONFIRM_NO = '3'; // Character to cancel an action
-const int STEP_MOVE_SINGLE_KEYPRESS = 10; // Number of steps to move the turntable for a single keypress
-const int STEP_MOVE_HELD_KEYPRESS = 100; // Number of steps to move the turntable for a held keypress
+const char CONFIRM_YES = '1';                 // Character to confirm an action
+const char CONFIRM_NO = '3';                  // Character to cancel an action
+const int STEP_MOVE_SINGLE_KEYPRESS = 10;     // Number of steps to move the turntable for a single keypress
+const int STEP_MOVE_HELD_KEYPRESS = 100;      // Number of steps to move the turntable for a held keypress
 
 // Position and Track Numbers
-int currentPosition = 0; // Current position of the turntable
-extern const int NUMBER_OF_TRACKS; // Number of tracks on the turntable
-extern int * TRACK_NUMBERS; // Pointer to the array of track numbers
-extern int * trackHeads; // Array to store the head positions of each track
-extern int * trackTails; // Array to store the tail positions of each track
+int currentPosition = 0;                      // Current position of the turntable
+extern const int NUMBER_OF_TRACKS;            // Number of tracks on the turntable
+extern int *TRACK_NUMBERS;                    // Pointer to the array of track numbers
+extern int *trackHeads;                       // Array to store the head positions of each track
+extern int *trackTails;                       // Array to store the tail positions of each track
 
 /* Definitions of functions declared in Turntable.h */
+
 /* 
-  Function to calculate the target position based on the track number and the end (head or tail) specified
+  Function to calculate the target position based on the track number and the end (head or tail) specified.
   This function is used to calculate the target position separately for better code organization and readability.
   An array is used to store the track heads and tails for efficiency, as it allows for quick access to the head and tail positions of each track.
 */
 int calculateTargetPosition(int trackNumber, int endNumber) {
   int targetPosition;
   if (calibrationMode) {
-    targetPosition = trackNumber; // In calibration mode, the target position is the track number itself.
+    targetPosition = trackNumber;             // In calibration mode, the target position is the track number itself.
   } else {
-    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1]; // Retrieve the corresponding head or tail position.
+    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1];  // Retrieve the corresponding head or tail position.
   }
   return targetPosition;
 }
 
 /* 
-  Function to control track power relays
+  Function to control track power relays.
   This function is used to control the relays separately for better code organization and readability.
   A for loop is used to turn off all the relays because it allows for iterating through all the relays without having to write separate code for each one. 
 */
 void controlRelays(int trackNumber) {
   // Check if the relay for the selected track is already on
   if ((trackNumber >= 1 && trackNumber <= 15 && relayBoard1.digitalRead(trackNumber) == LOW) ||
-    (trackNumber >= 16 && trackNumber <= NUMBER_OF_TRACKS && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
-    return; // If the relay for the selected track is already on, no need to change the state of any relay
+      (trackNumber >= 16 && trackNumber <= NUMBER_OF_TRACKS && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
+    return;                                 // If the relay for the selected track is already on, no need to change the state of any relay
   }
 
   // Turn off all relays
@@ -126,10 +127,11 @@ void controlRelays(int trackNumber) {
 }
 
 /* 
-  Function to move the turntable to the target position
-  This function is used to move to the target position separately for better code organization and readability.
-  A while loop is used to wait for the stepper to finish moving to ensure that the turntable has reached the target position before proceeding.
+  Function to move the turntable to the target position.
+This function is used to move to the target position separately for better code organization and readability.
+A while loop is used to wait for the stepper to finish moving to ensure that the turntable has reached the target position before proceeding.
 */
+
 void moveToTargetPosition(int targetPosition) {
   // Print the target position and current position
   Serial.print("Moving to target position: ");

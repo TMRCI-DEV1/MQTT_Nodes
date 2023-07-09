@@ -1,4 +1,4 @@
-#define VERSION_NUMBER "1.2.8" // Define the version number
+#define VERSION_NUMBER "1.1.27" // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -136,11 +136,13 @@ void setup() {
   keypad.addEventListener([](char key) {
     int trackNumber = atoi(keypadTrackNumber); // Get the track number entered on the keypad
 
-    if (trackNumber > 0 && trackNumber <= NUMBER_OF_TRACKS) { // Check if the track number is valid
+    if (trackNumber > 0 && trackNumber <= NUMBER_OF_TRACKS) // Check if the track number is valid
+    {
       char endChar = keypadTrackNumber[2]; // Get the end character entered on the keypad
       int endNumber = (endChar == 'H') ? 1 : ((endChar == 'T') ? 2 : 0); // Map the end character to a number (1 for head, 2 for tail)
 
-      if (endNumber != 0) { // Check if the end number is valid
+      if (endNumber != 0) // Check if the end number is valid
+      {
         int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate the target position based on the track number and end number
         moveToTargetPosition(targetPosition); // Move the turntable to the target position
         controlRelays(trackNumber); // Control the track power relays

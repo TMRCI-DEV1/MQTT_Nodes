@@ -2,7 +2,7 @@
 
 ## Overview
 
-This ESP32 sketch is designed to control a Turntable using an ESP32 Node. The turntable can be controlled by entering a 1 or 2-digit track number on a keypad or by receiving MQTT messages published by JMRI. The sketch also supports calibration of the turntable positions.
+This ESP32 sketch is designed to control a turntable using an ESP32 Node. The turntable can be controlled by entering a 1 or 2-digit track number on a keypad or by receiving MQTT messages published by JMRI. The sketch also supports calibration of the turntable positions.
 
 ## Components
 
@@ -77,7 +77,7 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 ### Keypad Operation
 
 1. To move the turntable to a specific track, enter the track number (1 to `NUMBER_OF_TRACKS`) on the keypad.
-2. After entering the track number, press the '*' key to move the turntable to the head-end of the track, or press the '#' key to move the turntable to the tail-end of the track.
+2. After entering the track number, press the '*' key to move the turntable to the head-end of the track or press the '#' key to move the turntable to the tail-end of the track.
 3. The turntable will move to the commanded position, and the LCD will display the commanded track number and the head or tail position.
 
 ### MQTT Operation
@@ -184,7 +184,7 @@ The sketch also defines several variables:
 - `MQTT_TOPIC`: A string variable that represents the MQTT topic.
 - `NUMBER_OF_TRACKS`: An integer variable that represents the number of tracks.
 - `TRACK_NUMBERS`: A pointer to an integer array that stores the track numbers.
-- `gilbertonTrackNumbers`: An integer array that stores the track numbers in the Gilberton location.
+- `gilbertonTrackNumbers`: An integer array that stores the track numbers in the Gilbertonlocation.
 - `pittsburghTrackNumbers`: An integer array that stores the track numbers in the Pittsburgh location.
 - `hobokenTrackNumbers`: An integer array that stores the track numbers in the Hoboken location.
 - `trackHeads`: A dynamically allocated integer array that stores the head positions of each track.
@@ -219,9 +219,9 @@ The sketch includes several functions:
 
 - `getEEPROMTrackTailsAddress()`: This function calculates and returns the EEPROM address for storing track tail positions.
 
-- `writeToEEPROMWithVerification(int address, const T & value)`: This function writes data to EEPROM with error checking. It uses a template to allow for writing of different data types to EEPROM.
+- `writeToEEPROMWithVerification(int address, const T & value)`: This function writes data to EEPROM with error checking. It uses a template to allow for writing different data types to EEPROM.
 
-- `readFromEEPROMWithVerification(int address, T & value)`: This function reads data from EEPROM with error checking. It uses a template to allow for reading of different data types from EEPROM.
+- `readFromEEPROMWithVerification(int address, T & value)`: This function reads data from EEPROM with error checking. It uses a template to allow for reading different data types from EEPROM.
 
 - `connectToWiFi()`: This function connects the ESP32 to the WiFi network.
 

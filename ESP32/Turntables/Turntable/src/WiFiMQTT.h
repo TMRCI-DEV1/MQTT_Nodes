@@ -3,12 +3,11 @@
 
 #include "Turntable.h"
 
-#include <WiFi.h>              // Library for WiFi connection. Used for connecting to the WiFi network.
-#include <PubSubClient.h>      // Library for MQTT. Used for subscribing to MQTT messages.
-#include <ArduinoOTA.h>        // Library for OTA updates. Used for updating the sketch over the air.
+#include <WiFi.h>                  // Library for WiFi connection. Used for connecting to the WiFi network.
+#include <PubSubClient.h>          // Library for MQTT. Used for subscribing to MQTT messages.
+#include <ArduinoOTA.h>            // Library for OTA updates. Used for updating the sketch over the air.
 
 // Network and MQTT Related
-
 extern const char* ssid;           // SSID of the WiFi network
 extern const char* password;       // Password of the WiFi network
 extern const char* mqtt_broker;    // MQTT broker address
