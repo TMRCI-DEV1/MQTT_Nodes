@@ -239,6 +239,24 @@ The sketch includes several functions:
 
 - `moveToTargetPosition(int targetPosition)`: This function moves the turntable to the target position.
 
+- `initializeLCD()`: This function initializes the LCD display.
+
+- `initializeRelayBoards()`: This function initializes the relay boards.
+
+- `initializeStepper()`: This function initializes the stepper motor.
+
+- `setHostname()`: This function sets the hostname based on the location.
+
+- `initializeTrackHeadsAndTails()`: This function initializes the track heads and tails arrays.
+
+- `readDataFromEEPROM()`: This function reads track positions from EEPROM.
+
+- `initializeKeypadAndLCD()`: This function initializes the keypad and LCD.
+
+- `enableOTAUpdates()`: This function enables OTA updates for the ESP32.
+
+- `performHomingSequence()`: This function performs the homing sequence to calibrate the turntable.
+
 ### Contributing
 
 Contributions to this project are welcome. If you have a feature request, bug report, or want to contribute code, please open an issue or pull request on the project's GitHub page.
