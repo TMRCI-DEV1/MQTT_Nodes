@@ -59,8 +59,8 @@ extern const int STEP_MOVE_HELD_KEYPRESS;        // Number of steps to move the 
 extern int currentPosition;                      // Current position of the turntable
 extern const int NUMBER_OF_TRACKS;               // Number of tracks on the turntable
 extern int *TRACK_NUMBERS;                       // Pointer to the array of track numbers
-extern int *trackHeads;                          // Array to store the head positions of each track
-extern int *trackTails;                          // Array to store the tail positions of each track
+extern int trackHeads[23];                       // Array to store the head positions of each track
+extern int trackTails[23];                       // Array to store the tail positions of each track
 
 /* Function prototypes */
 int calculateTargetPosition(int trackNumber, int endNumber);      // Calculates the target position based on track and end numbers

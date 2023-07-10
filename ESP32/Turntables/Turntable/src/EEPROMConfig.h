@@ -61,34 +61,32 @@ template < typename T >
   Function to read data from EEPROM with error checking. This function uses a template to allow for reading of different data types from EEPROM.
   memcmp is used for data verification to ensure that the data read from EEPROM is the same as the data stored.
 */
-template < typename T >
-  bool readFromEEPROMWithVerification(int address, T & value) {
-    // Define maximum number of read retries
-    const int MAX_RETRIES = 3;
-    int retryCount = 0;
-    bool readSuccess = false;
+template <typename T>
+bool readFromEEPROMWithVerification(int address, T& value) {
+  const int MAX_RETRIES = 3;
+  int retryCount = 0;
+  bool readSuccess = false;
 
-    // Retry reading from EEPROM until successful or maximum retries reached
-    while (retryCount < MAX_RETRIES && !readSuccess) {
-      T readValue;
-      EEPROM.get(address, readValue); // Read the value from EEPROM.
+  while (retryCount < MAX_RETRIES && !readSuccess) {
+    T readValue;
+    EEPROM.get(address, readValue);
 
-      // If the read and stored values are not the same, increment retry count and delay before retrying
-      if (memcmp( & value, & readValue, sizeof(T)) != 0) {
-        retryCount++;
-        delay(500);
-      } else {
-        value = readValue;
-        readSuccess = true;
+    if (memcmp(&value, &readValue, sizeof(T)) != 0) {
+      retryCount++;
+      delay(500);
+    } else {
+      for (int i = 0; i < sizeof(T)/sizeof(T[0]); i++) {
+        value[i] = readValue[i];
       }
+      readSuccess = true;
     }
-
-    // If reading from EEPROM failed, print an error message
-    if (!readSuccess) {
-      Serial.println("EEPROM read error!");
-    }
-
-    return readSuccess;
   }
+
+  if (!readSuccess) {
+    Serial.println("EEPROM read error!");
+  }
+
+  return readSuccess;
+}
 
 #endif // EEPROMCONFIG_H

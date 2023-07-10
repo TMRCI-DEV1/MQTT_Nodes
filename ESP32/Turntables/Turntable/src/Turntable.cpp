@@ -78,8 +78,8 @@ const int STEP_MOVE_HELD_KEYPRESS = 100;      // Number of steps to move the tur
 int currentPosition = 0;                      // Current position of the turntable
 extern const int NUMBER_OF_TRACKS;            // Number of tracks on the turntable
 extern int *TRACK_NUMBERS;                    // Pointer to the array of track numbers
-extern int *trackHeads;                       // Array to store the head positions of each track
-extern int *trackTails;                       // Array to store the tail positions of each track
+int trackHeads[23] = {0};                     // Initialize all elements to 0
+int trackTails[23] = {0};                     // Initialize all elements to 0
 
 /* Definitions of functions declared in Turntable.h */
 

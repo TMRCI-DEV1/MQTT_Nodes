@@ -1,10 +1,10 @@
-const char* VERSION_NUMBER = "1.1.31"; // Define the version number
+const char* VERSION_NUMBER = "1.1.32"; // Define the version number
 
 /*
   Aisle-Node: Turntable Control
   Project: ESP32-based WiFi/MQTT Turntable Node
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Date: 2023-07-09
+  Date: 2023-07-10
   Description:
   This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes various components, including a DIYables 3x4 membrane matrix keypad,
   a GeeekPi IIC I2C TWI Serial LCD 2004 20x4 Display Module with I2C Interface, KRIDA Electronics Relay Modules, a STEPPERONLINE Stepper Drive, a TT Electronics Photologic 
@@ -12,7 +12,7 @@ const char* VERSION_NUMBER = "1.1.31"; // Define the version number
   
   The ESP32 Node connects to a WiFi network, subscribes to MQTT messages published by JMRI, and enables control of the turntable by entering a 1 or 2-digit track 
   number on the keypad, followed by '*' or '#' to select the head-end or tail-end, respectively. The expected MQTT message format is 'Tracknx', where 'n' represents 
-  the 2-digit track number (01-24, depending on location) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the
+  the 2-digit track number (01-23, depending on location) and 'x' represents 'H' for the head-end or 'T' for the tail-end. The LCD displays the IP address, the
   commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname, "LOCATION_Turntable_Node".
 
   The turntable is used to rotate locomotives or cars from one track to another, and the ESP32 provides a convenient way to control it remotely via WiFi and MQTT.
@@ -41,12 +41,6 @@ const char* VERSION_NUMBER = "1.1.31"; // Define the version number
 
 #include "EEPROMConfig.h"
 #include "WiFiMQTT.h"
-
-// Array to store the head positions of each track. The head position is the starting point of a track.
-int * trackHeads;
-
-// Array to store the tail positions of each track. The tail position is the ending point of a track.
-int * trackTails;
 
 // Function to initialize LCD
 void initializeLCD() {
@@ -90,24 +84,6 @@ void setHostname() {
 
 #ifdef HOBOKEN
   WiFi.setHostname("Hoboken_Turntable_Node"); // Set the hostname for the Hoboken turntable node
-#endif
-}
-
-// Function to initialize track heads and tails
-void initializeTrackHeadsAndTails() {
-#ifdef GILBERTON
-  trackHeads = new int[23]; // Create an array to store the head positions of each track
-  trackTails = new int[23]; // Create an array to store the tail positions of each track
-#endif
-
-#ifdef PITTSBURGH
-  trackHeads = new int[22]; // Create an array to store the head positions of each track
-  trackTails = new int[22]; // Create an array to store the tail positions of each track
-#endif
-
-#ifdef HOBOKEN
-  trackHeads = new int[22]; // Create an array to store the head positions of each track
-  trackTails = new int[22]; // Create an array to store the tail positions of each track
 #endif
 }
 
@@ -218,7 +194,6 @@ void setup() {
   initializeRelayBoards(); // Initialize the relay boards
   initializeStepper(); // Initialize the stepper motor
   setHostname(); // Set the hostname based on the location
-  initializeTrackHeadsAndTails(); // Initialize the track heads and tails arrays
 
   // Only read from EEPROM if not in calibration mode
   #ifndef CALIBRATION_MODE

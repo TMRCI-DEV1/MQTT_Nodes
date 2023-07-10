@@ -247,8 +247,6 @@ The sketch includes several functions:
 
 - `setHostname()`: This function sets the hostname based on the location.
 
-- `initializeTrackHeadsAndTails()`: This function initializes the track heads and tails arrays.
-
 - `readDataFromEEPROM()`: This function reads track positions from EEPROM.
 
 - `initializeKeypadAndLCD()`: This function initializes the keypad and LCD.
