@@ -3,7 +3,8 @@
 
 #include "Turntable.h"
 
-#include <EEPROM.h>  // Library for EEPROM read/write. Used for storing the current position and track head/tail positions.   https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
+#include <EEPROM.h>   // Include the EEPROM library to enable read/write operations on the ESP32's EEPROM. This is used for storing the current position and track head/tail positions.
+                      // https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
 
 // EEPROM Related
 const int EEPROM_TRACK_HEADS_ADDRESS = 100; // Starting address in EEPROM to store track heads

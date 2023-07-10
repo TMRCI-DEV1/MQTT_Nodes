@@ -1,19 +1,22 @@
 #ifndef GILBERTON_CONFIG_H
 #define GILBERTON_CONFIG_H
 
-// External declarations
+// External declarations for MQTT topic, number of tracks, and track numbers
 extern const char * MQTT_TOPIC;
 extern const int NUMBER_OF_TRACKS;
 extern int * TRACK_NUMBERS;
 
+// Define the hostname for the Gilberton turntable. This is used for identifying the turntable on the network.
+const char* HOSTNAME = "Gilberton_Turntable_Node";
+
 #ifdef GILBERTON
-// MQTT topic for Gilberton turntable
+// Define the MQTT topic for the Gilberton turntable. The '#' wildcard allows the turntable to receive messages for any subtopic under "TMRCI/output/Gilberton/turntable/".
 const char * MQTT_TOPIC = "TMRCI/output/Gilberton/turntable/#";
 
-// Number of tracks in Gilberton
-const int NUMBER_OF_TRACKS = 23;
+// Define the number of tracks on the Gilberton turntable. This is used for validating track numbers received from MQTT messages and keypad inputs.
+const int NUMBER_OF_TRACKS = 22;
 
-// Track numbers in Gilberton
+// Define an array of track numbers for the Gilberton turntable. This is used for mapping track numbers to physical positions on the turntable.
 int gilbertonTrackNumbers[] = {
   1,
   2,
@@ -40,7 +43,7 @@ int gilbertonTrackNumbers[] = {
   23
 };
 
-// Pointer to the array of track numbers
+// Assign the pointer to the array of track numbers for the Gilberton turntable. This allows the turntable code to access the track numbers array.
 int * TRACK_NUMBERS = gilbertonTrackNumbers;
 #endif
 

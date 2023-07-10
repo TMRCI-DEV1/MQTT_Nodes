@@ -1,19 +1,22 @@
 #ifndef PITTSBURGH_CONFIG_H
 #define PITTSBURGH_CONFIG_H
 
-// External declarations
+// External declarations for MQTT topic, number of tracks, and track numbers
 extern const char * MQTT_TOPIC;
 extern const int NUMBER_OF_TRACKS;
 extern int * TRACK_NUMBERS;
 
+// Define the hostname for the Pittsburgh turntable. This is used for identifying the turntable on the network.
+const char* HOSTNAME = "Pittsburgh_Turntable_Node";
+
 #ifdef PITTSBURGH
-// MQTT topic for Pittsburgh turntable
+// Define the MQTT topic for the Pittsburgh turntable. The '#' wildcard allows the turntable to receive messages for any subtopic under "TMRCI/output/Pittsburgh/turntable/".
 const char * MQTT_TOPIC = "TMRCI/output/Pittsburgh/turntable/#";
 
-// Number of tracks in Pittsburgh
+// Define the number of tracks on the Pittsburgh turntable. This is used for validating track numbers received from MQTT messages and keypad inputs.
 const int NUMBER_OF_TRACKS = 22;
 
-// Track numbers in Pittsburgh
+// Define an array of track numbers for the Pittsburgh turntable. This is used for mapping track numbers to physical positions on the turntable.
 int pittsburghTrackNumbers[] = {
   1,
   2,
@@ -39,7 +42,7 @@ int pittsburghTrackNumbers[] = {
   22
 };
 
-// Pointer to the array of track numbers
+// Assign the pointer to the array of track numbers for the Pittsburgh turntable. This allows the turntable code to access the track numbers array.
 int * TRACK_NUMBERS = pittsburghTrackNumbers;
 #endif
 

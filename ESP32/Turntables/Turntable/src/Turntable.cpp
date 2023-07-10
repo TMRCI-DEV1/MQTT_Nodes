@@ -24,62 +24,67 @@ char keys[ROW_NUM][COLUMN_NUM] = {
     '0',
     '#'
   }
-};
+}; // 2D array to store the key characters for the keypad.
 byte KEYPAD_ROW_PINS[] = {
   13,
   12,
   14,
   27
-}; // Row pins of the keypad. These are the pins that the keypad rows are connected to.
+}; // Array of GPIO pins connected to the keypad rows.
 byte KEYPAD_COLUMN_PINS[] = {
   16,
   17,
   18
-}; // Column pins of the keypad. These are the pins that the keypad columns are connected to.
-Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM);
-char keypadTrackNumber[3] = "";               // Variable to store the entered track number from the keypad
+}; // Array of GPIO pins connected to the keypad columns.
+Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM); // Keypad object for interfacing with the keypad.
+char keypadTrackNumber[3] = ""; // Character array to store the track number entered by the user via the keypad.
 
 // Stepper Motor Related
-const int STEPS_PER_REV = 6400;               // Number of steps per revolution for the stepper motor
-const int STEPPER_SPEED = 800;                // Maximum speed for the stepper motor (full revolution in ~30 seconds)
-AccelStepper stepper(AccelStepper::DRIVER, 33, 32);  // AccelStepper object to control the stepper motor
+const int STEPS_PER_REV = 6400;                     // Number of steps per revolution for the stepper motor.
+const int STEPPER_SPEED = 800;                      // Maximum speed of the stepper motor in steps per second.
+AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // AccelStepper object for controlling the stepper motor.
 
 // Relay Board Related
-const int RELAY_BOARD1_ADDRESS = 0x20;        // I2C address of the first relay board
-const int RELAY_BOARD2_ADDRESS = 0x21;        // I2C address of the second relay board
-PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS);    // PCF8575 object to control the first relay board
-PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS);    // PCF8574 object to control the second relay board
+const int RELAY_BOARD1_ADDRESS = 0x20;              // I2C address of the first relay board.
+const int RELAY_BOARD2_ADDRESS = 0x21;              // I2C address of the second relay board.
+PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS);          // PCF8575 object for controlling the first relay board.
+PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS);          // PCF8574 object for controlling the second relay board.
 
 // LCD Related
-const int LCD_ADDRESS = 0x27;                 // I2C address of the LCD display
-const int LCD_COLUMNS = 20;                   // Number of columns in the LCD display
-const int LCD_ROWS = 4;                       // Number of rows in the LCD display
-LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);   // LiquidCrystal_I2C object to control the LCD display
+const int LCD_ADDRESS = 0x27;                               // I2C address of the LCD display.
+const int LCD_COLUMNS = 20;                                 // Number of columns in the LCD display.
+const int LCD_ROWS = 4;                                     // Number of rows in the LCD display.
+LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);  // LiquidCrystal_I2C object for controlling the LCD display.
 
 // Miscellaneous
-const int HOMING_SENSOR_PIN = 25;             // Pin connected to the homing sensor
-const int RESET_BUTTON_PIN = 19;              // Pin connected to the reset button
-bool emergencyStop = false;                   // Flag to indicate emergency stop condition
-char mqttTrackNumber[3] = "";                 // Variable to store the track number received via MQTT
-bool resetButtonState = HIGH;                 // Assume the button is not pressed initially
+const int HOMING_SENSOR_PIN = 25;                           // GPIO pin connected to the homing sensor.
+const int RESET_BUTTON_PIN = 19;                            // GPIO pin connected to the reset button.
+bool emergencyStop = false;                                 // Flag to indicate whether an emergency stop has been triggered.
+char mqttTrackNumber[3] = "";                               // Character array to store the track number received via MQTT.
+bool resetButtonState = HIGH;                               // State of the reset button in the previous iteration.
 
 // Calibration Related
 #ifdef CALIBRATION_MODE
-const bool calibrationMode = true;            // Flag to indicate calibration mode
+const bool calibrationMode = true;                    // Flag to indicate whether calibration mode is enabled.
 #else
-const bool calibrationMode = false;
+const bool calibrationMode = false;                   // Flag to indicate that calibration mode is not enabled.
 #endif
-const char CONFIRM_YES = '1';                 // Character to confirm an action
-const char CONFIRM_NO = '3';                  // Character to cancel an action
-const int STEP_MOVE_SINGLE_KEYPRESS = 1;      // Number of steps to move the turntable for a single keypress
-const int STEP_MOVE_HELD_KEYPRESS = 100;      // Number of steps to move the turntable for a held keypress
+const char CONFIRM_YES = '1';                         // Character to confirm an action.
+const char CONFIRM_NO = '3';                          // Character to cancel an action.
+const int STEP_MOVE_SINGLE_KEYPRESS = 1;              // Number of steps to move the turntable for a single keypress during calibration.
+const int STEP_MOVE_HELD_KEYPRESS = 100;              // Number of steps to move the turntable for a held keypress during calibration.
 
 // Position and Track Numbers
-int currentPosition = 0;                      // Current position of the turntable
-extern const int NUMBER_OF_TRACKS;            // Number of tracks on the turntable
-extern int *TRACK_NUMBERS;                    // Pointer to the array of track numbers
-int trackHeads[23] = {0};                     // Initialize all elements to 0
-int trackTails[23] = {0};                     // Initialize all elements to 0
+int currentPosition = 0;                              // Current position of the turntable in steps.
+extern
+const int NUMBER_OF_TRACKS;                           // Total number of tracks on the turntable.
+extern int * TRACK_NUMBERS;                           // Pointer to the array of track numbers.
+int trackHeads[23] = {
+  0
+}; // Array to store the head positions of each track in steps.
+int trackTails[23] = {
+  0
+}; // Array to store the tail positions of each track in steps.
 
 /* Definitions of functions declared in Turntable.h */
 
@@ -91,9 +96,9 @@ int trackTails[23] = {0};                     // Initialize all elements to 0
 int calculateTargetPosition(int trackNumber, int endNumber) {
   int targetPosition;
   if (calibrationMode) {
-    targetPosition = trackNumber;             // In calibration mode, the target position is the track number itself.
+    targetPosition = trackNumber; // In calibration mode, the target position is the track number itself.
   } else {
-    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1];  // Retrieve the corresponding head or tail position.
+    targetPosition = (endNumber == 0) ? trackHeads[trackNumber - 1] : trackTails[trackNumber - 1]; // Retrieve the corresponding head or tail position.
   }
   return targetPosition;
 }
@@ -106,8 +111,8 @@ int calculateTargetPosition(int trackNumber, int endNumber) {
 void controlRelays(int trackNumber) {
   // Check if the relay for the selected track is already on
   if ((trackNumber >= 1 && trackNumber <= 15 && relayBoard1.digitalRead(trackNumber) == LOW) ||
-      (trackNumber >= 16 && trackNumber <= NUMBER_OF_TRACKS && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
-    return;                                 // If the relay for the selected track is already on, no need to change the state of any relay
+    (trackNumber >= 16 && trackNumber <= NUMBER_OF_TRACKS && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
+    return; // If the relay for the selected track is already on, no need to change the state of any relay
   }
 
   // Turn off all relays

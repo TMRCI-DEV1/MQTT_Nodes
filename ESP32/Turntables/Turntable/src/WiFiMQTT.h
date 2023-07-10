@@ -3,21 +3,27 @@
 
 #include "Turntable.h"
 
-#include <WiFi.h>                  // Library for WiFi connection. Used for connecting to the WiFi network.
-#include <PubSubClient.h>          // Library for MQTT. Used for subscribing to MQTT messages.
-#include <ArduinoOTA.h>            // Library for OTA updates. Used for updating the sketch over the air.
+#include <WiFi.h>                  // Include the WiFi library to enable WiFi connectivity for the ESP32.                                         
+                                   // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+
+#include <PubSubClient.h>          // Include the PubSubClient library to enable MQTT communication for publishing and subscribing to topics.     
+                                   // https://github.com/knolleary/pubsubclient
+
+#include <ArduinoOTA.h>            // Include the ArduinoOTA library to enable Over-The-Air updates for the ESP32.                                
+                                   // https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network and MQTT Related
-extern const char* ssid;           // SSID of the WiFi network
-extern const char* password;       // Password of the WiFi network
-extern const char* mqtt_broker;    // MQTT broker address
-extern const int mqtt_port;        // MQTT broker port
-extern WiFiClient espClient;       // WiFiClient object for MQTT communication
-extern PubSubClient client;        // PubSubClient object for MQTT communication
-extern const char* MQTT_TOPIC;     // MQTT topic to subscribe to
+extern const char* ssid;           // SSID (network name) of the WiFi network to connect to.
+extern const char* password;       // Password for the WiFi network.
+extern const char* HOSTNAME;       // Hostname for the ESP32 on the WiFi network. This is used for identifying the ESP32 on the network.
+extern const char* mqtt_broker;    // Address (IP or domain name) of the MQTT broker to connect to.
+extern const int mqtt_port;        // Port number for the MQTT broker. The standard port for MQTT is 1883.
+extern WiFiClient espClient;       // WiFiClient object used as the network client for the MQTT connection.
+extern PubSubClient client;        // PubSubClient object used for MQTT communication.
+extern const char* MQTT_TOPIC;     // MQTT topic that the ESP32 will subscribe to for receiving commands.
 
-void connectToWiFi();              // Function to connect to the WiFi network
-void connectToMQTT();              // Function to connect to the MQTT broker
-void callback(char* topic, byte* payload, unsigned int length); // Callback function for MQTT messages
+void connectToWiFi();              // Function to connect the ESP32 to the WiFi network. This function will attempt to connect to the WiFi network using the provided SSID and password.
+void connectToMQTT();              // Function to connect the ESP32 to the MQTT broker. This function will attempt to connect to the MQTT broker using the provided address and port.
+void callback(char* topic, byte* payload, unsigned int length); // Callback function that is called when an MQTT message is received. This function handles the incoming MQTT messages.
 
 #endif // WIFIMQTT_H

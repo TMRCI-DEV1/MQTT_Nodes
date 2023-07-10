@@ -1,4 +1,4 @@
-const char* VERSION_NUMBER = "1.1.32"; // Define the version number
+const char* VERSION_NUMBER = "1.1.33"; // Define the version number
 
 /*
   Aisle-Node: Turntable Control
@@ -21,8 +21,8 @@ const char* VERSION_NUMBER = "1.1.32"; // Define the version number
 // Uncomment this line to enable calibration mode. Calibration mode allows manual positioning of the turntable without using MQTT commands.
 // #define CALIBRATION_MODE
 
-// Depending on the location, define the MQTT topics, number of tracks, and track numbers
-// Uncomment one of these lines to indicate the location
+/* Depending on the location, define the MQTT topics, number of tracks, and track numbers
+   Uncomment one of these lines to indicate the location */
 
 #define GILBERTON
 // #define HOBOKEN
@@ -36,15 +36,28 @@ const char* VERSION_NUMBER = "1.1.32"; // Define the version number
 #include "PittsburghConfig.h"
 #endif
 
-// Include the Turntable header file which contains definitions and declarations related to the turntable control.
+/* This include statement adds the Turntable header file to the sketch.
+The Turntable file contains definitions and declarations related to the operation and control of the turntable.
+This includes functions for calculating target positions, moving the turntable to a target position, controlling the relays for track power,
+and performing the homing sequence for turntable calibration. It also contains declarations for various hardware components such as the stepper motor,
+relay boards, and LCD display, as well as variables for storing the current and target positions of the turntable. */
 #include "Turntable.h"
 
+/* This include statement adds the EEPROMConfig header file to the sketch. 
+The EEPROMConfig file contains definitions and declarations related to the EEPROM (Electrically Erasable Programmable Read-Only Memory) 
+configuration, including functions for reading from and writing to the EEPROM. 
+The EEPROM is used in this sketch to store the positions of the turntable tracks. */
 #include "EEPROMConfig.h"
+
+/* This include statement adds the WiFiMQTT header file to the sketch. 
+The WiFiMQTT file contains definitions and declarations related to the WiFi and MQTT (Message Queuing Telemetry Transport) configuration, 
+including functions for connecting to the WiFi network and the MQTT broker, and for handling MQTT messages. 
+MQTT is a lightweight messaging protocol that is used in this sketch for remote control of the turntable via WiFi. */
 #include "WiFiMQTT.h"
 
 // Function to initialize LCD
 void initializeLCD() {
-  lcd.begin(LCD_COLUMNS, LCD_ROWS); // Initialize the LCD display
+  lcd.begin(LCD_COLUMNS, LCD_ROWS);       // Initialize the LCD display
 
   // Print the version number on the LCD
   lcd.clear();
@@ -62,37 +75,22 @@ void initializeLCD() {
 
 // Function to initialize Relay Boards
 void initializeRelayBoards() {
-  relayBoard1.begin(); // Initialize the first relay board
-  relayBoard2.begin(); // Initialize the second relay board
+  relayBoard1.begin();                    // Initialize the first relay board
+  relayBoard2.begin();                    // Initialize the second relay board
 }
 
 // Function to initialize Stepper
 void initializeStepper() {
-  stepper.setMaxSpeed(STEPPER_SPEED); // Set the maximum speed for the stepper motor
+  stepper.setMaxSpeed(STEPPER_SPEED);     // Set the maximum speed for the stepper motor
   stepper.setAcceleration(STEPPER_SPEED); // Set the acceleration for the stepper motor
-}
-
-// Function to set hostname based on location
-void setHostname() {
-#ifdef GILBERTON
-  WiFi.setHostname("Gilberton_Turntable_Node"); // Set the hostname for the Gilberton turntable node
-#endif
-
-#ifdef PITTSBURGH
-  WiFi.setHostname("Pittsburgh_Turntable_Node"); // Set the hostname for the Pittsburgh turntable node
-#endif
-
-#ifdef HOBOKEN
-  WiFi.setHostname("Hoboken_Turntable_Node"); // Set the hostname for the Hoboken turntable node
-#endif
 }
 
 // Function to read data from EEPROM
 void readDataFromEEPROM() {
   if (!calibrationMode) {
     // Read data from EEPROM
-    bool trackHeadsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads); // Read the track heads from EEPROM with error checking
-    bool trackTailsReadSuccess = readFromEEPROMWithVerification(getEEPROMTrackTailsAddress(), trackTails); // Read the track tails from EEPROM with error checking
+    bool trackHeadsReadSuccess = readFromEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS, trackHeads);    // Read the track heads from EEPROM with error checking
+    bool trackTailsReadSuccess = readFromEEPROMWithVerification(getEEPROMTrackTailsAddress(), trackTails);  // Read the track tails from EEPROM with error checking
 
     // Check if the read operations were successful
     if (!trackHeadsReadSuccess) {
@@ -190,19 +188,18 @@ void setup() {
 
   // Initialize various components and settings
   // This includes the LCD display, relay boards, stepper motor, hostname, and track head and tail arrays
-  initializeLCD(); // Initialize the LCD display
-  initializeRelayBoards(); // Initialize the relay boards
-  initializeStepper(); // Initialize the stepper motor
-  setHostname(); // Set the hostname based on the location
+  initializeLCD();          // Initialize the LCD display
+  initializeRelayBoards();  // Initialize the relay boards
+  initializeStepper();      // Initialize the stepper motor
 
   // Only read from EEPROM if not in calibration mode
   #ifndef CALIBRATION_MODE
-    readDataFromEEPROM(); // Read track positions from EEPROM
+    readDataFromEEPROM();   // Read track positions from EEPROM
   #endif
 
   initializeKeypadAndLCD(); // Initialize the keypad and LCD
   enableOTAUpdates(); // Enable OTA updates for the ESP32
-  performHomingSequence(); // Perform the homing sequence to calibrate the turntable
+  performHomingSequence();  // Perform the homing sequence to calibrate the turntable
 }
 
 /* 
@@ -240,8 +237,8 @@ void loop() {
 
   // Check for keypad input
   char key = keypad.getKey();
-  static bool isKeyHeld = false; // Track if a key is held down.
-  static unsigned long keyHoldTime = 0; // Track the duration of key hold.
+  static bool isKeyHeld = false;          // Track if a key is held down.
+  static unsigned long keyHoldTime = 0;   // Track the duration of key hold.
   const unsigned long keyHoldDelay = 500; // Delay before continuous movement starts (in milliseconds).
 
   if (key) {
@@ -313,8 +310,8 @@ void loop() {
       }
     }
   } else {
-    isKeyHeld = false; // Reset isKeyHeld when no key is pressed.
-    keyHoldTime = 0; // Reset keyHoldTime when no key is pressed.
+    isKeyHeld = false;  // Reset isKeyHeld when no key is pressed.
+    keyHoldTime = 0;    // Reset keyHoldTime when no key is pressed.
   }
 
   // Check for reset button press
