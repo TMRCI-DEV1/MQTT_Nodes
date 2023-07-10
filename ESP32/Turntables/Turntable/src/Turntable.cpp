@@ -71,7 +71,7 @@ const bool calibrationMode = false;
 #endif
 const char CONFIRM_YES = '1';                 // Character to confirm an action
 const char CONFIRM_NO = '3';                  // Character to cancel an action
-const int STEP_MOVE_SINGLE_KEYPRESS = 10;     // Number of steps to move the turntable for a single keypress
+const int STEP_MOVE_SINGLE_KEYPRESS = 1;      // Number of steps to move the turntable for a single keypress
 const int STEP_MOVE_HELD_KEYPRESS = 100;      // Number of steps to move the turntable for a held keypress
 
 // Position and Track Numbers
