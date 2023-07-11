@@ -82,7 +82,6 @@ bool readFromEEPROMWithVerification(int address, T& value) {
 
   if (!readSuccess) {
     Serial.println("EEPROM read error!");
-    printToLCD(0, "EEPROM read error!"); // Print error to LCD
   }
 
   return readSuccess;

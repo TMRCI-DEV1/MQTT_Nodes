@@ -47,11 +47,13 @@ extern const int LCD_ADDRESS;               // I2C address of the LCD display.
 extern const int LCD_COLUMNS;               // Number of columns in the LCD display.
 extern const int LCD_ROWS;                  // Number of rows in the LCD display.
 extern LiquidCrystal_I2C lcd;               // LiquidCrystal_I2C object for controlling the LCD display.
+extern bool isLCDAvailable;                 // Set this to true if LCD is connected, false otherwise
 
 // Miscellaneous
 #define DEBOUNCE_DELAY 50                   // Debounce delay in milliseconds
 extern const int HOMING_SENSOR_PIN;         // GPIO pin connected to the homing sensor.
 extern const int RESET_BUTTON_PIN;          // GPIO pin connected to the reset button.
+extern int emergencyStopCounter;            // Add a counter for the '9' key.
 extern bool emergencyStop;                  // Flag to indicate whether an emergency stop has been triggered.
 extern char mqttTrackNumber[3];             // Character array to store the track number received via MQTT.
 extern bool resetButtonState;               // State of the reset button in the previous iteration.
@@ -61,10 +63,13 @@ extern const unsigned long BAUD_RATE;       // Baud rate for serial communicatio
 
 // Calibration Related
 extern const bool calibrationMode;          // Flag to indicate whether calibration mode is enabled.
-extern const char CONFIRM_YES;              // Character to confirm an action.
-extern const char CONFIRM_NO;               // Character to cancel an action.
+extern const char CONFIRM_YES;              // Character to confirm an action. Typically set to '1'.
+extern const char CONFIRM_NO;               // Character to cancel an action. Typically set to '3'.
 extern const int STEP_MOVE_SINGLE_KEYPRESS; // Number of steps to move the turntable for a single keypress during calibration.
 extern const int STEP_MOVE_HELD_KEYPRESS;   // Number of steps to move the turntable for a held keypress during calibration.
+extern bool waitingForConfirmation;         // Flag to indicate whether the system is waiting for a confirmation input during calibration.
+extern int tempTrackNumber;                 // Temporary storage for the track number during calibration.
+extern char tempEndChar;                    // Temporary storage for the end character ('*' or '#') during calibration.
 
 // Position and Track Numbers
 extern int currentPosition;                 // Current position of the turntable in steps.

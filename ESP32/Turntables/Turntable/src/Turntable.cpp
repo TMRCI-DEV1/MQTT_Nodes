@@ -55,10 +55,12 @@ const int LCD_ADDRESS = 0x3F;                               // I2C address of th
 const int LCD_COLUMNS = 20;                                 // Number of columns in the LCD display.
 const int LCD_ROWS = 4;                                     // Number of rows in the LCD display.
 LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);  // LiquidCrystal_I2C object for controlling the LCD display.
+bool isLCDAvailable = false;                                // Set this to true if LCD is connected, false otherwise
 
 // Miscellaneous
 const int HOMING_SENSOR_PIN = 25;                     // GPIO pin connected to the homing sensor.
 const int RESET_BUTTON_PIN = 19;                      // GPIO pin connected to the reset button.
+int emergencyStopCounter = 0;                         // Add a counter for the '9' key.
 bool emergencyStop = false;                           // Flag to indicate whether an emergency stop has been triggered.
 char mqttTrackNumber[3] = "";                         // Character array to store the track number received via MQTT.
 bool resetButtonState = HIGH;                         // State of the reset button in the previous iteration.
@@ -68,14 +70,17 @@ const unsigned long BAUD_RATE = 115200;               // Baud rate for serial co
 
 // Calibration Related
 #ifdef CALIBRATION_MODE
-const bool calibrationMode = true;                    // Flag to indicate whether calibration mode is enabled.
+const bool calibrationMode = true;                    // Flag to indicate whether calibration mode is enabled. This is set to true when CALIBRATION_MODE is defined.
 #else
-const bool calibrationMode = false;                   // Flag to indicate that calibration mode is not enabled.
+const bool calibrationMode = false;                   // Flag to indicate that calibration mode is not enabled. This is set to false when CALIBRATION_MODE is not defined.
 #endif
-const char CONFIRM_YES = '1';                         // Character to confirm an action.
-const char CONFIRM_NO = '3';                          // Character to cancel an action.
-const int STEP_MOVE_SINGLE_KEYPRESS = 1;              // Number of steps to move the turntable for a single keypress during calibration.
-const int STEP_MOVE_HELD_KEYPRESS = 100;              // Number of steps to move the turntable for a held keypress during calibration.
+const char CONFIRM_YES = '1';                         // Character to confirm an action. This is set to '1'.
+const char CONFIRM_NO = '3';                          // Character to cancel an action. This is set to '3'.
+const int STEP_MOVE_SINGLE_KEYPRESS = 1;              // Number of steps to move the turntable for a single keypress during calibration. This is set to 1.
+const int STEP_MOVE_HELD_KEYPRESS = 100;              // Number of steps to move the turntable for a held keypress during calibration. This is set to 100.
+bool waitingForConfirmation = false;                  // Flag to indicate whether the system is waiting for a confirmation input during calibration. This is initially set to false.
+int tempTrackNumber = 0;                              // Temporary storage for the track number during calibration. This is initially set to 0.
+char tempEndChar = '\0';                              // Temporary storage for the end character ('*' or '#') during calibration. This is initially set to '\0' (null character).
 
 // Position and Track Numbers
 int currentPosition = 0;                              // Current position of the turntable in steps.

@@ -1,5 +1,4 @@
-const char * VERSION_NUMBER = "1.1.38";  // Define the version number.
-int emergencyStopCounter = 0;  // Add a counter for the '9' key.
+const char * VERSION_NUMBER = "1.1.41";  // Define the version number.
 
 /* Aisle-Node: Turntable Control
    Project: ESP32-based WiFi/MQTT Turntable Node
@@ -60,6 +59,11 @@ int emergencyStopCounter = 0;  // Add a counter for the '9' key.
 
 // Helper function for printing messages to the LCD display
 void printToLCD(int row, const char * message) {
+  // Check if the LCD is available
+  if (!isLCDAvailable) {
+    return; // If the LCD is not available, exit the function
+  }
+
   // Clear the row before printing a new message
   lcd.setCursor(0, row);
   for (int i = 0; i < LCD_COLUMNS; i++) {
@@ -70,17 +74,21 @@ void printToLCD(int row, const char * message) {
   int messageLength = strlen(message);
   if (messageLength > LCD_COLUMNS) {
     // If the message is longer than the number of columns on the LCD, split it across multiple rows
-    for (int i = 0; i < messageLength; i += LCD_COLUMNS) {
-      lcd.setCursor(0, row + i / LCD_COLUMNS);
+    int start = 0;
+    while (start < messageLength) {
       char buffer[LCD_COLUMNS + 1];
-      strncpy(buffer, &message[i], LCD_COLUMNS);
+      strncpy(buffer, &message[start], LCD_COLUMNS);
       buffer[LCD_COLUMNS] = '\0'; // Null-terminate the buffer
-      lcd.print(buffer);
+
+      // Find the last space in the buffer
+      for (int i = LCD_COLUMNS - 1; i >= 0; i--) {
+        if (buffer[i] == ' ') {
+          buffer[i] = '\0'; // Split the string at the last space
+          start += i + 1; // Update the start index for the next substring
+          break;
+        }
+      }
     }
-  } else {
-    // If the message fits on the row, print it as usual
-    lcd.setCursor(0, row);
-    lcd.print(message);
   }
 }
 
@@ -276,26 +284,41 @@ void handleKeypadInput() {
           stepper.move(direction * STEP_MOVE_HELD_KEYPRESS);
         }
       } else if (key == '*' || key == '#') {
-        int trackNumber = atoi(keypadTrackNumber);
-        int endNumber = (key == '*') ? 0 : 1;
-        // Store the current position to the appropriate track head or tail-end position in EEPROM
-        if (endNumber == 0) {
-          trackHeads[trackNumber - 1] = currentPosition;
-          EEPROM.put(EEPROM_TRACK_HEADS_ADDRESS + (trackNumber - 1) * sizeof(int), currentPosition);
-        } else {
-          trackTails[trackNumber - 1] = currentPosition;
-          EEPROM.put(getEEPROMTrackTailsAddress() + (trackNumber - 1) * sizeof(int), currentPosition);
+        if (!waitingForConfirmation) {
+          tempTrackNumber = atoi(keypadTrackNumber);
+          tempEndChar = key;
+          printToLCD(0, "Press 1 to confirm, 3 to cancel");
+          waitingForConfirmation = true;
+        } else if (key == CONFIRM_YES) {
+          // Store the current position to the appropriate track head or tail-end position in EEPROM
+          if (tempEndChar == '*') {
+            trackHeads[tempTrackNumber - 1] = currentPosition;
+            EEPROM.put(EEPROM_TRACK_HEADS_ADDRESS + (tempTrackNumber - 1) * sizeof(int), currentPosition);
+          } else {
+            trackTails[tempTrackNumber - 1] = currentPosition;
+            EEPROM.put(getEEPROMTrackTailsAddress() + (tempTrackNumber - 1) * sizeof(int), currentPosition);
+          }
+          EEPROM.commit();
+          printToLCD(0, "Position stored for track ");
+          printToLCD(1, String(tempTrackNumber).c_str());
+          printToLCD(2, (tempEndChar == '*') ? "Head-end" : "Tail-end");
+          unsigned long positionStoredStartTime = millis();
+          while (millis() - positionStoredStartTime < 2000) {
+            // Do nothing, just wait
+          }
+          clearLCD();
+          waitingForConfirmation = false;
+          keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
+        } else if (key == CONFIRM_NO) {
+          printToLCD(0, "Position storing cancelled");
+          unsigned long cancelStartTime = millis();
+          while (millis() - cancelStartTime < 2000) {
+            // Do nothing, just wait
+          }
+          clearLCD();
+          waitingForConfirmation = false;
+          keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after cancelling.
         }
-        EEPROM.commit();
-        printToLCD(0, "Position stored for track ");
-        printToLCD(1, String(trackNumber).c_str());
-        printToLCD(2, (endNumber == 0) ? "Head-end" : "Tail-end");
-        unsigned long positionStoredStartTime = millis();
-        while (millis() - positionStoredStartTime < 2000) {
-          // Do nothing, just wait
-        }
-        clearLCD();
-        keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
       }
     } else {
       if (key == '*' || key == '#') {
