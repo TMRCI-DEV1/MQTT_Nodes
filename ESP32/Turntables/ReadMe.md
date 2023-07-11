@@ -184,7 +184,7 @@ The sketch also defines several variables:
 - `MQTT_TOPIC`: A string variable that represents the MQTT topic.
 - `NUMBER_OF_TRACKS`: An integer variable that represents the number of tracks.
 - `TRACK_NUMBERS`: A pointer to an integer array that stores the track numbers.
-- `gilbertonTrackNumbers`: An integer array that stores the track numbers in the Gilbertonlocation.
+- `gilbertonTrackNumbers`: An integer array that stores the track numbers in the Gilberton location.
 - `pittsburghTrackNumbers`: An integer array that stores the track numbers in the Pittsburgh location.
 - `hobokenTrackNumbers`: An integer array that stores the track numbers in the Hoboken location.
 - `trackHeads`: A dynamically allocated integer array that stores the head positions of each track.
@@ -254,6 +254,12 @@ The sketch includes several functions:
 - `enableOTAUpdates()`: This function enables OTA updates for the ESP32.
 
 - `performHomingSequence()`: This function performs the homing sequence to calibrate the turntable.
+
+- `printToLCD(int row, const char* message)`: Helper function for printing messages to the LCD display.
+
+- `clearLCD()`: Helper function for clearing the LCD display.
+
+The sketch also includes other helper functions and utility functions that support the main functionality of the turntable control system.
 
 ### Contributing
 

@@ -20,7 +20,6 @@
 #include <AccelStepper.h>      // Include the AccelStepper library to enable control of stepper motors. This is used for controlling the turntable's stepper motor.                       
                                // https://github.com/waspinator/AccelStepper
 
-
 /* Constants */
 // Keypad Related
 const byte ROW_NUM = 4;                     // Number of rows in the keypad matrix.
@@ -30,6 +29,7 @@ extern byte KEYPAD_ROW_PINS[];              // Array of GPIO pins connected to t
 extern byte KEYPAD_COLUMN_PINS[];           // Array of GPIO pins connected to the keypad columns.
 extern Keypad keypad;                       // Keypad object for interfacing with the keypad.
 extern char keypadTrackNumber[3];           // Character array to store the track number entered by the user via the keypad.
+extern const unsigned long KEY_HOLD_DELAY;  // Delay before continuous movement starts (in milliseconds).
 
 // Stepper Motor Related
 extern const int STEPS_PER_REV;             // Number of steps per revolution for the stepper motor.
@@ -49,29 +49,33 @@ extern const int LCD_ROWS;                  // Number of rows in the LCD display
 extern LiquidCrystal_I2C lcd;               // LiquidCrystal_I2C object for controlling the LCD display.
 
 // Miscellaneous
+#define DEBOUNCE_DELAY 50                   // Debounce delay in milliseconds
 extern const int HOMING_SENSOR_PIN;         // GPIO pin connected to the homing sensor.
 extern const int RESET_BUTTON_PIN;          // GPIO pin connected to the reset button.
 extern bool emergencyStop;                  // Flag to indicate whether an emergency stop has been triggered.
 extern char mqttTrackNumber[3];             // Character array to store the track number received via MQTT.
 extern bool resetButtonState;               // State of the reset button in the previous iteration.
+extern unsigned long lastDebounceTime;      // The last time the output pin was toggled.
+extern bool lastButtonState;                // The previous reading from the input pin.
+extern const unsigned long BAUD_RATE;       // Baud rate for serial communication.
 
 // Calibration Related
-extern const bool calibrationMode;               // Flag to indicate whether calibration mode is enabled.
-extern const char CONFIRM_YES;                   // Character to confirm an action.
-extern const char CONFIRM_NO;                    // Character to cancel an action.
-extern const int STEP_MOVE_SINGLE_KEYPRESS;      // Number of steps to move the turntable for a single keypress during calibration.
-extern const int STEP_MOVE_HELD_KEYPRESS;        // Number of steps to move the turntable for a held keypress during calibration.
+extern const bool calibrationMode;          // Flag to indicate whether calibration mode is enabled.
+extern const char CONFIRM_YES;              // Character to confirm an action.
+extern const char CONFIRM_NO;               // Character to cancel an action.
+extern const int STEP_MOVE_SINGLE_KEYPRESS; // Number of steps to move the turntable for a single keypress during calibration.
+extern const int STEP_MOVE_HELD_KEYPRESS;   // Number of steps to move the turntable for a held keypress during calibration.
 
 // Position and Track Numbers
-extern int currentPosition;                      // Current position of the turntable in steps.
-extern const int NUMBER_OF_TRACKS;               // Total number of tracks on the turntable.
-extern int *TRACK_NUMBERS;                       // Pointer to the array of track numbers.
-extern int trackHeads[23];                       // Array to store the head positions of each track in steps.
-extern int trackTails[23];                       // Array to store the tail positions of each track in steps.
+extern int currentPosition;                 // Current position of the turntable in steps.
+extern const int NUMBER_OF_TRACKS;          // Total number of tracks on the turntable.
+extern int *TRACK_NUMBERS;                  // Pointer to the array of track numbers.
+extern int trackHeads[23];                  // Array to store the head positions of each track in steps.
+extern int trackTails[23];                  // Array to store the tail positions of each track in steps.
 
 /* Function prototypes */
-int calculateTargetPosition(int trackNumber, int endNumber);      // Calculates the target position based on the track number and end number.
-void controlRelays(int trackNumber);                              // Controls the relays to switch the track power to the specified track number.
-void moveToTargetPosition(int targetPosition);                    // Moves the turntable to the target position using the stepper motor.
+int calculateTargetPosition(int trackNumber, int endNumber);   // Calculates the target position based on the track number and end number.
+void controlRelays(int trackNumber);                           // Controls the relays to switch the track power to the specified track number.
+void moveToTargetPosition(int targetPosition);                 // Moves the turntable to the target position using the stepper motor.
 
 #endif

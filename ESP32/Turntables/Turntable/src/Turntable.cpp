@@ -1,7 +1,6 @@
 #include "Turntable.h"
 
 /* Definitions of variables declared in Turntable.h */
-
 // Keypad Related
 char keys[ROW_NUM][COLUMN_NUM] = {
   {
@@ -36,19 +35,20 @@ byte KEYPAD_COLUMN_PINS[] = {
   17,
   18
 }; // Array of GPIO pins connected to the keypad columns.
-Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM); // Keypad object for interfacing with the keypad.
-char keypadTrackNumber[3] = ""; // Character array to store the track number entered by the user via the keypad.
+Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM);  // Keypad object for interfacing with the keypad.
+char keypadTrackNumber[3] = "";                      // Character array to store the track number entered by the user via the keypad.
+const unsigned long KEY_HOLD_DELAY = 500;            // Delay before continuous movement starts (in milliseconds).
 
 // Stepper Motor Related
-const int STEPS_PER_REV = 6400;                     // Number of steps per revolution for the stepper motor.
-const int STEPPER_SPEED = 800;                      // Maximum speed of the stepper motor in steps per second.
-AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // AccelStepper object for controlling the stepper motor.
+const int STEPS_PER_REV = 6400;                      // Number of steps per revolution for the stepper motor.
+const int STEPPER_SPEED = 800;                       // Maximum speed of the stepper motor in steps per second.
+AccelStepper stepper(AccelStepper::DRIVER, 33, 32);  // AccelStepper object for controlling the stepper motor.
 
 // Relay Board Related
-const int RELAY_BOARD1_ADDRESS = 0x20;              // I2C address of the first relay board.
-const int RELAY_BOARD2_ADDRESS = 0x21;              // I2C address of the second relay board.
-PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS);          // PCF8575 object for controlling the first relay board.
-PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS);          // PCF8574 object for controlling the second relay board.
+const int RELAY_BOARD1_ADDRESS = 0x20;                // I2C address of the first relay board.
+const int RELAY_BOARD2_ADDRESS = 0x21;                // I2C address of the second relay board.
+PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS);            // PCF8575 object for controlling the first relay board.
+PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS);            // PCF8574 object for controlling the second relay board.
 
 // LCD Related
 const int LCD_ADDRESS = 0x27;                               // I2C address of the LCD display.
@@ -57,11 +57,14 @@ const int LCD_ROWS = 4;                                     // Number of rows in
 LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);  // LiquidCrystal_I2C object for controlling the LCD display.
 
 // Miscellaneous
-const int HOMING_SENSOR_PIN = 25;                           // GPIO pin connected to the homing sensor.
-const int RESET_BUTTON_PIN = 19;                            // GPIO pin connected to the reset button.
-bool emergencyStop = false;                                 // Flag to indicate whether an emergency stop has been triggered.
-char mqttTrackNumber[3] = "";                               // Character array to store the track number received via MQTT.
-bool resetButtonState = HIGH;                               // State of the reset button in the previous iteration.
+const int HOMING_SENSOR_PIN = 25;                     // GPIO pin connected to the homing sensor.
+const int RESET_BUTTON_PIN = 19;                      // GPIO pin connected to the reset button.
+bool emergencyStop = false;                           // Flag to indicate whether an emergency stop has been triggered.
+char mqttTrackNumber[3] = "";                         // Character array to store the track number received via MQTT.
+bool resetButtonState = HIGH;                         // State of the reset button in the previous iteration.
+unsigned long lastDebounceTime = 0;                   // The last time the output pin was toggled.
+bool lastButtonState = LOW;                           // The previous reading from the input pin.
+const unsigned long BAUD_RATE = 115200;               // Baud rate for serial communication.
 
 // Calibration Related
 #ifdef CALIBRATION_MODE
@@ -76,8 +79,7 @@ const int STEP_MOVE_HELD_KEYPRESS = 100;              // Number of steps to move
 
 // Position and Track Numbers
 int currentPosition = 0;                              // Current position of the turntable in steps.
-extern
-const int NUMBER_OF_TRACKS;                           // Total number of tracks on the turntable.
+extern const int NUMBER_OF_TRACKS;                    // Total number of tracks on the turntable.
 extern int * TRACK_NUMBERS;                           // Pointer to the array of track numbers.
 int trackHeads[23] = {
   0
@@ -87,12 +89,9 @@ int trackTails[23] = {
 }; // Array to store the tail positions of each track in steps.
 
 /* Definitions of functions declared in Turntable.h */
-
-/* 
-  Function to calculate the target position based on the track number and the end (head or tail) specified.
-  This function is used to calculate the target position separately for better code organization and readability.
-  An array is used to store the track heads and tails for efficiency, as it allows for quick access to the head and tail positions of each track.
-*/
+/* Function to calculate the target position based on the track number and the end (head or tail) specified.
+   This function is used to calculate the target position separately for better code organization and readability.
+   An array is used to store the track heads and tails for efficiency, as it allows for quick access to the head and tail positions of each track. */
 int calculateTargetPosition(int trackNumber, int endNumber) {
   int targetPosition;
   if (calibrationMode) {
@@ -103,16 +102,14 @@ int calculateTargetPosition(int trackNumber, int endNumber) {
   return targetPosition;
 }
 
-/* 
-  Function to control track power relays.
-  This function is used to control the relays separately for better code organization and readability.
-  A for loop is used to turn off all the relays because it allows for iterating through all the relays without having to write separate code for each one. 
-*/
+/* Function to control track power relays.
+   This function is used to control the relays separately for better code organization and readability.
+   A for loop is used to turn off all the relays because it allows for iterating through all the relays without having to write separate code for each one. */
 void controlRelays(int trackNumber) {
   // Check if the relay for the selected track is already on
   if ((trackNumber >= 1 && trackNumber <= 15 && relayBoard1.digitalRead(trackNumber) == LOW) ||
     (trackNumber >= 16 && trackNumber <= NUMBER_OF_TRACKS && relayBoard2.digitalRead(trackNumber - 16) == LOW)) {
-    return; // If the relay for the selected track is already on, no need to change the state of any relay
+    return; // If the relay for the selected track is already on, no need to change the state of any relay.
   }
 
   // Turn off all relays
@@ -132,12 +129,9 @@ void controlRelays(int trackNumber) {
   }
 }
 
-/* 
-  Function to move the turntable to the target position.
-This function is used to move to the target position separately for better code organization and readability.
-A while loop is used to wait for the stepper to finish moving to ensure that the turntable has reached the target position before proceeding.
-*/
-
+/* Function to move the turntable to the target position.
+   This function is used to move to the target position separately for better code organization and readability.
+   A while loop is used to wait for the stepper to finish moving to ensure that the turntable has reached the target position before proceeding. */
 void moveToTargetPosition(int targetPosition) {
   // Print the target position and current position
   Serial.print("Moving to target position: ");
