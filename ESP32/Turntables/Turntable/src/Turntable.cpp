@@ -51,7 +51,7 @@ PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS);            // PCF8575 object for cont
 PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS);            // PCF8574 object for controlling the second relay board.
 
 // LCD Related
-const int LCD_ADDRESS = 0x27;                               // I2C address of the LCD display.
+const int LCD_ADDRESS = 0x3F;                               // I2C address of the LCD display.
 const int LCD_COLUMNS = 20;                                 // Number of columns in the LCD display.
 const int LCD_ROWS = 4;                                     // Number of rows in the LCD display.
 LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);  // LiquidCrystal_I2C object for controlling the LCD display.
