@@ -1,4 +1,5 @@
-const char * VERSION_NUMBER = "1.1.41";  // Define the version number.
+// Define the version number.
+const char * VERSION_NUMBER = "1.1.41";
 
 /* Aisle-Node: Turntable Control
    Project: ESP32-based WiFi/MQTT Turntable Node
@@ -17,16 +18,17 @@ const char * VERSION_NUMBER = "1.1.41";  // Define the version number.
    The turntable is used to rotate locomotives or cars from one track to another, and the ESP32 provides a convenient way to control it remotely via WiFi and MQTT. */
    
 // ********************************************************************************************************************************************************
-// Uncomment this line to enable calibration mode. Calibration mode allows manual programming of the turntable track positions without using MQTT commands.
+// Uncomment the line below to enable calibration mode. In this mode, you can manually program the turntable track positions without using MQTT commands.
 // #define CALIBRATION_MODE
 //
 // Depending on the location, define the ESP32 hostname, MQTT topics, number of tracks, and track numbers.
-// Uncomment one of these lines to indicate the location.
+// Uncomment one of the lines below to specify the location.
 #define GILBERTON
 // #define HOBOKEN
 // #define PITTSBURGH
 // ********************************************************************************************************************************************************
 
+// Include the appropriate configuration file based on the defined location.
 #ifdef GILBERTON
 #include "GilbertonConfig.h"
 
@@ -57,7 +59,7 @@ const char * VERSION_NUMBER = "1.1.41";  // Define the version number.
    MQTT is a lightweight messaging protocol that is used in this sketch for remote control of the turntable via WiFi. */
 #include "WiFiMQTT.h"
 
-// Helper function for printing messages to the LCD display
+// Helper function to print messages to the LCD display. If the LCD is not available, this function does nothing.
 void printToLCD(int row, const char * message) {
   // Check if the LCD is available
   if (!isLCDAvailable) {
@@ -92,12 +94,12 @@ void printToLCD(int row, const char * message) {
   }
 }
 
-// Helper function for clearing the LCD display
+// Helper function to clear the LCD display. If the LCD is not available, this function does nothing.
 void clearLCD() {
   lcd.clear();
 }
 
-// Function to initialize the LCD display
+// Function to initialize the LCD display. If the LCD is not available, this function does nothing.
 void initializeLCD() {
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
 
@@ -112,19 +114,19 @@ void initializeLCD() {
   #endif
 }
 
-// Function to initialize the relay boards
+// Function to initialize the relay boards. This function initializes two relay boards.
 void initializeRelayBoards() {
   relayBoard1.begin(); // Initialize the first relay board.
   relayBoard2.begin(); // Initialize the second relay board.
 }
 
-// Function to initialize the stepper motor
+// Function to initialize the stepper motor. This function sets the maximum speed and acceleration for the stepper motor.
 void initializeStepper() {
   stepper.setMaxSpeed(STEPPER_SPEED); // Set the maximum speed for the stepper motor.
   stepper.setAcceleration(STEPPER_SPEED); // Set the acceleration for the stepper motor.
 }
 
-// Function to read data from EEPROM
+// Function to read data from EEPROM. This function reads track positions from EEPROM if not in calibration mode.
 void readDataFromEEPROM() {
   if (!calibrationMode) {
     // Read track positions from EEPROM
@@ -153,7 +155,7 @@ void readDataFromEEPROM() {
   }
 }
 
-// Function to initialize the keypad and LCD
+// Function to initialize the keypad and LCD. This function adds an event listener to the keypad that handles key presses.
 void initializeKeypadAndLCD() {
   keypad.addEventListener([](char key) {
     int trackNumber = atoi(keypadTrackNumber); // Get the track number entered on the keypad.
@@ -180,12 +182,12 @@ void initializeKeypadAndLCD() {
   });
 }
 
-// Function to enable OTA updates for the ESP32
+// Function to enable OTA updates for the ESP32. This function begins the OTA service.
 void enableOTAUpdates() {
   ArduinoOTA.begin();
 }
 
-// Function to perform the homing sequence
+// Function to perform the homing sequence. This function moves the turntable to the home position and sets the current position to zero.
 void performHomingSequence() {
   while (digitalRead(HOMING_SENSOR_PIN) == HIGH) {
     stepper.move(-10);
@@ -200,20 +202,20 @@ void performHomingSequence() {
   clearLCD();
 }
 
-// Function to initialize peripherals (serial, I2C, EEPROM)
+// Function to initialize peripherals. This function initializes serial communication, the I2C bus, and EEPROM.
 void initializePeripherals() {
   Serial.begin(BAUD_RATE); // Initialize serial communication.
   Wire.begin(); // Initialize the I2C bus.
   EEPROM.begin(EEPROM_TOTAL_SIZE_BYTES); // Initialize EEPROM.
 }
 
-// Function to connect to the WiFi network and MQTT broker
+// Function to connect to the WiFi network and MQTT broker. This function connects to the WiFi network and the MQTT broker, and subscribes to the MQTT topic.
 void connectToNetwork() {
   connectToWiFi(); // Connect to the WiFi network.
   connectToMQTT(); // Connect to the MQTT broker and subscribe to the topic.
 }
 
-// Function to initialize various components (LCD, relay boards, stepper, keypad, OTA updates, homing sequence)
+// Function to initialize various components. This function initializes the LCD display, relay boards, stepper motor, keypad, and LCD, enables OTA updates for the ESP32, and performs the homing sequence.
 void initializeComponents() {
   initializeLCD(); // Initialize the LCD display.
   initializeRelayBoards(); // Initialize the relay boards.
@@ -230,8 +232,7 @@ void readEEPROMData() {
   }
 }
 
-/* ESP32 setup function to initialize the system
-   This function uses separate functions to initialize peripherals, connect to the network, initialize components, and read EEPROM data for better code organization and readability. */
+// ESP32 setup function to initialize the system. This function initializes peripherals, connects to the network, initializes components, and reads EEPROM data.
 void setup() {
   initializePeripherals();
   connectToNetwork();
@@ -239,7 +240,7 @@ void setup() {
   readEEPROMData();
 }
 
-// Function to handle the emergency stop functionality
+// Function to handle the emergency stop functionality. This function stops the stepper motor and displays a message on the LCD if the emergency stop flag is set.
 void handleEmergencyStop() {
   if (emergencyStop) {
     stepper.stop();
@@ -253,7 +254,7 @@ void handleEmergencyStop() {
   }
 }
 
-// Function to handle keypad inputs
+// Function to handle keypad inputs. This function handles key presses and key holds, and performs actions based on the keys pressed.
 void handleKeypadInput() {
   char key = keypad.getKey();
   static bool isKeyHeld = false; // Track if a key is held down.
@@ -353,7 +354,7 @@ void handleKeypadInput() {
   }
 }
 
-// Function to handle WiFi and MQTT connections and message handling
+// Function to handle WiFi and MQTT connections and message handling. This function reconnects to the WiFi network and MQTT broker if disconnected, and handles MQTT messages and OTA updates.
 void handleWiFiAndMQTT() {
   if (WiFi.status() != WL_CONNECTED) {
     connectToWiFi();
@@ -367,7 +368,7 @@ void handleWiFiAndMQTT() {
   ArduinoOTA.handle();
 }
 
-// Function to handle the reset button functionality
+// Function to handle the reset button functionality. This function performs the homing sequence if the reset button is pressed.
 void handleResetButton() {
   bool currentResetButtonState = digitalRead(RESET_BUTTON_PIN);
 
@@ -388,16 +389,14 @@ void handleResetButton() {
   lastButtonState = currentResetButtonState;
 }
 
-// Function to handle stepper movement
+// Function to handle stepper movement. This function moves the stepper motor if there is a distance to go.
 void handleStepperMovement() {
   if (stepper.distanceToGo() != 0) {
     stepper.run();
   }
 }
 
-/* ESP32 loop function to handle emergency stop, keypad inputs, WiFi and MQTT connections, reset button, and stepper movement
-   This function uses a while loop to wait for the stepper to finish moving to ensure that the turntable has reached the target position before proceeding.
-   Separate functions are used for each task for better code organization and readability. */
+// ESP32 loop function to handle various tasks. This function handles emergency stop, keypad inputs, WiFi and MQTT connections, reset button, and stepper movement.
 void loop() {
   handleEmergencyStop();
   handleKeypadInput();
