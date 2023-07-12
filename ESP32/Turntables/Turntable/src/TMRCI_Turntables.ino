@@ -16,7 +16,7 @@ const char * VERSION_NUMBER = "1.1.41";
    commanded track number, and the head or tail position. The ESP32 Node is identified by its hostname, "LOCATION_Turntable_Node".
 
    The turntable is used to rotate locomotives or cars from one track to another, and the ESP32 provides a convenient way to control it remotely via WiFi and MQTT. */
-   
+
 // ********************************************************************************************************************************************************
 // Uncomment the line below to enable calibration mode. In this mode, you can manually program the turntable track positions without using MQTT commands.
 // #define CALIBRATION_MODE
@@ -60,7 +60,8 @@ const char * VERSION_NUMBER = "1.1.41";
 #include "WiFiMQTT.h"
 
 // Helper function to print messages to the LCD display. If the LCD is not available, this function does nothing.
-void printToLCD(int row, const char * message) {
+void printToLCD(int row,
+  const char * message) {
   // Check if the LCD is available
   if (!isLCDAvailable) {
     return; // If the LCD is not available, exit the function
@@ -79,7 +80,7 @@ void printToLCD(int row, const char * message) {
     int start = 0;
     while (start < messageLength) {
       char buffer[LCD_COLUMNS + 1];
-      strncpy(buffer, &message[start], LCD_COLUMNS);
+      strncpy(buffer, & message[start], LCD_COLUMNS);
       buffer[LCD_COLUMNS] = '\0'; // Null-terminate the buffer
 
       // Find the last space in the buffer

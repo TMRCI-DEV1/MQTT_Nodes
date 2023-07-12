@@ -28,15 +28,15 @@ void connectToWiFi() {
   // If WiFi connection is successful, print the IP address to the serial monitor and the LCD display
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Connected to WiFi");
-  
+
     // Get the IP address and convert it to a string
     IPAddress ipAddress = WiFi.localIP();
     String ipAddressString = ipAddress.toString();
-  
+
     // Print the IP address to the serial monitor
     Serial.print("IP Address: ");
     Serial.println(ipAddressString);
-  
+
     // Print the IP address to the LCD display
     printToLCD(0, "IP Address:");
     printToLCD(1, ipAddressString.c_str());
@@ -51,7 +51,7 @@ void connectToWiFi() {
    If the connection fails, the function will retry the connection. This is important to ensure that the ESP32 can always connect to the MQTT broker,
    even if the first attempt fails (for example, due to network issues or the broker being temporarily unavailable). */
 void connectToMQTT() {
-  client.setServer(mqtt_broker, mqtt_port);  // Connect to MQTT broker.
+  client.setServer(mqtt_broker, mqtt_port); // Connect to MQTT broker.
 
   // Loop until MQTT connection is established
   while (!client.connected()) {
@@ -61,10 +61,10 @@ void connectToMQTT() {
     }
 
     // Attempt to connect to the MQTT broker with address and port
-    if (client.connect("ESP32Client")) {  // ESP32Client is the Client ID.
+    if (client.connect("ESP32Client")) { // ESP32Client is the Client ID.
       Serial.println("Connected to MQTT");
-      client.setCallback(callback);  // Set the callback function.
-      client.subscribe(MQTT_TOPIC);  // Subscribe to the MQTT topic.
+      client.setCallback(callback); // Set the callback function.
+      client.subscribe(MQTT_TOPIC); // Subscribe to the MQTT topic.
     } else {
       // If MQTT connection failed, print an error message and retry after a delay
       Serial.print("Failed to connect to MQTT. Retrying in 2 seconds... ");
@@ -100,25 +100,25 @@ void callback(char * topic, byte * payload, unsigned int length) {
 
   // Extract the track number and end (head or tail) from the MQTT topic
   char mqttTrackNumber[3];
-  strncpy(mqttTrackNumber, trackPosition + 5, 2);                         // Extract track number from MQTT topic.
-  mqttTrackNumber[2] = '\0';                                              // Null-terminate the char array.
+  strncpy(mqttTrackNumber, trackPosition + 5, 2); // Extract track number from MQTT topic.
+  mqttTrackNumber[2] = '\0'; // Null-terminate the char array.
 
-  int trackNumber = atoi(mqttTrackNumber);                                // Convert track number to integer.
+  int trackNumber = atoi(mqttTrackNumber); // Convert track number to integer.
 
   if (trackNumber > NUMBER_OF_TRACKS || trackNumber < 1) {
-  Serial.println("Invalid track number received in MQTT topic");
-  printToLCD(0, "Invalid track number received in MQTT topic");
-  return;
-}
+    Serial.println("Invalid track number received in MQTT topic");
+    printToLCD(0, "Invalid track number received in MQTT topic");
+    return;
+  }
 
-  int endNumber = (trackPosition[7] == 'H') ? 0 : 1;                      // Determine if it's the head or tail end.
-  int targetPosition = calculateTargetPosition(trackNumber, endNumber);   // Calculate target position.
-  moveToTargetPosition(targetPosition);                                   // Move to the target position.
+  int endNumber = (trackPosition[7] == 'H') ? 0 : 1; // Determine if it's the head or tail end.
+  int targetPosition = calculateTargetPosition(trackNumber, endNumber); // Calculate target position.
+  moveToTargetPosition(targetPosition); // Move to the target position.
 
   // Update the LCD display with the selected track information
-  clearLCD();                                                             // Clear LCD.
-  printToLCD(0, "Track selected:");                                       // Print the static message "Track selected:" to the first row of the LCD.
-  printToLCD(1, String(trackNumber).c_str());                             // Convert the track number to a string and print it to the second row of the LCD.
-  printToLCD(2, "Position:");                                             // Print the static message "Position:" to the third row of the LCD.
-  printToLCD(3, String(targetPosition).c_str());                          // Convert the target position to a string and print it to the fourth row of the LCD.
+  clearLCD(); // Clear LCD.
+  printToLCD(0, "Track selected:"); // Print the static message "Track selected:" to the first row of the LCD.
+  printToLCD(1, String(trackNumber).c_str()); // Convert the track number to a string and print it to the second row of the LCD.
+  printToLCD(2, "Position:"); // Print the static message "Position:" to the third row of the LCD.
+  printToLCD(3, String(targetPosition).c_str()); // Convert the target position to a string and print it to the fourth row of the LCD.
 }

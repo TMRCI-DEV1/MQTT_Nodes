@@ -3,14 +3,14 @@
 
 #include "Turntable.h"
 
-#include <EEPROM.h>   // Include the EEPROM library to enable read/write operations on the ESP32's EEPROM. This is used for storing the current position and track head/tail positions.
-                      // https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
-
+#include <EEPROM.h>            // Include the EEPROM library to enable read/write operations on the ESP32's EEPROM. This is used for storing the current position and track head/tail positions.
+                               // https://github.com/espressif/arduino-esp32/tree/master/libraries/EEPROM
 // EEPROM Related
-const int EEPROM_TRACK_HEADS_ADDRESS = 100;  // Starting address in EEPROM to store track heads.
-const int EEPROM_TOTAL_SIZE_BYTES = 4096;    // Total size of the EEPROM in bytes.
+const int EEPROM_TRACK_HEADS_ADDRESS = 100; // Starting address in EEPROM to store track heads.
+const int EEPROM_TOTAL_SIZE_BYTES = 4096; // Total size of the EEPROM in bytes.
 
-extern void printToLCD(int row, const char* message); // Declare the printToLCD function
+extern void printToLCD(int row,
+  const char * message); // Declare the printToLCD function
 
 /* This function calculates and returns the EEPROM address for storing track tail positions.
    It does this by adding the size (in bytes) of the total number of track heads to the 
@@ -59,32 +59,32 @@ template < typename T >
 
 /* Function to read data from EEPROM with error checking. This function uses a template to allow for reading of different data types from EEPROM.
    memcmp is used for data verification to ensure that the data read from EEPROM is the same as the data stored. */
-template <typename T>
-bool readFromEEPROMWithVerification(int address, T& value) {
-  const int MAX_RETRIES = 3;
-  int retryCount = 0;
-  bool readSuccess = false;
+template < typename T >
+  bool readFromEEPROMWithVerification(int address, T & value) {
+    const int MAX_RETRIES = 3;
+    int retryCount = 0;
+    bool readSuccess = false;
 
-  while (retryCount < MAX_RETRIES && !readSuccess) {
-    T readValue;
-    EEPROM.get(address, readValue);
+    while (retryCount < MAX_RETRIES && !readSuccess) {
+      T readValue;
+      EEPROM.get(address, readValue);
 
-    if (memcmp(&value, &readValue, sizeof(T)) != 0) {
-      retryCount++;
-      delay(500);
-    } else {
-      for (int i = 0; i < sizeof(T)/sizeof(T[0]); i++) {
-        value[i] = readValue[i];
+      if (memcmp( & value, & readValue, sizeof(T)) != 0) {
+        retryCount++;
+        delay(500);
+      } else {
+        for (int i = 0; i < sizeof(T) / sizeof(T[0]); i++) {
+          value[i] = readValue[i];
+        }
+        readSuccess = true;
       }
-      readSuccess = true;
     }
-  }
 
-  if (!readSuccess) {
-    Serial.println("EEPROM read error!");
-  }
+    if (!readSuccess) {
+      Serial.println("EEPROM read error!");
+    }
 
-  return readSuccess;
-}
+    return readSuccess;
+  }
 
 #endif // EEPROMCONFIG_H

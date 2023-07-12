@@ -35,57 +35,57 @@ byte KEYPAD_COLUMN_PINS[] = {
   17,
   18
 }; // Array of GPIO pins connected to the keypad columns.
-Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM);  // Keypad object for interfacing with the keypad.
-char keypadTrackNumber[3] = "";                      // Character array to store the track number entered by the user via the keypad.
-const unsigned long KEY_HOLD_DELAY = 500;            // Delay before continuous movement starts (in milliseconds).
+Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM); // Keypad object for interfacing with the keypad.
+char keypadTrackNumber[3] = ""; // Character array to store the track number entered by the user via the keypad.
+const unsigned long KEY_HOLD_DELAY = 500; // Delay before continuous movement starts (in milliseconds).
 
 // Stepper Motor Related
-const int STEPS_PER_REV = 6400;                      // Number of steps per revolution for the stepper motor.
-const int STEPPER_SPEED = 800;                       // Maximum speed of the stepper motor in steps per second.
-AccelStepper stepper(AccelStepper::DRIVER, 33, 32);  // AccelStepper object for controlling the stepper motor.
+const int STEPS_PER_REV = 6400; // Number of steps per revolution for the stepper motor.
+const int STEPPER_SPEED = 800; // Maximum speed of the stepper motor in steps per second.
+AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // AccelStepper object for controlling the stepper motor.
 
 // Relay Board Related
-const int RELAY_BOARD1_ADDRESS = 0x20;                // I2C address of the first relay board.
-const int RELAY_BOARD2_ADDRESS = 0x21;                // I2C address of the second relay board.
-PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS);            // PCF8575 object for controlling the first relay board.
-PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS);            // PCF8574 object for controlling the second relay board.
+const int RELAY_BOARD1_ADDRESS = 0x20; // I2C address of the first relay board.
+const int RELAY_BOARD2_ADDRESS = 0x21; // I2C address of the second relay board.
+PCF8575 relayBoard1(RELAY_BOARD1_ADDRESS); // PCF8575 object for controlling the first relay board.
+PCF8574 relayBoard2(RELAY_BOARD2_ADDRESS); // PCF8574 object for controlling the second relay board.
 
 // LCD Related
-const int LCD_ADDRESS = 0x3F;                               // I2C address of the LCD display.
-const int LCD_COLUMNS = 20;                                 // Number of columns in the LCD display.
-const int LCD_ROWS = 4;                                     // Number of rows in the LCD display.
-LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);  // LiquidCrystal_I2C object for controlling the LCD display.
-bool isLCDAvailable = false;                                // Set this to true if LCD is connected, false otherwise
+const int LCD_ADDRESS = 0x3F; // I2C address of the LCD display.
+const int LCD_COLUMNS = 20; // Number of columns in the LCD display.
+const int LCD_ROWS = 4; // Number of rows in the LCD display.
+LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS); // LiquidCrystal_I2C object for controlling the LCD display.
+bool isLCDAvailable = false; // Set this to true if LCD is connected, false otherwise
 
 // Miscellaneous
-const int HOMING_SENSOR_PIN = 25;                     // GPIO pin connected to the homing sensor.
-const int RESET_BUTTON_PIN = 19;                      // GPIO pin connected to the reset button.
-int emergencyStopCounter = 0;                         // Add a counter for the '9' key.
-bool emergencyStop = false;                           // Flag to indicate whether an emergency stop has been triggered.
-char mqttTrackNumber[3] = "";                         // Character array to store the track number received via MQTT.
-bool resetButtonState = HIGH;                         // State of the reset button in the previous iteration.
-unsigned long lastDebounceTime = 0;                   // The last time the output pin was toggled.
-bool lastButtonState = LOW;                           // The previous reading from the input pin.
-const unsigned long BAUD_RATE = 115200;               // Baud rate for serial communication.
+const int HOMING_SENSOR_PIN = 25; // GPIO pin connected to the homing sensor.
+const int RESET_BUTTON_PIN = 19; // GPIO pin connected to the reset button.
+int emergencyStopCounter = 0; // Add a counter for the '9' key.
+bool emergencyStop = false; // Flag to indicate whether an emergency stop has been triggered.
+char mqttTrackNumber[3] = ""; // Character array to store the track number received via MQTT.
+bool resetButtonState = HIGH; // State of the reset button in the previous iteration.
+unsigned long lastDebounceTime = 0; // The last time the output pin was toggled.
+bool lastButtonState = LOW; // The previous reading from the input pin.
+const unsigned long BAUD_RATE = 115200; // Baud rate for serial communication.
 
 // Calibration Related
 #ifdef CALIBRATION_MODE
-const bool calibrationMode = true;                    // Flag to indicate whether calibration mode is enabled. This is set to true when CALIBRATION_MODE is defined.
+const bool calibrationMode = true; // Flag to indicate whether calibration mode is enabled. This is set to true when CALIBRATION_MODE is defined.
 #else
-const bool calibrationMode = false;                   // Flag to indicate that calibration mode is not enabled. This is set to false when CALIBRATION_MODE is not defined.
+const bool calibrationMode = false; // Flag to indicate that calibration mode is not enabled. This is set to false when CALIBRATION_MODE is not defined.
 #endif
-const char CONFIRM_YES = '1';                         // Character to confirm an action. This is set to '1'.
-const char CONFIRM_NO = '3';                          // Character to cancel an action. This is set to '3'.
-const int STEP_MOVE_SINGLE_KEYPRESS = 1;              // Number of steps to move the turntable for a single keypress during calibration. This is set to 1.
-const int STEP_MOVE_HELD_KEYPRESS = 100;              // Number of steps to move the turntable for a held keypress during calibration. This is set to 100.
-bool waitingForConfirmation = false;                  // Flag to indicate whether the system is waiting for a confirmation input during calibration. This is initially set to false.
-int tempTrackNumber = 0;                              // Temporary storage for the track number during calibration. This is initially set to 0.
-char tempEndChar = '\0';                              // Temporary storage for the end character ('*' or '#') during calibration. This is initially set to '\0' (null character).
+const char CONFIRM_YES = '1'; // Character to confirm an action. This is set to '1'.
+const char CONFIRM_NO = '3'; // Character to cancel an action. This is set to '3'.
+const int STEP_MOVE_SINGLE_KEYPRESS = 1; // Number of steps to move the turntable for a single keypress during calibration. This is set to 1.
+const int STEP_MOVE_HELD_KEYPRESS = 100; // Number of steps to move the turntable for a held keypress during calibration. This is set to 100.
+bool waitingForConfirmation = false; // Flag to indicate whether the system is waiting for a confirmation input during calibration. This is initially set to false.
+int tempTrackNumber = 0; // Temporary storage for the track number during calibration. This is initially set to 0.
+char tempEndChar = '\0'; // Temporary storage for the end character ('*' or '#') during calibration. This is initially set to '\0' (null character).
 
 // Position and Track Numbers
-int currentPosition = 0;                              // Current position of the turntable in steps.
-extern const int NUMBER_OF_TRACKS;                    // Total number of tracks on the turntable.
-extern int * TRACK_NUMBERS;                           // Pointer to the array of track numbers.
+int currentPosition = 0; // Current position of the turntable in steps.
+extern const int NUMBER_OF_TRACKS; // Total number of tracks on the turntable.
+extern int * TRACK_NUMBERS; // Pointer to the array of track numbers.
 int trackHeads[23] = {
   0
 }; // Array to store the head positions of each track in steps.

@@ -3,14 +3,14 @@
 
 #include "Turntable.h"
 
-#include <WiFi.h>                  // Include the WiFi library to enable WiFi connectivity for the ESP32.                                         
-                                   // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+#include <WiFi.h>              // Include the WiFi library to enable WiFi connectivity for the ESP32.                                         
+                               // https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
 
-#include <PubSubClient.h>          // Include the PubSubClient library to enable MQTT communication for publishing and subscribing to topics.     
-                                   // https://github.com/knolleary/pubsubclient
+#include <PubSubClient.h>      // Include the PubSubClient library to enable MQTT communication for publishing and subscribing to topics.     
+                               // https://github.com/knolleary/pubsubclient
 
-#include <ArduinoOTA.h>            // Include the ArduinoOTA library to enable Over-The-Air updates for the ESP32.                                
-                                   // https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
+#include <ArduinoOTA.h>        // Include the ArduinoOTA library to enable Over-The-Air updates for the ESP32.                                
+                               // https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 /* Constants */
 // Network and MQTT Related
