@@ -59,16 +59,17 @@ extern LiquidCrystal_I2C lcd;               // LiquidCrystal_I2C object for cont
 extern bool isLCDAvailable;                 // Set this to true if LCD is connected, false otherwise
 
 // Miscellaneous
-#define DEBOUNCE_DELAY 50                   // Debounce delay in milliseconds
-extern const int HOMING_SENSOR_PIN;         // GPIO pin connected to the homing sensor.
-extern const int RESET_BUTTON_PIN;          // GPIO pin connected to the reset button.
-extern int emergencyStopCounter;            // Add a counter for the '9' key.
-extern bool emergencyStop;                  // Flag to indicate whether an emergency stop has been triggered.
-extern char mqttTrackNumber[3];             // Character array to store the track number received via MQTT.
-extern bool resetButtonState;               // State of the reset button in the previous iteration.
-extern unsigned long lastDebounceTime;      // The last time the output pin was toggled.
-extern bool lastButtonState;                // The previous reading from the input pin.
-extern const unsigned long BAUD_RATE;       // Baud rate for serial communication.
+#define DEBOUNCE_DELAY 50                   // Defines the debounce delay in milliseconds for button inputs.
+extern const int HOMING_SENSOR_PIN;         // Specifies the GPIO pin connected to the homing sensor.
+extern const int RESET_BUTTON_PIN;          // Specifies the GPIO pin connected to the reset button.
+extern int emergencyStopCounter;            // Counter for the '9' key to trigger emergency stop.
+extern bool emergencyStop;                  // Flag to indicate if an emergency stop has been triggered.
+extern char mqttTrackNumber[3];             // Array to store the track number received via MQTT.
+extern bool resetButtonState;               // Holds the state of the reset button in the previous iteration.
+extern unsigned long lastDebounceTime;      // Records the last time the output pin was toggled for debounce.
+extern bool lastButtonState;                // Holds the previous reading from the input pin.
+extern const unsigned long BAUD_RATE;       // Defines the baud rate for serial communication.
+extern const unsigned long DELAY_TIME;      // Defines the delay time in milliseconds used for pauses in execution.
 
 // Calibration Related
 extern const bool calibrationMode;          // Flag to indicate whether calibration mode is enabled.
@@ -91,5 +92,8 @@ extern int trackTails[23];                  // Array to store the tail positions
 int calculateTargetPosition(int trackNumber, int endNumber);   // Calculates the target position based on the track number and end number.
 void controlRelays(int trackNumber);                           // Controls the relays to switch the track power to the specified track number.
 void moveToTargetPosition(int targetPosition);                 // Moves the turntable to the target position using the stepper motor.
+void printCurrentPositionRelativeToHome();                     // Prints the current position of the turntable relative to the "home" position. 
+                                                               // This function is used for debugging purposes to check if the stepper motor is drifting 
+                                                               // or being manually moved without the sketch being aware of it.
 
 #endif

@@ -59,15 +59,16 @@ LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS); // LiquidCrystal_I2C 
 bool isLCDAvailable = false; // Set this to true if LCD is connected, false otherwise
 
 // Miscellaneous
-const int HOMING_SENSOR_PIN = 25; // GPIO pin connected to the homing sensor.
-const int RESET_BUTTON_PIN = 19; // GPIO pin connected to the reset button.
-int emergencyStopCounter = 0; // Add a counter for the '9' key.
-bool emergencyStop = false; // Flag to indicate whether an emergency stop has been triggered.
-char mqttTrackNumber[3] = ""; // Character array to store the track number received via MQTT.
-bool resetButtonState = HIGH; // State of the reset button in the previous iteration.
-unsigned long lastDebounceTime = 0; // The last time the output pin was toggled.
-bool lastButtonState = LOW; // The previous reading from the input pin.
-const unsigned long BAUD_RATE = 115200; // Baud rate for serial communication.
+const int HOMING_SENSOR_PIN = 25;           // Specifies the GPIO pin connected to the homing sensor.
+const int RESET_BUTTON_PIN = 19;            // Specifies the GPIO pin connected to the reset button.
+int emergencyStopCounter = 0;               // Counter for the '9' key to trigger emergency stop.
+bool emergencyStop = false;                 // Flag to indicate if an emergency stop has been triggered.
+char mqttTrackNumber[3] = "";               // Array to store the track number received via MQTT.
+bool resetButtonState = HIGH;               // Holds the state of the reset button in the previous iteration.
+unsigned long lastDebounceTime = 0;         // Records the last time the output pin was toggled for debounce.
+bool lastButtonState = LOW;                 // Holds the previous reading from the input pin.
+const unsigned long BAUD_RATE = 115200;     // Defines the baud rate for serial communication.
+const unsigned long DELAY_TIME = 2000;      // Defines the delay time in milliseconds used for pauses in execution.
 
 // Calibration Related
 #ifdef CALIBRATION_MODE
@@ -95,6 +96,7 @@ int trackTails[23] = {
 }; // Array to store the tail positions of each track in steps.
 
 /* Definitions of functions declared in Turntable.h */
+
 /* Function to calculate the target position based on the track number and the end (head or tail) specified.
    This function is used to calculate the target position separately for better code organization and readability.
    An array is used to store the track heads and tails for efficiency, as it allows for quick access to the head and tail positions of each track. */
@@ -138,8 +140,12 @@ void controlRelays(int trackNumber) {
 /* Function to move the turntable to the target position.
    This function calculates the shortest path to the target position, either moving forward or backward,
    and moves the turntable to the target position using the stepper motor.
-   The function waits for the stepper to finish moving before proceeding to ensure that the turntable has reached the target position. */
+   The function waits for the stepper to finish moving before proceeding to ensure that the turntable has reached the target position.
+   It also checks for any discrepancy between the expected and actual position after the move, and prints a warning message if a discrepancy is detected. */
 void moveToTargetPosition(int targetPosition) {
+  // Store the expected position for comparison after moving
+  int expectedPosition = targetPosition;
+
   // Print the target position and current position
   Serial.print("Moving to target position: ");
   Serial.print(targetPosition);
@@ -149,28 +155,28 @@ void moveToTargetPosition(int targetPosition) {
   // Turn off the turntable bridge track power before starting the move
   relayBoard1.digitalWrite(0, HIGH);
 
-  // Adjust the current position if it exceeds 6400 or goes below 0
-  // This adjustment is necessary because the turntable's position wraps around at 6400 (equivalent to position 0)
-  if (currentPosition >= 6400) {
-    currentPosition -= 6400;
+  // Adjust the current position if it exceeds STEPS_PER_REV or goes below 0
+  // This adjustment is necessary because the turntable's position wraps around at STEPS_PER_REV (equivalent to position 0)
+  if (currentPosition >= STEPS_PER_REV) {
+    currentPosition -= STEPS_PER_REV;
   } else if (currentPosition < 0) {
-    currentPosition += 6400;
+    currentPosition += STEPS_PER_REV;
   }
 
   // Calculate the distances for moving forward and backward
   // The forward distance is the difference between the target and current positions if the target is greater than or equal to the current position
-  // Otherwise, it's the distance from the current position to 6400 plus the distance from 0 to the target position
-  // The backward distance is the total steps (6400) minus the forward distance
-  int forwardDistance = (targetPosition >= currentPosition) ? (targetPosition - currentPosition) : (6400 - currentPosition + targetPosition);
-  int backwardDistance = 6400 - forwardDistance;
+  // Otherwise, it's the distance from the current position to STEPS_PER_REV plus the distance from 0 to the target position
+  // The backward distance is the total steps (STEPS_PER_REV) minus the forward distance
+  int forwardDistance = (targetPosition >= currentPosition) ? (targetPosition - currentPosition) : (STEPS_PER_REV - currentPosition + targetPosition);
+  int backwardDistance = STEPS_PER_REV - forwardDistance;
 
   // Move in the direction with the shortest distance
   // If the forward distance is less than or equal to the backward distance, move forward to the target position
-  // Otherwise, move backward by moving to the target position minus 6400 (since moving backward by a certain distance is equivalent to moving forward by the total steps minus that distance)
+  // Otherwise, move backward by moving to the target position minus STEPS_PER_REV (since moving backward by a certain distance is equivalent to moving forward by the total steps minus that distance)
   if (forwardDistance <= backwardDistance) {
     stepper.moveTo(targetPosition);
   } else {
-    stepper.moveTo(targetPosition - 6400); // Move backward
+    stepper.moveTo(targetPosition - STEPS_PER_REV); // Move backward
   }
 
   // Wait for the stepper to finish moving
@@ -180,6 +186,16 @@ void moveToTargetPosition(int targetPosition) {
 
   // Update current position after moving
   currentPosition = targetPosition;
+  
+  // Compare the expected position to the actual position
+  // If there's a discrepancy, print a warning message to the serial monitor
+  if (currentPosition != expectedPosition) {
+    Serial.print("Warning: Discrepancy detected between expected position (");
+    Serial.print(expectedPosition);
+    Serial.print(") and actual position (");
+    Serial.print(currentPosition);
+    Serial.println("). Check calibration and stepper motor.");
+  }
 
   // Print the updated current position
   Serial.print("Move complete. Current position: ");
@@ -191,7 +207,19 @@ void moveToTargetPosition(int targetPosition) {
   // Turn the turntable bridge track power back ON (LOW) once the turntable has completed its move
   relayBoard1.digitalWrite(0, LOW);
 
+  // Uncomment the following line to save the current position to EEPROM when not in calibration mode
   // if (!calibrationMode) {
-  //   writeToEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition); // Save current position to EEPROM
+  //   writeToEEPROMWithVerification(CURRENT_POSITION_EEPROM_ADDRESS, currentPosition);
   // }
+}
+
+/* Function to print the current position relative to the "home" position.
+   This function is used for debugging purposes to check if the stepper motor is drifting or being manually moved without the sketch being aware of it. */
+void printCurrentPositionRelativeToHome() {
+  // Calculate the current position relative to the "home" position
+  int positionRelativeToHome = currentPosition % STEPS_PER_REV;
+
+  // Print the current position relative to the "home" position
+  Serial.print("Current position relative to home: ");
+  Serial.println(positionRelativeToHome);
 }

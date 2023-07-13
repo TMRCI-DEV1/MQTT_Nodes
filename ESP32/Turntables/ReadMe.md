@@ -178,6 +178,15 @@ The sketch defines several constants:
 - `STEP_MOVE_SINGLE_KEYPRESS`: The number of steps to move for a single keypress.
 - `STEP_MOVE_HELD_KEYPRESS`: The number of steps to move for a held keypress.
 
+**Additional Constants:**
+
+- `KeypadState`: An enumeration representing the state of the keypad.
+  - `WAITING_FOR_INITIAL_KEY`: Represents the state where the keypad is waiting for the initial key.
+  - `WAITING_FOR_TRACK_NUMBER`: Represents the state where the keypad is waiting for the track number.
+  - `WAITING_FOR_CONFIRMATION`: Represents the state where the keypad is waiting for confirmation.
+
+- `state`: A variable of type `KeypadState` that represents the current state of the keypad. It is initially set to `WAITING_FOR_INITIAL_KEY`.
+
 ## Variables
 
 The sketch also defines several variables:
@@ -239,6 +248,8 @@ The sketch includes several functions:
 - `controlRelays(int trackNumber)`: This function controls the track power relays.
 
 - `moveToTargetPosition(int targetPosition)`: This function moves the turntable to the target position.
+
+- `printCurrentPositionRelativeToHome()`: This function prints the current position of the turntable relative to the "home" position for debugging purposes.
 
 - `initializeLCD()`: This function initializes the LCD display.
 

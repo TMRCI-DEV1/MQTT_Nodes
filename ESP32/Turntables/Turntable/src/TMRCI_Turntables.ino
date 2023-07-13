@@ -1,5 +1,5 @@
 // Define the version number.
-const char * VERSION_NUMBER = "1.1.42";
+const char * VERSION_NUMBER = "1.1.44";
 
 /* Aisle-Node: Turntable Control
    Project: ESP32-based WiFi/MQTT Turntable Node
@@ -197,7 +197,7 @@ void performHomingSequence() {
   currentPosition = 0; // Set current position to zero after homing.
   printToLCD(0, "HOMING SEQUENCE TRIGGERED");
   unsigned long homingSequenceStartTime = millis();
-  while (millis() - homingSequenceStartTime < 2000) {
+  while (millis() - homingSequenceStartTime < DELAY_TIME) {
     // Do nothing, just wait
   }
   clearLCD();
@@ -252,7 +252,7 @@ void handleEmergencyStop() {
     stepper.stop();
     printToLCD(0, "EMERGENCY STOP");
     unsigned long emergencyStopStartTime = millis();
-    while (millis() - emergencyStopStartTime < 2000) {
+    while (millis() - emergencyStopStartTime < DELAY_TIME) {
       // Do nothing, just wait
     }
     clearLCD();
@@ -310,7 +310,7 @@ void handleKeypadInput() {
           printToLCD(1, String(tempTrackNumber).c_str());
           printToLCD(2, (tempEndChar == '*') ? "Head-end" : "Tail-end");
           unsigned long positionStoredStartTime = millis();
-          while (millis() - positionStoredStartTime < 2000) {
+          while (millis() - positionStoredStartTime < DELAY_TIME) {
             // Do nothing, just wait
           }
           clearLCD();
@@ -319,7 +319,7 @@ void handleKeypadInput() {
         } else if (key == CONFIRM_NO) {
           printToLCD(0, "Position storing cancelled");
           unsigned long cancelStartTime = millis();
-          while (millis() - cancelStartTime < 2000) {
+          while (millis() - cancelStartTime < DELAY_TIME) {
             // Do nothing, just wait
           }
           clearLCD();
@@ -365,7 +365,7 @@ void handleKeypadInput() {
                 if (invalidTrackStartTime == 0) { // If the timer has not started yet.
                   printToLCD(0, "Invalid track number!");
                   invalidTrackStartTime = millis(); // Start the timer
-                } else if (millis() - invalidTrackStartTime >= 2000) { // If 2 seconds have passed.
+                } else if (millis() - invalidTrackStartTime >= DELAY_TIME) { // If 2 seconds have passed.
                   clearLCD();
                   invalidTrackStartTime = 0; // Reset the timer
                 }
@@ -414,6 +414,7 @@ void handleResetButton() {
       resetButtonState = currentResetButtonState;
 
       if (resetButtonState == HIGH) {
+        printCurrentPositionRelativeToHome(); // Print the current position relative to home
         performHomingSequence();
       }
     }
