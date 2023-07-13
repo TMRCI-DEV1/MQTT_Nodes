@@ -1,5 +1,5 @@
 // Define the version number.
-const char * VERSION_NUMBER = "1.1.45";
+const char * VERSION_NUMBER = "1.1.46";
 
 /* Aisle-Node: Turntable Control
    Project: ESP32-based WiFi/MQTT Turntable Node
@@ -227,8 +227,8 @@ void initializeComponents() {
   
   #ifndef CALIBRATION_MODE
   state = WAITING_FOR_INITIAL_KEY; // Initialize the state machine only in operation mode.
+  readDataFromEEPROM(); // Read track positions from EEPROM.
   #endif
-  readDataFromEEPROM();
 }
 
 // Function to read data from EEPROM
