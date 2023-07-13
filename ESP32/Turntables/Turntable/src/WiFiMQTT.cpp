@@ -2,12 +2,12 @@
 
 /* Definitions of variables declared in WiFiMQTT.h */
 // Network and MQTT Related
-const char * ssid = "Your_WiFi_SSID"; // SSID (network name) of the WiFi network to which the ESP32 will connect.
-const char * password = "Your_WiFi_Password"; // Password for the WiFi network.
-const char * mqtt_broker = "Your_MQTT_Broker"; // Address (IP or domain name) of the MQTT broker to which the ESP32 will connect.
-const int mqtt_port = 1883; // Port number for the MQTT broker. The standard port for MQTT is 1883.
-WiFiClient espClient; // WiFiClient object used as the network client for the MQTT connection.
-PubSubClient client(espClient); // PubSubClient object used for MQTT communication.
+const char * ssid = "Your_WiFi_SSID";             // SSID (network name) of the WiFi network to which the ESP32 will connect.
+const char * password = "Your_WiFi_Password";     // Password for the WiFi network.
+const char * mqtt_broker = "Your_MQTT_Broker";    // Address (IP or domain name) of the MQTT broker to which the ESP32 will connect.
+const int mqtt_port = 1883;                       // Port number for the MQTT broker. The standard port for MQTT is 1883.
+WiFiClient espClient;                             // WiFiClient object used as the network client for the MQTT connection.
+PubSubClient client(espClient);                   // PubSubClient object used for MQTT communication.
 
 /* Function to connect to WiFi. This function uses a while loop to wait for the connection to be established.
    If the connection fails, the function will retry the connection. This is important to ensure that the ESP32 can always connect to the WiFi network,
