@@ -1,10 +1,10 @@
 // Define the version number.
-const char * VERSION_NUMBER = "1.1.44";
+const char * VERSION_NUMBER = "1.1.45";
 
 /* Aisle-Node: Turntable Control
    Project: ESP32-based WiFi/MQTT Turntable Node
    Author: Thomas Seitz (thomas.seitz@tmrci.org)
-   Date: 2023-07-12
+   Date: 2023-07-13
    Description:
    This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes various components, including a DIYables 3x4 membrane matrix keypad,
    a GeeekPi IIC I2C TWI Serial LCD 2004 20x4 Display Module with I2C Interface, KRIDA Electronics Relay Modules, a STEPPERONLINE Stepper Drive, a TT Electronics Photologic 
@@ -243,7 +243,6 @@ void setup() {
   initializePeripherals();
   connectToNetwork();
   initializeComponents();
-  readEEPROMData();
 }
 
 // Function to handle the emergency stop functionality. This function stops the stepper motor and displays a message on the LCD if the emergency stop flag is set.
