@@ -22,14 +22,23 @@
 
 /* Constants */
 // Keypad Related
-const byte ROW_NUM = 4;                     // Number of rows in the keypad matrix.
-const byte COLUMN_NUM = 3;                  // Number of columns in the keypad matrix.
+const byte ROW_NUM = 4;                     // Four rows in the keypad matrix.
+const byte COLUMN_NUM = 3;                  // Three columns in the keypad matrix.
 extern char keys[ROW_NUM][COLUMN_NUM];      // 2D array to store the key characters.
 extern byte KEYPAD_ROW_PINS[];              // Array of GPIO pins connected to the keypad rows.
 extern byte KEYPAD_COLUMN_PINS[];           // Array of GPIO pins connected to the keypad columns.
 extern Keypad keypad;                       // Keypad object for interfacing with the keypad.
 extern char keypadTrackNumber[3];           // Character array to store the track number entered by the user via the keypad.
 extern const unsigned long KEY_HOLD_DELAY;  // Delay before continuous movement starts (in milliseconds).
+
+// Define the states
+enum KeypadState {
+  WAITING_FOR_INITIAL_KEY,
+  WAITING_FOR_TRACK_NUMBER,
+  WAITING_FOR_CONFIRMATION
+};
+
+extern KeypadState state;                   // Declare the state variable as extern
 
 // Stepper Motor Related
 extern const int STEPS_PER_REV;             // Number of steps per revolution for the stepper motor.

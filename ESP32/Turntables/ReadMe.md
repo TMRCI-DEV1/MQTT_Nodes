@@ -58,8 +58,8 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 1. After uploading the sketch and powering on the ESP32 Node, the LCD will display a message indicating that the system is in calibration mode.
 2. Manually move the turntable to each track's head and tail positions using the '4' and '6' keys on the keypad. Each key press will move the turntable by a fixed number of steps (defined by `STEP_MOVE_SINGLE_KEYPRESS`). Holding down a key will move the turntable continuously (defined by `STEP_MOVE_HELD_KEYPRESS`).
-3. Once the turntable is positioned at the head-end of a track, enter the track number on the keypad (1 to `NUMBER_OF_TRACKS`), and then press the '*' key. This will store the current position as the head-end position for the entered track number.
-4. Similarly, once the turntable is positioned at the tail-end of a track, enter the track number on the keypad (1 to `NUMBER_OF_TRACKS`), and then press the '#' key. This will store the current position as the tail-end position for the entered track number.
+3. Once the turntable is positioned at the head-end or tail-end of a track, enter the track number on the keypad (1 to `NUMBER_OF_TRACKS`), and then press the '*' key for head-end or '#' key for tail-end. The LCD will display a message asking for confirmation.
+4. Press '1' to confirm the operation. This will store the current position as the head-end or tail-end position for the entered track number in the EEPROM. Alternatively, press '3' to cancel the operation. The LCD will display a message indicating the result of the operation.
 5. Repeat steps 2-4 for each track on the turntable.
 6. After storing all track positions, comment out the `//#define calibrationMode` line in the sketch to disable calibration mode.
 7. Upload the modified sketch to the ESP32 Node to exit calibration mode and allow the system to operate using the stored track positions.
@@ -76,9 +76,10 @@ The sketch also includes an emergency stop feature, which can be activated by pr
 
 ### Keypad Operation
 
-1. To move the turntable to a specific track, enter the track number (1 to `NUMBER_OF_TRACKS`) on the keypad.
-2. After entering the track number, press the '*' key to move the turntable to the head-end of the track or press the '#' key to move the turntable to the tail-end of the track.
-3. The turntable will move to the commanded position, and the LCD will display the commanded track number and the head or tail position.
+1. To move the turntable to a specific track, first press the '*' or '#' key on the keypad.
+2. Then, enter the track number (1 to `NUMBER_OF_TRACKS`).
+3. After entering the track number, press the '*' key again to confirm the command and move the turntable to the head-end of the track, or press the '#' key again to confirm the command and move the turntable to the tail-end of the track.
+4. The turntable will move to the commanded position, and the LCD will display the commanded track number and the head or tail position.
 
 ### MQTT Operation
 

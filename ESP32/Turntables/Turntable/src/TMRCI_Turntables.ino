@@ -1,10 +1,10 @@
 // Define the version number.
-const char * VERSION_NUMBER = "1.1.41";
+const char * VERSION_NUMBER = "1.1.42";
 
 /* Aisle-Node: Turntable Control
    Project: ESP32-based WiFi/MQTT Turntable Node
    Author: Thomas Seitz (thomas.seitz@tmrci.org)
-   Date: 2023-07-11
+   Date: 2023-07-12
    Description:
    This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes various components, including a DIYables 3x4 membrane matrix keypad,
    a GeeekPi IIC I2C TWI Serial LCD 2004 20x4 Display Module with I2C Interface, KRIDA Electronics Relay Modules, a STEPPERONLINE Stepper Drive, a TT Electronics Photologic 
@@ -224,6 +224,11 @@ void initializeComponents() {
   initializeKeypadAndLCD(); // Initialize the keypad and LCD.
   enableOTAUpdates(); // Enable OTA updates for the ESP32.
   performHomingSequence(); // Perform the homing sequence to calibrate the turntable.
+  
+  #ifndef CALIBRATION_MODE
+  state = WAITING_FOR_INITIAL_KEY; // Initialize the state machine only in operation mode.
+  #endif
+  readDataFromEEPROM();
 }
 
 // Function to read data from EEPROM
@@ -323,30 +328,57 @@ void handleKeypadInput() {
         }
       }
     } else {
-      if (key == '*' || key == '#') {
-        int trackNumber = atoi(keypadTrackNumber);
-        if (trackNumber >= 1 && trackNumber <= NUMBER_OF_TRACKS) {
-          int endNumber = (key == '*') ? 0 : 1;
-          int targetPosition = calculateTargetPosition(trackNumber, endNumber);
-          moveToTargetPosition(targetPosition);
-        } else {
-          static unsigned long invalidTrackStartTime = 0;
-          if (invalidTrackStartTime == 0) { // If the timer has not started yet.
-            printToLCD(0, "Invalid track number!");
-            invalidTrackStartTime = millis(); // Start the timer
-          } else if (millis() - invalidTrackStartTime >= 2000) { // If 2 seconds have passed.
-            clearLCD();
-            invalidTrackStartTime = 0; // Reset the timer
+      // Handle the key press based on the current state
+      switch (state) {
+        case WAITING_FOR_INITIAL_KEY:
+          if (key == '*' || key == '#') {
+            // Store the initial key press and move to the next state
+            keypadTrackNumber[0] = key;
+            state = WAITING_FOR_TRACK_NUMBER;
           }
-        }
-        keypadTrackNumber[0] = '\0'; // Reset keypadTrackNumber after storing position or moving.
-      } else {
-        // Always store the last two key presses in the keypadTrackNumber array
-        if (key != '*' && key != '#') {
-          keypadTrackNumber[0] = keypadTrackNumber[1]; // Shift the second digit to the first position
-          keypadTrackNumber[1] = key; // Store the new key press in the second position
-          keypadTrackNumber[2] = '\0'; // Null-terminate the char array
-        }
+          break;
+
+        case WAITING_FOR_TRACK_NUMBER:
+          if (isdigit(key)) {
+            // Store the track number and move to the next state
+            keypadTrackNumber[1] = key;
+            keypadTrackNumber[2] = '\0'; // Null-terminate the char array
+            state = WAITING_FOR_CONFIRMATION;
+          } else if (key == '*' || key == '#') {
+            // If another '*' or '#' key is pressed, reset the state
+            keypadTrackNumber[0] = key;
+            state = WAITING_FOR_TRACK_NUMBER;
+          }
+          break;
+
+        case WAITING_FOR_CONFIRMATION:
+          if (key == '*' || key == '#') {
+            if (key == keypadTrackNumber[0]) {
+              // If the confirmation key matches the initial key, handle the track selection
+              int trackNumber = keypadTrackNumber[1] - '0'; // Convert the char to an int
+              if (trackNumber >= 1 && trackNumber <= NUMBER_OF_TRACKS) {
+                int endNumber = (key == '*') ? 0 : 1;
+                int targetPosition = calculateTargetPosition(trackNumber, endNumber);
+                moveToTargetPosition(targetPosition);
+              } else {
+                static unsigned long invalidTrackStartTime = 0;
+                if (invalidTrackStartTime == 0) { // If the timer has not started yet.
+                  printToLCD(0, "Invalid track number!");
+                  invalidTrackStartTime = millis(); // Start the timer
+                } else if (millis() - invalidTrackStartTime >= 2000) { // If 2 seconds have passed.
+                  clearLCD();
+                  invalidTrackStartTime = 0; // Reset the timer
+                }
+              }
+              // Reset the state
+              state = WAITING_FOR_INITIAL_KEY;
+            } else {
+              // If the confirmation key does not match the initial key, reset the state
+              keypadTrackNumber[0] = key;
+              state = WAITING_FOR_TRACK_NUMBER;
+            }
+          }
+          break;
       }
     }
   } else {

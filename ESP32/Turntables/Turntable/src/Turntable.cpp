@@ -37,11 +37,12 @@ byte KEYPAD_COLUMN_PINS[] = {
 }; // Array of GPIO pins connected to the keypad columns.
 Keypad keypad = Keypad(makeKeymap(keys), KEYPAD_ROW_PINS, KEYPAD_COLUMN_PINS, ROW_NUM, COLUMN_NUM); // Keypad object for interfacing with the keypad.
 char keypadTrackNumber[3] = ""; // Character array to store the track number entered by the user via the keypad.
-const unsigned long KEY_HOLD_DELAY = 500; // Delay before continuous movement starts (in milliseconds).
+const unsigned long KEY_HOLD_DELAY = 5; // Delay before continuous movement starts (in milliseconds).
+KeypadState state = WAITING_FOR_INITIAL_KEY; // Initialize the state variable
 
 // Stepper Motor Related
 const int STEPS_PER_REV = 6400; // Number of steps per revolution for the stepper motor.
-const int STEPPER_SPEED = 800; // Maximum speed of the stepper motor in steps per second.
+const int STEPPER_SPEED = 200;  // Maximum speed of the stepper motor in steps per second.
 AccelStepper stepper(AccelStepper::DRIVER, 33, 32); // AccelStepper object for controlling the stepper motor.
 
 // Relay Board Related
@@ -77,7 +78,7 @@ const bool calibrationMode = false; // Flag to indicate that calibration mode is
 const char CONFIRM_YES = '1'; // Character to confirm an action. This is set to '1'.
 const char CONFIRM_NO = '3'; // Character to cancel an action. This is set to '3'.
 const int STEP_MOVE_SINGLE_KEYPRESS = 1; // Number of steps to move the turntable for a single keypress during calibration. This is set to 1.
-const int STEP_MOVE_HELD_KEYPRESS = 100; // Number of steps to move the turntable for a held keypress during calibration. This is set to 100.
+const int STEP_MOVE_HELD_KEYPRESS = 1; // Number of steps to move the turntable for a held keypress during calibration. This is set to 100.
 bool waitingForConfirmation = false; // Flag to indicate whether the system is waiting for a confirmation input during calibration. This is initially set to false.
 int tempTrackNumber = 0; // Temporary storage for the track number during calibration. This is initially set to 0.
 char tempEndChar = '\0'; // Temporary storage for the end character ('*' or '#') during calibration. This is initially set to '\0' (null character).
@@ -135,8 +136,9 @@ void controlRelays(int trackNumber) {
 }
 
 /* Function to move the turntable to the target position.
-   This function is used to move to the target position separately for better code organization and readability.
-   A while loop is used to wait for the stepper to finish moving to ensure that the turntable has reached the target position before proceeding. */
+   This function calculates the shortest path to the target position, either moving forward or backward,
+   and moves the turntable to the target position using the stepper motor.
+   The function waits for the stepper to finish moving before proceeding to ensure that the turntable has reached the target position. */
 void moveToTargetPosition(int targetPosition) {
   // Print the target position and current position
   Serial.print("Moving to target position: ");
@@ -147,12 +149,31 @@ void moveToTargetPosition(int targetPosition) {
   // Turn off the turntable bridge track power before starting the move
   relayBoard1.digitalWrite(0, HIGH);
 
-  if (targetPosition < currentPosition) {
-    stepper.moveTo(targetPosition);
-  } else if (targetPosition > currentPosition) {
-    stepper.moveTo(targetPosition);
+  // Adjust the current position if it exceeds 6400 or goes below 0
+  // This adjustment is necessary because the turntable's position wraps around at 6400 (equivalent to position 0)
+  if (currentPosition >= 6400) {
+    currentPosition -= 6400;
+  } else if (currentPosition < 0) {
+    currentPosition += 6400;
   }
 
+  // Calculate the distances for moving forward and backward
+  // The forward distance is the difference between the target and current positions if the target is greater than or equal to the current position
+  // Otherwise, it's the distance from the current position to 6400 plus the distance from 0 to the target position
+  // The backward distance is the total steps (6400) minus the forward distance
+  int forwardDistance = (targetPosition >= currentPosition) ? (targetPosition - currentPosition) : (6400 - currentPosition + targetPosition);
+  int backwardDistance = 6400 - forwardDistance;
+
+  // Move in the direction with the shortest distance
+  // If the forward distance is less than or equal to the backward distance, move forward to the target position
+  // Otherwise, move backward by moving to the target position minus 6400 (since moving backward by a certain distance is equivalent to moving forward by the total steps minus that distance)
+  if (forwardDistance <= backwardDistance) {
+    stepper.moveTo(targetPosition);
+  } else {
+    stepper.moveTo(targetPosition - 6400); // Move backward
+  }
+
+  // Wait for the stepper to finish moving
   while (stepper.distanceToGo() != 0) {
     stepper.run();
   }
