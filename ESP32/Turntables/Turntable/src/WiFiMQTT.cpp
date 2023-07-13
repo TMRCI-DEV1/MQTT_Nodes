@@ -2,9 +2,9 @@
 
 /* Definitions of variables declared in WiFiMQTT.h */
 // Network and MQTT Related
-const char * ssid = "MyAltice 976DFF"; // SSID (network name) of the WiFi network to which the ESP32 will connect.
-const char * password = "lemon.463.loud"; // Password for the WiFi network.
-const char * mqtt_broker = "129.213.106.87"; // Address (IP or domain name) of the MQTT broker to which the ESP32 will connect.
+const char * ssid = "Your_WiFi_SSID"; // SSID (network name) of the WiFi network to which the ESP32 will connect.
+const char * password = "Your_WiFi_Password"; // Password for the WiFi network.
+const char * mqtt_broker = "Your_MQTT_Broker"; // Address (IP or domain name) of the MQTT broker to which the ESP32 will connect.
 const int mqtt_port = 1883; // Port number for the MQTT broker. The standard port for MQTT is 1883.
 WiFiClient espClient; // WiFiClient object used as the network client for the MQTT connection.
 PubSubClient client(espClient); // PubSubClient object used for MQTT communication.
