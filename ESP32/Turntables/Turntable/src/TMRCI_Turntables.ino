@@ -1,10 +1,10 @@
 // Define the version number.
-const char * VERSION_NUMBER = "1.1.46";
+const char * VERSION_NUMBER = "1.1.47";
 
 /* Aisle-Node: Turntable Control
    Project: ESP32-based WiFi/MQTT Turntable Node
    Author: Thomas Seitz (thomas.seitz@tmrci.org)
-   Date: 2023-07-13
+   Date: 2023-07-14
    Description:
    This sketch is designed for an OTA-enabled ESP32 Node controlling a Turntable. It utilizes various components, including a DIYables 3x4 membrane matrix keypad,
    a GeeekPi IIC I2C TWI Serial LCD 2004 20x4 Display Module with I2C Interface, KRIDA Electronics Relay Modules, a STEPPERONLINE Stepper Drive, a TT Electronics Photologic 
@@ -19,7 +19,7 @@ const char * VERSION_NUMBER = "1.1.46";
 
 // ********************************************************************************************************************************************************
 // Uncomment the line below to enable calibration mode. In this mode, you can manually program the turntable track positions without using MQTT commands.
-// #define CALIBRATION_MODE
+#define CALIBRATION_MODE
 //
 // Depending on the location, define the ESP32 hostname, MQTT topics, number of tracks, and track numbers.
 // Uncomment one of the lines below to specify the location.
@@ -296,15 +296,14 @@ void handleKeypadInput() {
           printToLCD(0, "Press 1 to confirm, 3 to cancel");
           waitingForConfirmation = true;
         } else if (key == CONFIRM_YES) {
-          // Store the current position to the appropriate track head or tail-end position in EEPROM
-          if (tempEndChar == '*') {
-            trackHeads[tempTrackNumber - 1] = currentPosition;
-            EEPROM.put(EEPROM_TRACK_HEADS_ADDRESS + (tempTrackNumber - 1) * sizeof(int), currentPosition);
-          } else {
-            trackTails[tempTrackNumber - 1] = currentPosition;
-            EEPROM.put(getEEPROMTrackTailsAddress() + (tempTrackNumber - 1) * sizeof(int), currentPosition);
-          }
-          EEPROM.commit();
+        // Store the current position to the appropriate track head or tail-end position in EEPROM
+        if (tempEndChar == '*') {
+          trackHeads[tempTrackNumber - 1] = currentPosition;
+          writeToEEPROMWithVerification(EEPROM_TRACK_HEADS_ADDRESS + (tempTrackNumber - 1) * sizeof(int), currentPosition);
+        } else {
+          trackTails[tempTrackNumber - 1] = currentPosition;
+          writeToEEPROMWithVerification(getEEPROMTrackTailsAddress() + (tempTrackNumber - 1) * sizeof(int), currentPosition);
+        }
           printToLCD(0, "Position stored for track ");
           printToLCD(1, String(tempTrackNumber).c_str());
           printToLCD(2, (tempEndChar == '*') ? "Head-end" : "Tail-end");
