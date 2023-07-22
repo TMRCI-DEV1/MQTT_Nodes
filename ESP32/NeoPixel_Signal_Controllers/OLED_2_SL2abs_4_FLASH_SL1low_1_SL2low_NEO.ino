@@ -2,8 +2,8 @@
   Project: ESP32 based WiFi/MQTT enabled (2) Double Searchlight High Absolute, (4) Single Head Dwarf, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 10 Neopixel Signal Heads). Sketch includes 'Flashing Yellow' indication for Single Head Dwarf masts.
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.1
-  Date: 2023-06-20
+  Version: 1.0.3
+  Date: 2023-07-21
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -21,11 +21,11 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
-const char* WIFI_SSID = "(HO) Touchscreens & MQTT Nodes";     // WiFi SSID
-const char* WIFI_PASSWORD = "touch.666.pi";                   // WiFi Password
+const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
+const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
 
 // MQTT configuration
-const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
+const char* MQTT_SERVER = "MQTT_Broker";                      // MQTT server address
 const int MQTT_PORT = 1883;                                   // MQTT server port
 
 // Instantiate MQTT client
@@ -61,6 +61,15 @@ String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 String previousNodeID = "";                                 // Previous NodeID value
 String previousIPAddress = "";                              // Previous IP address value
 
+// Array to track whether each signal mast is displaying a flashing yellow aspect
+bool isFlashingYellow[7] = {false, false, false, false, false, false, false};
+
+// Time in milliseconds between flashes for the signal masts
+const unsigned long flashInterval = 1000;
+
+// Array to track the last flash time for each signal mast
+unsigned long lastFlashTime[7] = {0, 0, 0, 0, 0, 0, 0};
+
 // Function Prototypes
 void callback(char* topic, byte* payload, unsigned int length);
 void reconnectMQTT();
@@ -78,7 +87,7 @@ struct Aspect {
     uint32_t head2;                                            // Color of the second Neopixel (optional)
 };
 
-// Lookup table for double head signal mast aspects
+// Lookup table for double head signal absolute mast aspects
 const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"Clear Alt", {GREEN, GREEN}},
     {"Clear", {GREEN, RED}},
@@ -93,7 +102,7 @@ const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"null", {RED, RED}}
 };
 
-// Lookup table for single head signal mast aspects
+// Lookup table for single head dwarf signal mast aspects
 const std::map<std::string, Aspect> singleHeadDwarfSignalLookup = {
     {"Slow Clear", {GREEN}},
     {"Restricting", {YELLOW}},
@@ -209,8 +218,8 @@ void setup() {
 }
 
 void loop() {
-  ArduinoOTA.handle(); // Handle OTA updates
-  
+    ArduinoOTA.handle(); // Handle OTA updates
+
     // Reconnect to WiFi if connection lost
     if (WiFi.status() != WL_CONNECTED) {
         reconnectWiFi();
@@ -223,7 +232,27 @@ void loop() {
         updateDisplay();
     }
 
-    client.loop();                                            // Run MQTT loop to handle incoming messages
+    // Check each signal mast
+    for (int i = 0; i < 7; i++) {
+        // If the signal mast is supposed to be flashing yellow
+        if (isFlashingYellow[i]) {
+            // Check if enough time has passed since the last state change
+            if (millis() - lastFlashTime[i] >= flashInterval) {
+                // Change the state of the signal mast
+                if (signalMasts[i].getPixelColor(0) == YELLOW) {
+                    signalMasts[i].setPixelColor(0, 0); // Turn off
+                } else {
+                    signalMasts[i].setPixelColor(0, YELLOW); // Turn on
+                }
+                signalMasts[i].show();
+
+                // Update the last flash time
+                lastFlashTime[i] = millis();
+            }
+        }
+    }
+
+    client.loop(); // Run MQTT loop to handle incoming messages
 }
 
 void reconnectMQTT() {
@@ -325,30 +354,40 @@ void callback(char* topic, byte* payload, unsigned int length) {
         // Single head dwarf signal mast
         const Aspect& aspect = singleHeadDwarfSignalLookup.at(aspectKey);
 
+    // Check if the signal mast should be flashing yellow
         if (aspectStr == "Flashing Yellow") {
-            // Flashing Yellow aspect
-            static bool isOn = false;
-
-            if (heldStr == "Unheld") {
-                // If the aspect is currently "Flashing Yellow" and the "Unheld" state is received, continue flashing
-                if (isOn) {
-                    signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
-                } else {
-                    signalMasts[mastNumber].setPixelColor(0, 0);
-                }
-                isOn = !isOn;
-            }
+            isFlashingYellow[mastNumber] = true;
         } else {
-            // Other aspects
-            signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
+            isFlashingYellow[mastNumber] = false;
         }
 
+        // Flashing Yellow aspect
+        if (heldStr == "Unheld") {
+            // If the aspect is currently "Flashing Yellow" and the "Unheld" state is received, continue flashing
+            if (isFlashingYellow[mastNumber]) {
+                signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
+            } else {
+                signalMasts[mastNumber].setPixelColor(0, 0);
+            }
+            isFlashingYellow[mastNumber] = !isFlashingYellow[mastNumber];
+        } else {
+            // If the aspect is currently "Flashing Yellow" and the "Held" state is received, stop flashing and display "Stop"
+            signalMasts[mastNumber].setPixelColor(0, RED);
+            isFlashingYellow[mastNumber] = false;
+        }
         signalMasts[mastNumber].show();
     } else if (mastNumber == 6 && doubleHeadDwarfSignalLookup.count(aspectKey)) {
         // Double head dwarf signal mast
         const Aspect& aspect = doubleHeadDwarfSignalLookup.at(aspectKey);
         signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
         signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
+        signalMasts[mastNumber].show();
+    } else {
+        // If the aspect is not found in the lookup table, turn off the signal mast
+        signalMasts[mastNumber].setPixelColor(0, 0);
+        if (mastNumber != 2 && mastNumber != 3 && mastNumber != 4 && mastNumber != 5) {
+            signalMasts[mastNumber].setPixelColor(1, 0);
+        }
         signalMasts[mastNumber].show();
     }
 

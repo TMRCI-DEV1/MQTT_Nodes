@@ -2,8 +2,8 @@
   Project: ESP32 based WiFi/MQTT enabled (2) Double Searchlight High Absolute, (4) Single Searchlight High Permissive, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.8
-  Date: 2023-06-19
+  Version: 1.0.9
+  Date: 2023-07-21
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -21,11 +21,11 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
-const char* WIFI_SSID = "MyAltice 976DFF";                    // WiFi SSID
-const char* WIFI_PASSWORD = "lemon.463.loud";                 // WiFi Password
+const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
+const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
 
 // MQTT configuration
-const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
+const char* MQTT_SERVER = "MQTT_Broker";                      // MQTT server address
 const int MQTT_PORT = 1883;                                   // MQTT server port
 
 // Instantiate MQTT client
@@ -78,7 +78,7 @@ struct Aspect {
     uint32_t head2;                                            // Color of the second Neopixel (optional)
 };
 
-// Lookup table for double head signal mast aspects
+// Lookup table for double head absolute signal mast aspects
 const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"Clear Alt", {GREEN, GREEN}},
     {"Clear", {GREEN, RED}},
@@ -93,7 +93,7 @@ const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"null", {RED, RED}}
 };
 
-// Lookup table for single head signal mast aspects
+// Lookup table for single head permissive signal mast aspects
 const std::map<std::string, Aspect> singleSearchlightHighPermissiveLookup = {
     {"Clear", {GREEN}},
     {"Approach", {YELLOW}},
