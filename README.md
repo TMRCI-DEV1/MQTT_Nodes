@@ -1,3 +1,3 @@
 # MQTT_Nodes
 
-Various ESP32 and Arduino Nano RP2040 Cconnect MQTT-enabled projects.
+Various ESP32 and Arduino Nano RP2040 Connect MQTT-enabled projects.
