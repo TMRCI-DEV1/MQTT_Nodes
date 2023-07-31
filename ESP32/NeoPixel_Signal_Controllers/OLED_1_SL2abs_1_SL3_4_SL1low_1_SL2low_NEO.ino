@@ -1,9 +1,10 @@
 /*
+  Aisle-Node: 10-SMC1
   Project: ESP32 based WiFi/MQTT enabled (1) Double Searchlight High Absolute, (1) Triple Searchlight High, (4) Single Head Dwarf, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 11 Neopixel Signal Heads). Sketch includes 'Flashing Yellow' indication for Single Head Dwarf masts.
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.3
-  Date: 2023-07-21
+  Version: 1.0.5
+  Date: 2023-07-30
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -21,11 +22,11 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
-const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
-const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
+const char* WIFI_SSID = "MyAltice 976DFF";                    // WiFi SSID
+const char* WIFI_PASSWORD = "lemon.463.loud";                 // WiFi Password
 
 // MQTT configuration
-const char* MQTT_SERVER = "MQTT_Broker";                      // MQTT server address
+const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
 const int MQTT_PORT = 1883;                                   // MQTT server port
 
 // Instantiate MQTT client
@@ -70,10 +71,18 @@ const unsigned long flashInterval = 1000;
 // Array to track the last flash time for each signal mast
 unsigned long lastFlashTime[7] = {0, 0, 0, 0, 0, 0, 0};
 
+// Global variables to track the last received signal mast number and commanded aspect
+int mastNumber = -1;
+String commandedAspect = "";
+
+// Global variable to track the aspect received in the last MQTT message
+String aspectStr = "";
+
+unsigned long ipDisplayStartTime = 0;
+
 // Function Prototypes
 void callback(char* topic, byte* payload, unsigned int length);
 void reconnectMQTT();
-void reconnectWiFi();
 void updateDisplay();
 
 // Define the signal aspects and lookup tables
@@ -246,42 +255,38 @@ void setup() {
 }
 
 void loop() {
-  ArduinoOTA.handle(); // Handle OTA updates
-  
-    // Reconnect to WiFi if connection lost
-    if (WiFi.status() != WL_CONNECTED) {
-        reconnectWiFi();
-        updateDisplay();
-    }
+    ArduinoOTA.handle(); // Handle OTA updates
 
     // Reconnect to MQTT server if connection lost
     if (!client.connected()) {
         reconnectMQTT();
-        updateDisplay();
+    } else {
+        // If connected, handle MQTT messages
+        client.loop();
     }
-
-    client.loop();                                            // Run MQTT loop to handle incoming messages
 }
 
 void reconnectMQTT() {
-    // Attempt to reconnect to MQTT
+    // Attempt to reconnect to both WiFi and MQTT
     while (!client.connected()) {
-        Serial.println("Attempting to connect to MQTT...");
-        if (client.connect(NodeID.c_str())) {
-            client.subscribe((mqttTopic + "+").c_str());      // Subscribe to topics for all signal masts
-            Serial.println("Connected to MQTT");
-        } else {
-            delay(5000);
-        }
-    }
-}
-
-void reconnectWiFi() {
-    // Attempt to reconnect to WiFi
-    while (WiFi.status() != WL_CONNECTED) {
         Serial.println("Attempting to connect to WiFi...");
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-        delay(5000);
+        while (WiFi.status() != WL_CONNECTED) {
+            delay(500);
+            Serial.println("Connecting to WiFi...");
+        }
+        setupHostname(); // Set the hostname before connecting to MQTT
+
+        Serial.println("Connected to WiFi");
+
+        Serial.println("Attempting to connect to MQTT...");
+        if (client.connect(NodeID.c_str())) {
+            client.subscribe((mqttTopic + "+").c_str()); // Subscribe to topics for all signal masts
+            Serial.println("Connected to MQTT");
+        } else {
+            Serial.println("MQTT connection failed. Retrying in 5 seconds...");
+            delay(5000);
+        }
     }
 }
 
@@ -297,12 +302,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String payloadStr(message);
 
     // Extract the signal mast number from the topic
-    int mastNumber = topic[strlen(topic) - 1] - '0';
+    mastNumber = topic[strlen(topic) - 1] - '0';
 
+    // Add debug print statements
     Serial.print("Received message for SM");
     Serial.print(mastNumber);
     Serial.print(" with payload: ");
     Serial.println(payloadStr);
+    // Serial.print("Aspect: ");
+    // Serial.println(aspectStr);
+    // Serial.print("Commanded Aspect: ");
+    // Serial.println(commandedAspect);
 
     // Parse the payload into aspect, lit, and held strings
     int separatorIndex1 = payloadStr.indexOf(';');
@@ -314,8 +324,19 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
 
     // Extract and trim the aspect string
-    String aspectStr = payloadStr.substring(0, separatorIndex1);
+    aspectStr = payloadStr.substring(0, separatorIndex1);
     aspectStr.trim();
+
+    // Print the received aspect for debugging
+    // Serial.print("Aspect: ");
+    // Serial.println(aspectStr);
+
+    // Update commandedAspect variable with aspectStr
+    commandedAspect = aspectStr;
+
+    // Print the commanded aspect for debugging
+    // Serial.print("Commanded Aspect: ");
+    // Serial.println(commandedAspect);
 
     // Extract and trim the lit string
     String litStr = payloadStr.substring(separatorIndex1 + 1, separatorIndex2);
@@ -354,15 +375,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     // Convert aspectStr from String to std::string
     std::string aspectKey = aspectStr.c_str();
-
+    
     // Set the colors based on the aspect if it exists in the lookup table
     if (mastNumber == 0 && tripleSearchlightHighLookup.count(aspectKey)) {
-      // Triple head high signal mast
-      const Aspect& aspect = tripleSearchlightHighLookup.at(aspectKey);
-      signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
-      signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
-      signalMasts[mastNumber].setPixelColor(2, aspect.head3 & 0xFF, (aspect.head3 >> 8) & 0xFF, (aspect.head3 >> 16) & 0xFF);
-      signalMasts[mastNumber].show();
+        // Triple head high signal mast
+        const Aspect& aspect = tripleSearchlightHighLookup.at(aspectKey);
+        signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
+        signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
+        signalMasts[mastNumber].setPixelColor(2, aspect.head3 & 0xFF, (aspect.head3 >> 8) & 0xFF, (aspect.head3 >> 16) & 0xFF);
+        signalMasts[mastNumber].show();
     } else if (mastNumber == 1 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
         // Double head absolute signal mast
         const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
@@ -401,34 +422,66 @@ void callback(char* topic, byte* payload, unsigned int length) {
         signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
         signalMasts[mastNumber].show();
     } else {
-        // Update display if NodeID or IP address changed
-        updateDisplay();
+        // Set the last received signal mast number and commanded aspect
+        commandedAspect = aspectStr;
     }
+
+    // Update display if NodeID or IP address changed
+    updateDisplay();
 }
 
 void updateDisplay() {
-    // Check if NodeID or IP address changed
-    if (NodeID != previousNodeID || WiFi.localIP().toString() != previousIPAddress) {
-        // Update NodeID and IP address
-        previousNodeID = NodeID;
-        previousIPAddress = WiFi.localIP().toString();
+    // Clear the display
+    display.clearDisplay();
 
-        // Clear the display
-        display.clearDisplay();
+    // Display "NodeID" with larger text
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.println("NodeID");
+    display.setTextSize(2); // Increase the text size for the NodeID
+    display.println(NodeID);
 
-        // Display "NodeID" with larger text
-        display.setTextSize(2);
-        display.setTextColor(WHITE);
-        display.setCursor(0, 0);
-        display.println("NodeID");
-        display.setTextSize(3); // Increase the text size for the NodeID
-        display.println(NodeID);
+    // Display "IP Address" with smaller text
+    display.setTextSize(1); // Set text size to 1
+    display.println("IP Address");
+    display.println(WiFi.localIP().toString());
 
-        // Display "IP Address" with smaller text
-        display.setTextSize(1);
-        display.println("IP Address");
-        display.println(WiFi.localIP().toString());
+    // Display the signal mast number (SM1-SM7) and the commanded aspect of the last received message
+    display.print("SM");
+    display.print(mastNumber + 1); // Convert 0-based index back to 1-based SM number
+    display.print(": ");
 
-        display.display();
+    // Use the global variable 'aspectStr'
+    int aspectLength = aspectStr.length();
+    int startIndex = 0;
+    int endIndex = 0;
+    int line = 0;
+
+    while (startIndex < aspectLength) {
+        int charsRemaining = aspectLength - startIndex;
+        int maxCharsInLine = min(16, charsRemaining);
+
+        endIndex = startIndex + maxCharsInLine;
+
+        // Check if we need to find the last space to avoid splitting words
+        while (endIndex < aspectLength && aspectStr[endIndex] != ' ') {
+            endIndex--;
+        }
+
+        // Print the line
+        display.println(aspectStr.substring(startIndex, endIndex));
+
+        // Update the start index for the next line
+        startIndex = endIndex + 1;
+
+        line++;
+        if (line >= 2) {
+            // Maximum lines exceeded, exit the loop
+            break;
+        }
     }
+
+    // Show the display
+    display.display();
 }
