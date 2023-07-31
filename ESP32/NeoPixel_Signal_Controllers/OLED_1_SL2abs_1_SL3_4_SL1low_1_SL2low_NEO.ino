@@ -3,8 +3,8 @@
   Project: ESP32 based WiFi/MQTT enabled (1) Double Searchlight High Absolute, (1) Triple Searchlight High, (4) Single Head Dwarf, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 11 Neopixel Signal Heads). Sketch includes 'Flashing Yellow' indication for Single Head Dwarf masts.
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.5
-  Date: 2023-07-30
+  Version: 1.0.6
+  Date: 2023-07-31
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -264,6 +264,26 @@ void loop() {
         // If connected, handle MQTT messages
         client.loop();
     }
+
+    // Check each signal mast
+    for (int i = 0; i < 7; i++) {
+        // If the signal mast is supposed to be flashing yellow
+        if (isFlashingYellow[i]) {
+            // Check if enough time has passed since the last state change
+            if (millis() - lastFlashTime[i] >= flashInterval) {
+                // Change the state of the signal mast
+                if (signalMasts[i].getPixelColor(0) == YELLOW) {
+                    signalMasts[i].setPixelColor(0, 0); // Turn off
+                } else {
+                    signalMasts[i].setPixelColor(0, YELLOW); // Turn on
+                }
+                signalMasts[i].show();
+
+                // Update the last flash time
+                lastFlashTime[i] = millis();
+            }
+        }
+    }
 }
 
 void reconnectMQTT() {
@@ -309,10 +329,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print(mastNumber);
     Serial.print(" with payload: ");
     Serial.println(payloadStr);
-    // Serial.print("Aspect: ");
-    // Serial.println(aspectStr);
-    // Serial.print("Commanded Aspect: ");
-    // Serial.println(commandedAspect);
 
     // Parse the payload into aspect, lit, and held strings
     int separatorIndex1 = payloadStr.indexOf(';');
@@ -327,16 +343,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     aspectStr = payloadStr.substring(0, separatorIndex1);
     aspectStr.trim();
 
-    // Print the received aspect for debugging
-    // Serial.print("Aspect: ");
-    // Serial.println(aspectStr);
-
     // Update commandedAspect variable with aspectStr
     commandedAspect = aspectStr;
-
-    // Print the commanded aspect for debugging
-    // Serial.print("Commanded Aspect: ");
-    // Serial.println(commandedAspect);
 
     // Extract and trim the lit string
     String litStr = payloadStr.substring(separatorIndex1 + 1, separatorIndex2);
