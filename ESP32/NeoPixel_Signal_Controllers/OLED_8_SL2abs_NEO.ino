@@ -1,9 +1,10 @@
 /*
+  Aisle-Node: 11-SMC1
   Project: ESP32 based WiFi/MQTT enabled (8) Double Searchlight High Absolute signal Neopixel Node
   (8 signal mast outputs / 16 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.1.1
-  Date: 2023-0-21
+  Version: 1.1.2
+  Date: 2023-07-31
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 8 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -23,9 +24,8 @@
 // Network configuration
 const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
 const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
-
 // MQTT configuration
-const char* MQTT_SERVER = "MQTT_Broker";                      // MQTT server address
+const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
 const int MQTT_PORT = 1883;                                   // MQTT server port
 
 // Instantiate MQTT client
@@ -41,7 +41,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define the GPIO pins for the Neopixels in ascending order
 const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};
-
 
 Adafruit_NeoPixel signalMasts[8] = {
     Adafruit_NeoPixel(2, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM1 (double head absolute)
@@ -61,10 +60,18 @@ String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 String previousNodeID = "";                                 // Previous NodeID value
 String previousIPAddress = "";                              // Previous IP address value
 
+// Global variables to track the last received signal mast number and commanded aspect
+int mastNumber = -1;
+String commandedAspect = "";
+
+// Global variable to track the aspect received in the last MQTT message
+String aspectStr = "";
+
+unsigned long ipDisplayStartTime = 0;
+
 // Function Prototypes
 void callback(char* topic, byte* payload, unsigned int length);
 void reconnectMQTT();
-void reconnectWiFi();
 void updateDisplay();
 
 // Define the signal aspects and lookup tables
@@ -180,42 +187,38 @@ void setup() {
 }
 
 void loop() {
-  ArduinoOTA.handle(); // Handle OTA updates
-  
-    // Reconnect to WiFi if connection lost
-    if (WiFi.status() != WL_CONNECTED) {
-        reconnectWiFi();
-        updateDisplay();
-    }
+    ArduinoOTA.handle(); // Handle OTA updates
 
     // Reconnect to MQTT server if connection lost
     if (!client.connected()) {
         reconnectMQTT();
-        updateDisplay();
+    } else {
+        // If connected, handle MQTT messages
+        client.loop();
     }
-
-    client.loop();                                            // Run MQTT loop to handle incoming messages
 }
 
 void reconnectMQTT() {
-    // Attempt to reconnect to MQTT
+    // Attempt to reconnect to both WiFi and MQTT
     while (!client.connected()) {
-        Serial.println("Attempting to connect to MQTT...");
-        if (client.connect(NodeID.c_str())) {
-            client.subscribe((mqttTopic + "+").c_str());      // Subscribe to topics for all signal masts
-            Serial.println("Connected to MQTT");
-        } else {
-            delay(5000);
-        }
-    }
-}
-
-void reconnectWiFi() {
-    // Attempt to reconnect to WiFi
-    while (WiFi.status() != WL_CONNECTED) {
         Serial.println("Attempting to connect to WiFi...");
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-        delay(5000);
+        while (WiFi.status() != WL_CONNECTED) {
+            delay(500);
+            Serial.println("Connecting to WiFi...");
+        }
+        setupHostname(); // Set the hostname before connecting to MQTT
+
+        Serial.println("Connected to WiFi");
+
+        Serial.println("Attempting to connect to MQTT...");
+        if (client.connect(NodeID.c_str())) {
+            client.subscribe((mqttTopic + "+").c_str()); // Subscribe to topics for all signal masts
+            Serial.println("Connected to MQTT");
+        } else {
+            Serial.println("MQTT connection failed. Retrying in 5 seconds...");
+            delay(5000);
+        }
     }
 }
 
@@ -231,7 +234,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String payloadStr(message);
 
     // Extract the signal mast number from the topic
-    int mastNumber = topic[strlen(topic) - 1] - '0';
+    mastNumber = topic[strlen(topic) - 1] - '0';
 
     Serial.print("Received message for SM");
     Serial.print(mastNumber);
@@ -248,7 +251,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
 
     // Extract and trim the aspect string
-    String aspectStr = payloadStr.substring(0, separatorIndex1);
+    aspectStr = payloadStr.substring(0, separatorIndex1);
     aspectStr.trim();
 
     // Extract and trim the lit string
@@ -296,28 +299,57 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 void updateDisplay() {
-    // Check if NodeID or IP address changed
-    if (NodeID != previousNodeID || WiFi.localIP().toString() != previousIPAddress) {
-        // Update NodeID and IP address
-        previousNodeID = NodeID;
-        previousIPAddress = WiFi.localIP().toString();
+    // Clear the display
+    display.clearDisplay();
 
-        // Clear the display
-        display.clearDisplay();
+    // Display "NodeID" with larger text
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.println("NodeID");
+    display.setTextSize(2); // Increase the text size for the NodeID
+    display.println(NodeID);
 
-        // Display "NodeID" with larger text
-        display.setTextSize(2);
-        display.setTextColor(WHITE);
-        display.setCursor(0, 0);
-        display.println("NodeID");
-        display.setTextSize(3); // Increase the text size for the NodeID
-        display.println(NodeID);
+    // Display "IP Address" with smaller text
+    display.setTextSize(1); // Set text size to 1
+    display.println("IP Address");
+    display.println(WiFi.localIP().toString());
 
-        // Display "IP Address" with smaller text
-        display.setTextSize(1);
-        display.println("IP Address");
-        display.println(WiFi.localIP().toString());
+    // Display the signal mast number (SM1-SM7) and the commanded aspect of the last received message
+    display.print("SM");
+    display.print(mastNumber + 1); // Convert 0-based index back to 1-based SM number
+    display.print(": ");
 
-        display.display();
+    // Use the global variable 'aspectStr'
+    int aspectLength = aspectStr.length();
+    int startIndex = 0;
+    int endIndex = 0;
+    int line = 0;
+
+    while (startIndex < aspectLength) {
+        int charsRemaining = aspectLength - startIndex;
+        int maxCharsInLine = min(16, charsRemaining);
+
+        endIndex = startIndex + maxCharsInLine;
+
+        // Check if we need to find the last space to avoid splitting words
+        while (endIndex < aspectLength && aspectStr[endIndex] != ' ') {
+            endIndex--;
+        }
+
+        // Print the line
+        display.println(aspectStr.substring(startIndex, endIndex));
+
+        // Update the start index for the next line
+        startIndex = endIndex + 1;
+
+        line++;
+        if (line >= 2) {
+            // Maximum lines exceeded, exit the loop
+            break;
+        }
     }
+
+    // Show the display
+    display.display();
 }
