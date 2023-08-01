@@ -3,8 +3,8 @@
   Project: ESP32 based WiFi/MQTT enabled (8) Double Searchlight High Absolute signal Neopixel Node
   (8 signal mast outputs / 16 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.1.2
-  Date: 2023-07-31
+  Version: 1.1.3
+  Date: 2023-08-01
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 8 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -24,6 +24,7 @@
 // Network configuration
 const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
 const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
+
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
 const int MQTT_PORT = 1883;                                   // MQTT server port
@@ -40,7 +41,7 @@ const int OLED_RESET = -1; // Reset pin # (or -1 if sharing ESP32 reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define the GPIO pins for the Neopixels in ascending order
-const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};
+const int neoPixelPins[8] = {4, 16, 17, 18, 19, 23, 13, 14};
 
 Adafruit_NeoPixel signalMasts[8] = {
     Adafruit_NeoPixel(2, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM1 (double head absolute)
@@ -49,7 +50,8 @@ Adafruit_NeoPixel signalMasts[8] = {
     Adafruit_NeoPixel(2, neoPixelPins[3], NEO_GRB + NEO_KHZ800), // SM4 (double head absolute)
     Adafruit_NeoPixel(2, neoPixelPins[4], NEO_GRB + NEO_KHZ800), // SM5 (double head absolute)
     Adafruit_NeoPixel(2, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM6 (double head absolute)
-    Adafruit_NeoPixel(4, neoPixelPins[6], NEO_GRB + NEO_KHZ800)  // SM7 & SM8 (4 heads) (double head absolute)
+    Adafruit_NeoPixel(4, neoPixelPins[6], NEO_GRB + NEO_KHZ800), // SM7 (double head absolute)
+    Adafruit_NeoPixel(4, neoPixelPins[6], NEO_GRB + NEO_KHZ800)  // SM8 (double head absolute)
 };
 
 // Define the NodeID and MQTT topic
@@ -173,8 +175,8 @@ void setup() {
         // Set all pixels of the signal mast to red color
         signalMasts[i].fill(RED, 0, 2);
         
-    signalMasts[i].show(); // Display the set colors
-  }
+        signalMasts[i].show(); // Display the set colors
+    }
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
     Serial.println(F("SSD1306 allocation failed"));
@@ -315,7 +317,7 @@ void updateDisplay() {
     display.println("IP Address");
     display.println(WiFi.localIP().toString());
 
-    // Display the signal mast number (SM1-SM7) and the commanded aspect of the last received message
+    // Display the signal mast number (SM1-SM8) and the commanded aspect of the last received message
     display.print("SM");
     display.print(mastNumber + 1); // Convert 0-based index back to 1-based SM number
     display.print(": ");

@@ -3,8 +3,8 @@
   Project: ESP32 based WiFi/MQTT enabled (1) Double Searchlight High Absolute, (1) Triple Searchlight High, (4) Single Head Dwarf, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 11 Neopixel Signal Heads). Sketch includes 'Flashing Yellow' indication for Single Head Dwarf masts.
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.6
-  Date: 2023-07-31
+  Version: 1.0.7
+  Date: 2023-08-01
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -22,8 +22,8 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
-const char* WIFI_SSID = "MyAltice 976DFF";                    // WiFi SSID
-const char* WIFI_PASSWORD = "lemon.463.loud";                 // WiFi Password
+const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
+const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
 
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
@@ -383,7 +383,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     // Convert aspectStr from String to std::string
     std::string aspectKey = aspectStr.c_str();
-    
+
     // Set the colors based on the aspect if it exists in the lookup table
     if (mastNumber == 0 && tripleSearchlightHighLookup.count(aspectKey)) {
         // Triple head high signal mast

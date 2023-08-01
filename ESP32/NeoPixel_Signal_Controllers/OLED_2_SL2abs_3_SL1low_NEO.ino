@@ -3,8 +3,8 @@
   Project: ESP32 based WiFi/MQTT enabled (2) Double Searchlight High Absolute and (3) Single Head Dwarf signal Neopixel Node
   (5 signal mast outputs / 7 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.1.5
-  Date: 2023-07-30
+  Version: 1.1.6
+  Date: 2023-08-01
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 5 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -22,8 +22,8 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
-const char* WIFI_SSID = "MyAltice 976DFF";                    // WiFi SSID
-const char* WIFI_PASSWORD = "lemon.463.loud";                 // WiFi Password
+const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
+const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
 
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
@@ -85,7 +85,7 @@ struct Aspect {
     uint32_t head2;                                            // Color of the second Neopixel (optional)
 };
 
-// Lookup table for double head signal mast aspects
+// Lookup table for double head absolute signal mast aspects
 const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"Clear Alt", {GREEN, GREEN}},
     {"Clear", {GREEN, RED}},
@@ -100,7 +100,7 @@ const std::map<std::string, Aspect> doubleSearchlightHighAbsoluteLookup = {
     {"null", {RED, RED}}
 };
 
-// Lookup table for single head signal mast aspects
+// Lookup table for single head dwarf signal mast aspects
 const std::map<std::string, Aspect> singleHeadDwarfSignalLookup = {
     {"Slow Clear", {GREEN}},
     {"Restricting", {YELLOW}},
@@ -255,10 +255,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print(mastNumber);
     Serial.print(" with payload: ");
     Serial.println(payloadStr);
-    // Serial.print("Aspect: ");
-    // Serial.println(aspectStr);
-    // Serial.print("Commanded Aspect: ");
-    // Serial.println(commandedAspect);
 
     // Parse the payload into aspect, lit, and held strings
     int separatorIndex1 = payloadStr.indexOf(';');
@@ -273,16 +269,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     aspectStr = payloadStr.substring(0, separatorIndex1);
     aspectStr.trim();
 
-    // Print the received aspect for debugging
-    // Serial.print("Aspect: ");
-    // Serial.println(aspectStr);
-
     // Update commandedAspect variable with aspectStr
     commandedAspect = aspectStr;
-
-    // Print the commanded aspect for debugging
-    // Serial.print("Commanded Aspect: ");
-    // Serial.println(commandedAspect);
 
     // Extract and trim the lit string
     String litStr = payloadStr.substring(separatorIndex1 + 1, separatorIndex2);
@@ -300,7 +288,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     // Check if the signal mast should be unlit
     if (litStr == "Unlit") {
-        // Turn off all heads
+        // Turn off all heads of the specific signal mast
         for (int i = 0; i < signalMasts[mastNumber].numPixels(); i++) {
             signalMasts[mastNumber].setPixelColor(i, 0);
         }

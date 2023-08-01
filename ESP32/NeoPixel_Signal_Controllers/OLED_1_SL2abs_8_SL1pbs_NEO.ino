@@ -3,7 +3,7 @@
   Project: ESP32 based WiFi/MQTT enabled (1) Double Searchlight High Absolute and (8) Single Searchlight High Permissive signal Neopixel Node
   (9 signal mast outputs / 10 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.1.4
+  Version: 1.1.5
   Date: 2023-08-01
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 9 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
@@ -11,32 +11,33 @@
 */
 
 // Include necessary libraries
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <WiFi.h>
-#include <PubSubClient.h>
-#include <Adafruit_NeoPixel.h>
-#include <map>
-#include <string>
-#include <ArduinoOTA.h>
+#include <Wire.h>              // Library for ESP32 I2C connection  https://github.com/esp8266/Arduino/tree/master/libraries/Wire
+#include <Adafruit_GFX.h>      // Library for Adafruit displays     https://github.com/adafruit/Adafruit-GFX-Library
+#include <Adafruit_SSD1306.h>  // Library for Monochrome OLEDs      https://github.com/adafruit/Adafruit_SSD1306
+#include <WiFi.h>              // Library for WiFi connection       https://github.com/espressif/arduino-esp32/tree/master/libraries/WiFi
+#include <PubSubClient.h>      // Library for MQTT                  https://github.com/knolleary/pubsubclient
+#include <Adafruit_NeoPixel.h> // Library for Adafruit Neopixels    https://github.com/adafruit/Adafruit_NeoPixel
+#include <map>                 // Library for std::map              https://en.cppreference.com/w/cpp/container/map
+#include <string>              // Library for std::basic_string     https://en.cppreference.com/w/cpp/string/basic_string      
+#include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
 const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
 const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
+
 // MQTT configuration
-const char* MQTT_SERVER = "129.213.106.87";
-const int MQTT_PORT = 1883;
+const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
+const int MQTT_PORT = 1883;                                   // MQTT server port
 
 // Instantiate MQTT client
-WiFiClient espClient;
-PubSubClient client(espClient);
+WiFiClient espClient;                                         // Create a WiFi client
+PubSubClient client(espClient);                               // Create an MQTT client using the WiFi client
 
 const int SCREEN_WIDTH = 128; // OLED display width, in pixels
 const int SCREEN_HEIGHT = 64; // OLED display height, in pixels
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-const int OLED_RESET = -1;
+const int OLED_RESET = -1; // Reset pin # (or -1 if sharing ESP32 reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define the GPIO pins for the Neopixels in ascending order
@@ -59,6 +60,10 @@ Adafruit_NeoPixel signalMasts[9] = {
 String NodeID = "11-SMC2"; // Node identifier
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
+// Variables to track NodeID and IP address
+String previousNodeID = "";                                 // Previous NodeID value
+String previousIPAddress = "";                              // Previous IP address value
+
 // Global variables to track the last received signal mast number and commanded aspect
 int mastNumber = -1;
 String commandedAspect = "";
@@ -74,14 +79,14 @@ void reconnectMQTT();
 void updateDisplay();
 
 // Define the signal aspects and lookup tables
-const uint32_t RED = signalMasts[0].Color(252, 15, 80);
-const uint32_t YELLOW = signalMasts[0].Color(254, 229, 78);
-const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);
+const uint32_t RED = signalMasts[0].Color(252, 15, 80);        // RED color
+const uint32_t YELLOW = signalMasts[0].Color(254, 229, 78);    // YELLOW color
+const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);     // GREEN color
 
 // Struct to represent signal mast aspect
 struct Aspect {
-    uint32_t head1; // Color of the first Neopixel
-    uint32_t head2; // Color of the second Neopixel (optional)
+    uint32_t head1;                                            // Color of the first Neopixel
+    uint32_t head2;                                            // Color of the second Neopixel (optional)
 };
 
 // Lookup table for double head absolute signal mast aspects
@@ -113,65 +118,65 @@ void setupHostname() {
 }
 
 void setup() {
-    // Initialize serial communication
-    Serial.begin(115200);
-    delay(10);
-    Serial.println("Setup started");
+  // Initialize serial communication
+  Serial.begin(115200);
+  delay(10);
+  Serial.println("Setup started");
 
-    // Initialize WiFi and connect to the network
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.println("Connecting to WiFi...");
-    }
-    setupHostname(); // Set the hostname before connecting to MQTT
+  // Initialize WiFi and connect to the network
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.println("Connecting to WiFi...");
+  }
+  setupHostname(); // Set the hostname before connecting to MQTT
 
-    // Display the hostname
-    Serial.print("Hostname: ");
-    Serial.println(WiFi.getHostname());
+  // Display the hostname
+  Serial.print("Hostname: ");
+  Serial.println(WiFi.getHostname());
+  
+  Serial.println("Connected to WiFi");
+  Serial.println("IP address: " + WiFi.localIP().toString()); // Display IP address
 
-    Serial.println("Connected to WiFi");
-    Serial.println("IP address: " + WiFi.localIP().toString()); // Display IP address
+  // Initialize OTA
+  ArduinoOTA.onStart([]() {
+    Serial.println("Starting OTA update...");
+  });
 
-    // Initialize OTA
-    ArduinoOTA.onStart([]() {
-        Serial.println("Starting OTA update...");
-    });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nOTA update complete.");
+  });
 
-    ArduinoOTA.onEnd([]() {
-        Serial.println("\nOTA update complete.");
-    });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("OTA Progress: %u%%\r", (progress / (total / 100)));
+  });
 
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("OTA Progress: %u%%\r", (progress / (total / 100)));
-    });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR)
+      Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR)
+      Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR)
+      Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR)
+      Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR)
+      Serial.println("End Failed");
+  });
 
-    ArduinoOTA.onError([](ota_error_t error) {
-        Serial.printf("Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR)
-            Serial.println("Auth Failed");
-        else if (error == OTA_BEGIN_ERROR)
-            Serial.println("Begin Failed");
-        else if (error == OTA_CONNECT_ERROR)
-            Serial.println("Connect Failed");
-        else if (error == OTA_RECEIVE_ERROR)
-            Serial.println("Receive Failed");
-        else if (error == OTA_END_ERROR)
-            Serial.println("End Failed");
-    });
+  // Set password for OTA updates
+  ArduinoOTA.setPassword("TMRCI");
 
-    // Set password for OTA updates
-    ArduinoOTA.setPassword("TMRCI");
+  // Start OTA service
+  ArduinoOTA.begin();
+  Serial.println("OTA Initialized. Waiting for OTA updates...");
 
-    // Start OTA service
-    ArduinoOTA.begin();
-    Serial.println("OTA Initialized. Waiting for OTA updates...");
-
-    // Connect to the MQTT broker
-    client.setServer(MQTT_SERVER, MQTT_PORT);
-    client.setCallback(callback);
-    reconnectMQTT();
-    Serial.println("Connected to MQTT");
+  // Connect to the MQTT broker
+  client.setServer(MQTT_SERVER, MQTT_PORT);
+  client.setCallback(callback);
+  reconnectMQTT();
+  Serial.println("Connected to MQTT");
 
     // Initialize each Neopixel signal mast with a stop signal
     for (int i = 0; i < 9; i++) {
@@ -188,15 +193,14 @@ void setup() {
         signalMasts[i].show(); // Display the set colors
     }
 
-    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
-        Serial.println(F("SSD1306 allocation failed"));
-        for (;;)
-            ;
-        // Don't proceed, loop forever
-    }
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); 
+    // Don't proceed, loop forever
+  }
 
     // Initial update of the display
-    updateDisplay(""); // Provide an empty string as the default argument for aspectStr
+    updateDisplay();
 }
 
 void loop() {
@@ -249,7 +253,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Extract the signal mast number from the topic
     mastNumber = topic[strlen(topic) - 1] - '0';
 
-    // Add debug print statements
     Serial.print("Received message for SM");
     Serial.print(mastNumber);
     Serial.print(" with payload: ");
@@ -268,9 +271,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     aspectStr = payloadStr.substring(0, separatorIndex1);
     aspectStr.trim();
 
-    // Update commandedAspect variable with aspectStr
-    commandedAspect = aspectStr;
-
     // Extract and trim the lit string
     String litStr = payloadStr.substring(separatorIndex1 + 1, separatorIndex2);
     litStr.trim();
@@ -286,7 +286,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     mastNumber -= 1; // Convert 1-based SM number to 0-based index
 
     // Check if the signal mast should be unlit
-    if (payloadStr == "Unlit") {
+    if (litStr == "Unlit") {
         // Turn off all the Neopixels of the specified mast
         signalMasts[mastNumber].setPixelColor(0, 0);
         if (signalMasts[mastNumber].numPixels() > 1) {
@@ -303,7 +303,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Check if the signal mast should be held
     if (payloadStr.indexOf("Held") != -1) {
         // Set aspect to stop for SM1 and to 'Stop and Proceed' for SM2-SM9
-        if (mastNumber == 0) {
+        if (mastNumber == 1) {
             aspectStr = "Stop";
         } else {
             aspectStr = "Stop and Proceed";
@@ -326,13 +326,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
 
     // Display the updated colors
-    signalMasts[mastNumber].show();
+    signalMasts[mastNumber].show(); // Convert 1-based SM number to 0-based index
 
     // Update display if NodeID or IP address changed
-    updateDisplay(aspectStr); // Update the display with the received aspect
+    updateDisplay();
 }
 
-void updateDisplay(const String& aspectStr) {
+void updateDisplay() {
     // Clear the display
     display.clearDisplay();
 
@@ -349,7 +349,7 @@ void updateDisplay(const String& aspectStr) {
     display.println("IP Address");
     display.println(WiFi.localIP().toString());
 
-    // Display the signal mast number (SM1-SM7) and the commanded aspect of the last received message
+    // Display the signal mast number (SM1-SM8) and the commanded aspect of the last received message
     display.print("SM");
     display.print(mastNumber + 1); // Convert 0-based index back to 1-based SM number
     display.print(": ");

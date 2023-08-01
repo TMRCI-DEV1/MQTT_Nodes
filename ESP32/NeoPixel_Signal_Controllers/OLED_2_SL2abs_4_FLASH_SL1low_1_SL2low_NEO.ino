@@ -3,8 +3,8 @@
   Project: ESP32 based WiFi/MQTT enabled (2) Double Searchlight High Absolute, (4) Single Head Dwarf, and (1) Double Head Dwarf signal Neopixel Node
   (7 signal mast outputs / 10 Neopixel Signal Heads). Sketch includes 'Flashing Yellow' indication for Single Head Dwarf masts.
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.4
-  Date: 2023-07-31
+  Version: 1.0.5
+  Date: 2023-08-01
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 7 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -24,6 +24,7 @@
 // Network configuration
 const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
 const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
+
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
 const int MQTT_PORT = 1883;                                   // MQTT server port
@@ -40,10 +41,10 @@ const int OLED_RESET = -1; // Reset pin # (or -1 if sharing ESP32 reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define the GPIO pins for the Neopixels in ascending order
-const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};
+const int neoPixelPins[7] = {4, 16, 17, 18, 19, 23, 13};
 
 // Define the Neopixel chains and signal masts
-Adafruit_NeoPixel signalMasts[7] = {                             // Array of Neopixels, one for each signal mast
+Adafruit_NeoPixel signalMasts[7] = {
     Adafruit_NeoPixel(2, neoPixelPins[0], NEO_GRB + NEO_KHZ800), // SM1 (double head absolute)
     Adafruit_NeoPixel(2, neoPixelPins[1], NEO_GRB + NEO_KHZ800), // SM2 (double head absolute)
     Adafruit_NeoPixel(1, neoPixelPins[2], NEO_GRB + NEO_KHZ800), // SM3 (single head dwarf)
@@ -195,7 +196,7 @@ void setup() {
   reconnectMQTT();
   Serial.println("Connected to MQTT");
 
-  // Initialize each Neopixel signal mast with a stop signal or turn off based on mast type
+  // Initialize each Neopixel signal mast with a stop signal
   for (int i = 0; i < 7; i++) {
     signalMasts[i].begin();
     signalMasts[i].setBrightness(255); // Set brightness
@@ -257,7 +258,29 @@ void loop() {
     }
 }
 
+void reconnectMQTT() {
+    // Attempt to reconnect to both WiFi and MQTT
+    while (!client.connected()) {
+        Serial.println("Attempting to connect to WiFi...");
+        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+        while (WiFi.status() != WL_CONNECTED) {
+            delay(500);
+            Serial.println("Connecting to WiFi...");
+        }
+        setupHostname(); // Set the hostname before connecting to MQTT
 
+        Serial.println("Connected to WiFi");
+
+        Serial.println("Attempting to connect to MQTT...");
+        if (client.connect(NodeID.c_str())) {
+            client.subscribe((mqttTopic + "+").c_str()); // Subscribe to topics for all signal masts
+            Serial.println("Connected to MQTT");
+        } else {
+            Serial.println("MQTT connection failed. Retrying in 5 seconds...");
+            delay(5000);
+        }
+    }
+}
 
 void callback(char* topic, byte* payload, unsigned int length) {
     // Create a char array for null-termination of the payload
@@ -273,15 +296,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Extract the signal mast number from the topic
     mastNumber = topic[strlen(topic) - 1] - '0';
 
-    // Add debug print statements
     Serial.print("Received message for SM");
     Serial.print(mastNumber);
     Serial.print(" with payload: ");
     Serial.println(payloadStr);
-    // Serial.print("Aspect: ");
-    // Serial.println(aspectStr);
-    // Serial.print("Commanded Aspect: ");
-    // Serial.println(commandedAspect);
 
     // Parse the payload into aspect, lit, and held strings
     int separatorIndex1 = payloadStr.indexOf(';');
@@ -296,17 +314,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     aspectStr = payloadStr.substring(0, separatorIndex1);
     aspectStr.trim();
 
-    // Print the received aspect for debugging
-    // Serial.print("Aspect: ");
-    // Serial.println(aspectStr);
-
-    // Update commandedAspect variable with aspectStr
-    commandedAspect = aspectStr;
-
-    // Print the commanded aspect for debugging
-    // Serial.print("Commanded Aspect: ");
-    // Serial.println(commandedAspect);
-
     // Extract and trim the lit string
     String litStr = payloadStr.substring(separatorIndex1 + 1, separatorIndex2);
     litStr.trim();
@@ -315,7 +322,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String heldStr = payloadStr.substring(separatorIndex2 + 1);
     heldStr.trim();
 
-    if (mastNumber < 1 || mastNumber > 7) {
+    if (mastNumber < 1 || mastNumber > 9) {
         Serial.println("Error: Invalid mast number.");
         return;
     }
@@ -342,7 +349,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     std::string aspectKey = aspectStr.c_str();
 
     // Set the colors based on the aspect if it exists in the lookup table
-    if (mastNumber < 2 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
+    if (mastNumber >= 0 && mastNumber < 2 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
         // Double head absolute signal mast
         const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
         signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
@@ -351,14 +358,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
     } else if (mastNumber >= 2 && mastNumber < 6 && singleHeadDwarfSignalLookup.count(aspectKey)) {
         // Single head dwarf signal mast
         const Aspect& aspect = singleHeadDwarfSignalLookup.at(aspectKey);
-
-    // Check if the signal mast should be flashing yellow
+    
+        // Check if the signal mast should be flashing yellow
         if (aspectStr == "Flashing Yellow") {
             isFlashingYellow[mastNumber] = true;
         } else {
             isFlashingYellow[mastNumber] = false;
         }
-
+    
         // Flashing Yellow aspect
         if (heldStr == "Unheld") {
             // If the aspect is currently "Flashing Yellow" and the "Unheld" state is received, continue flashing
@@ -410,7 +417,7 @@ void updateDisplay() {
     display.println("IP Address");
     display.println(WiFi.localIP().toString());
 
-    // Display the signal mast number (SM1-SM7) and the commanded aspect of the last received message
+    // Display the signal mast number (SM1-SM8) and the commanded aspect of the last received message
     display.print("SM");
     display.print(mastNumber + 1); // Convert 0-based index back to 1-based SM number
     display.print(": ");

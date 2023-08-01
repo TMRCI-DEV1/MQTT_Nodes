@@ -24,6 +24,7 @@
 // Network configuration
 const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
 const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
+
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
 const int MQTT_PORT = 1883;                                   // MQTT server port
@@ -315,28 +316,34 @@ void callback(char* topic, byte* payload, unsigned int length) {
         // Set aspect to 'Stop' for all mast types
         aspectStr = "Stop";
     }
-    
+
     // Convert aspectStr from String to std::string
     std::string aspectKey = aspectStr.c_str();
 
     // Set the colors based on the aspect if it exists in the lookup table
-    if (mastNumber < 2 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
+    if (mastNumber < 2) {
         // Double head absolute signal mast
-        const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
-        signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
-        signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
-        signalMasts[mastNumber].show();
-    } else if (mastNumber >= 2 && mastNumber < 6 && singleSearchlightHighAbsoluteLookup.count(aspectKey)) {
+        if (doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
+            const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
+            signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
+            signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
+            signalMasts[mastNumber].show();
+        }
+    } else if (mastNumber >= 2 && mastNumber < 6) {
         // Single head absolute signal mast
-        const Aspect& aspect = singleSearchlightHighAbsoluteLookup.at(aspectKey);
-        signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
-        signalMasts[mastNumber].show();
-    } else if (mastNumber == 6 && doubleHeadDwarfSignalLookup.count(aspectKey)) {
+        if (singleSearchlightHighAbsoluteLookup.count(aspectKey)) {
+            const Aspect& aspect = singleSearchlightHighAbsoluteLookup.at(aspectKey);
+            signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
+            signalMasts[mastNumber].show();
+        }
+    } else {
         // Double head dwarf signal mast
-        const Aspect& aspect = doubleHeadDwarfSignalLookup.at(aspectKey);
-        signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
-        signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
-        signalMasts[mastNumber].show();
+        if (doubleHeadDwarfSignalLookup.count(aspectKey)) {
+            const Aspect& aspect = doubleHeadDwarfSignalLookup.at(aspectKey);
+            signalMasts[mastNumber].setPixelColor(0, aspect.head1 & 0xFF, (aspect.head1 >> 8) & 0xFF, (aspect.head1 >> 16) & 0xFF);
+            signalMasts[mastNumber].setPixelColor(1, aspect.head2 & 0xFF, (aspect.head2 >> 8) & 0xFF, (aspect.head2 >> 16) & 0xFF);
+            signalMasts[mastNumber].show();
+        }
     }
 
     // Update display if NodeID or IP address changed
