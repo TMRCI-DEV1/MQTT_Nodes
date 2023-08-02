@@ -22,8 +22,8 @@
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
-const char* WIFI_SSID = "MyAltice 976DFF";                    // WiFi SSID
-const char* WIFI_PASSWORD = "lemon.463.loud";                 // WiFi Password
+const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
+const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
 
 // MQTT configuration
 const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
