@@ -41,7 +41,7 @@ const int OLED_RESET = -1; // Reset pin # (or -1 if sharing ESP32 reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define the GPIO pins for the Neopixels in ascending order
-const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};
+const int neoPixelPins[7] = {16, 17, 18, 19, 23, 13, 14};
 
 // Define the Neopixel chains and signal masts
 Adafruit_NeoPixel signalMasts[7] = {                             // Array of Neopixels, one for each signal mast
