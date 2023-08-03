@@ -1,9 +1,10 @@
 /*
+  Aisle-Node: 08-SMC2
   Project: ESP32 based WiFi/MQTT enabled (4) Double Searchlight High Absolute and (4) Single Searchlight High Permissive signal Neopixel Node
   (8 signal mast outputs / 12 Neopixel Signal Heads)
   Author: Thomas Seitz (thomas.seitz@tmrci.org)
-  Version: 1.0.9
-  Date: 2023-07-21
+  Version: 1.1.0
+  Date: 2023-08-03
   Description: This sketch is designed for an OTA-enabled ESP32 Node with 8 signal mast outputs, using MQTT to subscribe to messages published by JMRI.
   The expected incoming subscribed messages are for JMRI Signal Mast objects, and the expected message payload format is 'Aspect; Lit (or Unlit); Unheld (or Held)'.
   NodeID and IP address displayed on attached 128×64 OLED display. NodeID is also the ESP32 host name for easy network identification.
@@ -17,7 +18,7 @@
 #include <PubSubClient.h>      // Library for MQTT                  https://github.com/knolleary/pubsubclient
 #include <Adafruit_NeoPixel.h> // Library for Adafruit Neopixels    https://github.com/adafruit/Adafruit_NeoPixel
 #include <map>                 // Library for std::map              https://en.cppreference.com/w/cpp/container/map
-#include <string>              // Library for std::basic_string     https://en.cppreference.com/w/cpp/string/basic_string 
+#include <string>              // Library for std::basic_string     https://en.cppreference.com/w/cpp/string/basic_string      
 #include <ArduinoOTA.h>        // Library for OTA updates           https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 // Network configuration
@@ -25,7 +26,7 @@ const char* WIFI_SSID = "WiFi_SSID";                          // WiFi SSID
 const char* WIFI_PASSWORD = "WiFi_Password";                  // WiFi Password
 
 // MQTT configuration
-const char* MQTT_SERVER = "MQTT_Broker";                      // MQTT server address
+const char* MQTT_SERVER = "129.213.106.87";                   // MQTT server address
 const int MQTT_PORT = 1883;                                   // MQTT server port
 
 // Instantiate MQTT client
@@ -40,7 +41,7 @@ const int OLED_RESET = -1; // Reset pin # (or -1 if sharing ESP32 reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // Define the GPIO pins for the Neopixels in ascending order
-const int neoPixelPins[7] = {16, 17, 18, 19, 23, 32, 33};             
+const int neoPixelPins[8] = {4, 16, 17, 18, 19, 23, 13, 14};        
 
 // Define the Neopixel chains and signal masts
 Adafruit_NeoPixel signalMasts[8] = {
@@ -50,28 +51,36 @@ Adafruit_NeoPixel signalMasts[8] = {
     Adafruit_NeoPixel(2, neoPixelPins[3], NEO_GRB + NEO_KHZ800), // SM4 (double head absolute)
     Adafruit_NeoPixel(1, neoPixelPins[4], NEO_GRB + NEO_KHZ800), // SM5 (single head permissive)
     Adafruit_NeoPixel(1, neoPixelPins[5], NEO_GRB + NEO_KHZ800), // SM6 (single head permissive)
-    Adafruit_NeoPixel(2, neoPixelPins[6], NEO_GRB + NEO_KHZ800), // SM7 (doubled with SM8) (single head permissive)
-    Adafruit_NeoPixel(1, neoPixelPins[7], NEO_GRB + NEO_KHZ800)  // SM8 (doubled with SM7) (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[6], NEO_GRB + NEO_KHZ800), // SM7 (single head permissive)
+    Adafruit_NeoPixel(1, neoPixelPins[7], NEO_GRB + NEO_KHZ800)  // SM8 (single head permissive)
 };
 
 // Define the NodeID and MQTT topic
-String NodeID = "10-SMC1";                                    // Node identifier
+String NodeID = "08-SMC2";                                    // Node identifier
 String mqttTopic = "TMRCI/output/" + NodeID + "/signalmast/"; // Base MQTT topic
 
 // Variables to track NodeID and IP address
 String previousNodeID = "";                                 // Previous NodeID value
-String previousIPAddress = "";                              // Previous IP address value                             
+String previousIPAddress = "";                              // Previous IP address value
+
+// Global variables to track the last received signal mast number and commanded aspect
+int mastNumber = -1;
+String commandedAspect = "";
+
+// Global variable to track the aspect received in the last MQTT message
+String aspectStr = "";
+
+unsigned long ipDisplayStartTime = 0;
 
 // Function Prototypes
 void callback(char* topic, byte* payload, unsigned int length);
 void reconnectMQTT();
-void reconnectWiFi();
 void updateDisplay();
 
 // Define the signal aspects and lookup tables
 const uint32_t RED = signalMasts[0].Color(252, 15, 80);        // RED color
 const uint32_t YELLOW = signalMasts[0].Color(254, 229, 78);    // YELLOW color
-const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);     // GREEN color   
+const uint32_t GREEN = signalMasts[0].Color(59, 244, 150);     // GREEN color
 
 // Struct to represent signal mast aspect
 struct Aspect {
@@ -168,77 +177,66 @@ void setup() {
   reconnectMQTT();
   Serial.println("Connected to MQTT");
 
-    // Initialize each Neopixel signal mast with a stop signal
-    for (int i = 0; i < 8; i++) {
-        signalMasts[i].begin();
-        signalMasts[i].setBrightness(255);                    
-    
+  // Initialize each Neopixel signal mast with a red color
+  for (int i = 0; i < 8; i++) {
+    signalMasts[i].begin();
+    signalMasts[i].setBrightness(255);
+
     if (i < 4) {
-        // For masts 1-4 (double head absolute signal mast)
-        signalMasts[i].setPixelColor(0, RED); // Set first head as RED
-        signalMasts[i].setPixelColor(1, RED); // Set second head as RED           
-        } else if (i < 6) {
-        // For masts 5-6 (single head permissive signal masts)
-        signalMasts[i].setPixelColor(0, RED); // Set head as RED     
-        } else if (i == 6) {
-        // For mast 7 (first head of doubled mast with SM8)
-        signalMasts[i].setPixelColor(0, RED); // Set first head as RED        
-        signalMasts[i].setPixelColor(1, RED); // Set second head as RED         
-        } else if (i == 7) {
-        // For mast 8 (second head of doubled mast with SM7)
-        signalMasts[i].setPixelColor(0, RED); // Set head as RED        
-        }
-        
-    signalMasts[i].show(); // Display the set colors                              
+      // For masts 1-4 (double head absolute signal mast)
+      signalMasts[i].setPixelColor(0, RED); // Set first head as RED
+      signalMasts[i].setPixelColor(1, RED); // Set second head as RED
+    } else {
+      // For masts 5-8 (single head permissive signal masts)
+      signalMasts[i].setPixelColor(0, RED); // Set head as RED
     }
+
+    signalMasts[i].show(); // Display the set colors
+  }
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
     Serial.println(F("SSD1306 allocation failed"));
-    for (;;); 
+    for (;;);
     // Don't proceed, loop forever
   }
 
-    // Initial update of the display
-    updateDisplay();
+  // Initial update of the display
+  updateDisplay();
 }
 
 void loop() {
-  ArduinoOTA.handle(); // Handle OTA updates
-  
-    // Reconnect to WiFi if connection lost
-    if (WiFi.status() != WL_CONNECTED) {
-        reconnectWiFi();
-        updateDisplay();
-    }
+    ArduinoOTA.handle(); // Handle OTA updates
 
     // Reconnect to MQTT server if connection lost
     if (!client.connected()) {
         reconnectMQTT();
-        updateDisplay();
+    } else {
+        // If connected, handle MQTT messages
+        client.loop();
     }
-
-    client.loop();                                            // Run MQTT loop to handle incoming messages
 }
 
 void reconnectMQTT() {
-    // Attempt to reconnect to MQTT
+    // Attempt to reconnect to both WiFi and MQTT
     while (!client.connected()) {
-        Serial.println("Attempting to connect to MQTT...");
-        if (client.connect(NodeID.c_str())) {
-            client.subscribe((mqttTopic + "+").c_str());      // Subscribe to topics for all signal masts
-            Serial.println("Connected to MQTT");
-        } else {
-            delay(5000);
-        }
-    }
-}
-
-void reconnectWiFi() {
-    // Attempt to reconnect to WiFi
-    while (WiFi.status() != WL_CONNECTED) {
         Serial.println("Attempting to connect to WiFi...");
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-        delay(5000);
+        while (WiFi.status() != WL_CONNECTED) {
+            delay(500);
+            Serial.println("Connecting to WiFi...");
+        }
+        setupHostname(); // Set the hostname before connecting to MQTT
+
+        Serial.println("Connected to WiFi");
+
+        Serial.println("Attempting to connect to MQTT...");
+        if (client.connect(NodeID.c_str())) {
+            client.subscribe((mqttTopic + "+").c_str()); // Subscribe to topics for all signal masts
+            Serial.println("Connected to MQTT");
+        } else {
+            Serial.println("MQTT connection failed. Retrying in 5 seconds...");
+            delay(5000);
+        }
     }
 }
 
@@ -254,7 +252,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String payloadStr(message);
 
     // Extract the signal mast number from the topic
-    int mastNumber = topic[strlen(topic) - 1] - '0';
+    mastNumber = topic[strlen(topic) - 1] - '0';
 
     Serial.print("Received message for SM");
     Serial.print(mastNumber);
@@ -271,7 +269,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
 
     // Extract and trim the aspect string
-    String aspectStr = payloadStr.substring(0, separatorIndex1);
+    aspectStr = payloadStr.substring(0, separatorIndex1);
     aspectStr.trim();
 
     // Extract and trim the lit string
@@ -282,13 +280,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     String heldStr = payloadStr.substring(separatorIndex2 + 1);
     heldStr.trim();
 
-    int pixelIndex = 0;
-
-    if (mastNumber == 8) {
-        mastNumber = 7; // adjust to 7 if the mast number was 8
-        pixelIndex = 1; // set to the second pixel
-    }
-
     if (mastNumber < 1 || mastNumber > 8) {
         Serial.println("Error: Invalid mast number.");
         return;
@@ -298,7 +289,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Check if the signal mast should be unlit
     if (litStr == "Unlit") {
         // Turn off the specified head
-        signalMasts[mastNumber].setPixelColor(pixelIndex, 0);
+        if (mastNumber <= 3) {
+            // For masts 1-4 (double head absolute signal mast)
+            signalMasts[mastNumber].setPixelColor(0, 0); // Set first head off
+            signalMasts[mastNumber].setPixelColor(1, 0); // Set second head off
+        } else {
+            // For masts 5-8 (single head permissive signal masts)
+            signalMasts[mastNumber].setPixelColor(0, 0); // Set head off
+        }
         signalMasts[mastNumber].show();
         return;
     }
@@ -317,7 +315,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     std::string aspectKey = aspectStr.c_str();
 
     // Set the colors based on the aspect if it exists in the lookup table
-    if (mastNumber < 4 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
+    if (mastNumber >= 0 && mastNumber <= 3 && doubleSearchlightHighAbsoluteLookup.count(aspectKey)) {
         // Double head absolute signal masts (mast numbers 1 to 4)
         const Aspect& aspect = doubleSearchlightHighAbsoluteLookup.at(aspectKey);
         signalMasts[mastNumber].setPixelColor(0, aspect.head1);
@@ -335,28 +333,57 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 void updateDisplay() {
-    // Check if NodeID or IP address changed
-    if (NodeID != previousNodeID || WiFi.localIP().toString() != previousIPAddress) {
-        // Update NodeID and IP address
-        previousNodeID = NodeID;
-        previousIPAddress = WiFi.localIP().toString();
+    // Clear the display
+    display.clearDisplay();
 
-        // Clear the display
-        display.clearDisplay();
+    // Display "NodeID" with larger text
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 0);
+    display.println("NodeID");
+    display.setTextSize(2); // Increase the text size for the NodeID
+    display.println(NodeID);
 
-        // Display "NodeID" with larger text
-        display.setTextSize(2);
-        display.setTextColor(WHITE);
-        display.setCursor(0, 0);
-        display.println("NodeID");
-        display.setTextSize(3); // Increase the text size for the NodeID
-        display.println(NodeID);
+    // Display "IP Address" with smaller text
+    display.setTextSize(1); // Set text size to 1
+    display.println("IP Address");
+    display.println(WiFi.localIP().toString());
 
-        // Display "IP Address" with smaller text
-        display.setTextSize(1);
-        display.println("IP Address");
-        display.println(WiFi.localIP().toString());
+    // Display the signal mast number (SM1-SM8) and the commanded aspect of the last received message
+    display.print("SM");
+    display.print(mastNumber + 1); // Convert 0-based index back to 1-based SM number
+    display.print(": ");
 
-        display.display();
+    // Use the global variable 'aspectStr'
+    int aspectLength = aspectStr.length();
+    int startIndex = 0;
+    int endIndex = 0;
+    int line = 0;
+
+    while (startIndex < aspectLength) {
+        int charsRemaining = aspectLength - startIndex;
+        int maxCharsInLine = min(16, charsRemaining);
+
+        endIndex = startIndex + maxCharsInLine;
+
+        // Check if we need to find the last space to avoid splitting words
+        while (endIndex < aspectLength && aspectStr[endIndex] != ' ') {
+            endIndex--;
+        }
+
+        // Print the line
+        display.println(aspectStr.substring(startIndex, endIndex));
+
+        // Update the start index for the next line
+        startIndex = endIndex + 1;
+
+        line++;
+        if (line >= 2) {
+            // Maximum lines exceeded, exit the loop
+            break;
+        }
     }
+
+    // Show the display
+    display.display();
 }
